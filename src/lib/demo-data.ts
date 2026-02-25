@@ -1,0 +1,31 @@
+import type { PolisData } from "./types";
+
+export const demoPolisData: PolisData = {
+  naam: "C.J.J. Gobel",
+  adres: "Amsteldijk Zuid 107",
+  postcode: "1186VH",
+  woonplaats: "AMSTELVEEN",
+  polisnummer: "6494572-315-400",
+  verzekeraar: "OHRA",
+  type: "Inboedelverzekering",
+  dekking: "Extra Uitgebreid / All Risk",
+  voorwaarden: "INB2207",
+  jaarpremie: 173.88,
+  maandpremie: 17.53,
+  eigenRisico: "€ 250 (storm/neerslag/stortbui)",
+  ingangsdatum: "01-08-2014",
+  verlengingsdatum: "01-08-2025",
+  opzegtermijn: "Dagelijks opzegbaar",
+  gezin: "Gezin / samenwonend",
+  woning: "Vrijstaand, Eigendom",
+  bouwaard: "Steen/Hout, Pannen dak",
+  oppervlakte: "264 m²",
+  dekkingen: [
+    { rubriek: "Huisraad", diefstal: "Waardegarantie", anders: "Waardegarantie" },
+    { rubriek: "Audio/computer", diefstal: "€ 15.000", anders: "Waardegarantie" },
+    { rubriek: "Kunst en antiek", diefstal: "€ 15.000", anders: "Waardegarantie" },
+    { rubriek: "Lijfsieraden", diefstal: "€ 6.000", anders: "Waardegarantie" },
+    { rubriek: "Instrumenten", diefstal: "€ 15.000", anders: "Waardegarantie" },
+    { rubriek: "Bijzondere verzamelingen", diefstal: "€ 15.000", anders: "Waardegarantie" },
+  ],
+};

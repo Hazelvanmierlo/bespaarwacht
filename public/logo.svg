@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 50" fill="none">
+  <!-- Shield icon -->
+  <rect x="4" y="4" width="38" height="38" rx="8" fill="#16A34A"/>
+  <path d="M23 12C23 12 15 15 15 15V24C15 30 23 34 23 34C23 34 31 30 31 24V15L23 12Z" stroke="white" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M20 24L23 28L26 20" stroke="white" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+  <!-- Down arrow overlay on shield -->
+  <path d="M23 19V27M20 24L23 27L26 24" stroke="white" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round" opacity="0"/>
+  
+  <!-- Text: Bespaar -->
+  <text x="50" y="32" font-family="serif" font-weight="700" font-size="24" letter-spacing="-0.5" fill="#0F2137">Bespaar</text>
+  <!-- Text: Wacht -->
+  <text x="133" y="32" font-family="serif" font-weight="700" font-size="24" letter-spacing="-0.5" fill="#16A34A">Wacht</text>
+</svg>
