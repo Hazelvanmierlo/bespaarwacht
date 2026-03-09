@@ -6,14 +6,19 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "scrape:live": "npx tsx --env-file=.env.local scripts/run-and-save.ts"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.78.0",
     "@auth/supabase-adapter": "^1.11.1",
     "@supabase/supabase-js": "^2.97.0",
+    "@vercel/kv": "^3.0.0",
     "bcryptjs": "^3.0.3",
     "next": "16.1.6",
     "next-auth": "^5.0.0-beta.30",
+    "pdf-parse": "^2.4.5",
+    "pdfjs-dist": "^5.5.207",
     "react": "19.2.3",
     "react-dom": "19.2.3"
   },

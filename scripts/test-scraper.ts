@@ -15,10 +15,9 @@ async function main() {
     const result = await scrapeInShared(addr);
     console.log(`  Status: ${result.status}`);
     if (result.status === "success") {
-      console.log(`  ✅ Inboedel:           € ${result.premieStandaard?.toFixed(2)}/mnd`);
-      console.log(`  ✅ Inboedel + Compleet: € ${result.premieCompleet?.toFixed(2)}/mnd`);
-      console.log(`  ✅ Opstal:             € ${result.premieOpstal?.toFixed(2)}/mnd`);
-      console.log(`  ✅ Totaal maandbedrag:  € ${result.premieTotaal?.toFixed(2)}/mnd`);
+      console.log(`  ✅ Premie: € ${result.premie?.toFixed(2)}/mnd`);
+      console.log(`  ✅ Dekking: ${result.dekking}`);
+      console.log(`  ✅ Eigen risico: ${result.eigenRisico}`);
       console.log(`  Duur: ${result.duration_ms}ms`);
       break;
     } else {

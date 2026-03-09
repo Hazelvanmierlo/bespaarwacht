@@ -29,6 +29,11 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
+debug-*.png
+scripts/debug-*.ts
+scripts/debug-*.png
+test-polis.pdf
+scripts/create-test-pdf.js
 
 # env files (can opt-in for committing if needed)
 .env*
@@ -39,3 +44,6 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+.vercel
+.env*.local

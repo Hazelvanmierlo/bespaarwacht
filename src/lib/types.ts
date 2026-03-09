@@ -43,6 +43,9 @@ export interface PolisData {
   woning: string;
   bouwaard: string;
   oppervlakte: string;
+  huisnummer: string;
+  geboortedatum: string;
+  eigenaar: string;
   dekkingen: Dekking[];
 }
 

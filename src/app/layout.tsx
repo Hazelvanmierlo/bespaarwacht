@@ -3,6 +3,7 @@ import { Fraunces, DM_Sans } from "next/font/google";
 import Providers from "@/components/providers";
 import Nav from "@/components/nav";
 import Footer from "@/components/footer";
+import { WhatsAppFloat } from "@/components/WhatsAppFloat";
 import "./globals.css";
 
 const fraunces = Fraunces({
@@ -40,6 +41,7 @@ export default function RootLayout({
           <Nav />
           <main className="pt-16">{children}</main>
           <Footer />
+          <WhatsAppFloat />
         </Providers>
       </body>
     </html>

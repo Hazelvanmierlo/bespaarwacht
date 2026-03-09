@@ -1,10 +1,48 @@
-export interface ScraperInput {
+// ── Product types ──
+export type ProductType = "inboedel" | "opstal" | "aansprakelijkheid" | "reis";
+
+// ── Per-product input types ──
+export interface InboedelInput {
   postcode: string;
   woningtype: "vrijstaand" | "tussenwoning" | "hoekwoning" | "appartement";
   oppervlakte: number;
   gezin: "alleenstaand" | "gezin";
   dekking: "basis" | "uitgebreid" | "extra_uitgebreid" | "all_risk";
+  huisnummer?: string;
+  geboortedatum?: string;
+  eigenaar?: boolean;
 }
+
+export interface OpstalInput {
+  postcode: string;
+  woningtype: "vrijstaand" | "tussenwoning" | "hoekwoning" | "appartement";
+  oppervlakte: number;
+  bouwjaar: number;
+  dekking: "basis" | "uitgebreid" | "extra_uitgebreid" | "all_risk";
+  huisnummer?: string;
+  geboortedatum?: string;
+  eigenaar?: boolean;
+}
+
+export interface AansprakelijkheidInput {
+  postcode: string;
+  gezin: "alleenstaand" | "gezin";
+  huisnummer?: string;
+  geboortedatum?: string;
+}
+
+export interface ReisInput {
+  gezin: "alleenstaand" | "paar" | "gezin";
+  doorlopend: boolean;
+  werelddeel: "europa" | "wereld";
+  geboortedatum?: string;
+}
+
+export type ScraperInput =
+  | InboedelInput
+  | OpstalInput
+  | AansprakelijkheidInput
+  | ReisInput;
 
 export interface ScraperResult {
   slug: string;
@@ -14,11 +52,13 @@ export interface ScraperResult {
   eigenRisico?: string;
   duration_ms: number;
   error?: string;
+  source?: "live" | "calculated";
 }
 
 export abstract class BaseScraper {
   abstract slug: string;
   abstract naam: string;
+  abstract productType: ProductType;
 
   async run(input: ScraperInput): Promise<ScraperResult> {
     const start = Date.now();

@@ -1,0 +1,254 @@
+import {
+  BaseScraper,
+  type ScraperInput,
+  type ScraperResult,
+  type InboedelInput,
+  type OpstalInput,
+  type AansprakelijkheidInput,
+  type ReisInput,
+} from "../base";
+import {
+  calculateInboedelPremium,
+  calculateOpstalPremium,
+  calculateAansprakelijkheidPremium,
+  calculateReisPremium,
+  getDekkingLabel,
+} from "../premium-model";
+import type { LiveScraperInput, LiveScraperResult } from "./utils";
+
+type LiveScraperFn = (input: LiveScraperInput) => Promise<LiveScraperResult>;
+
+// ── Inboedel ──
+
+export class LiveInboedelScraper extends BaseScraper {
+  slug: string;
+  naam: string;
+  productType = "inboedel" as const;
+
+  private basePremie: number;
+  private defaultEigenRisico: string;
+  private liveScraper: LiveScraperFn;
+
+  constructor(slug: string, naam: string, basePremie: number, defaultEigenRisico: string, liveScraper: LiveScraperFn) {
+    super();
+    this.slug = slug;
+    this.naam = naam;
+    this.basePremie = basePremie;
+    this.defaultEigenRisico = defaultEigenRisico;
+    this.liveScraper = liveScraper;
+  }
+
+  async run(input: ScraperInput): Promise<ScraperResult> {
+    const start = Date.now();
+    const i = input as InboedelInput;
+
+    if (i.huisnummer) {
+      try {
+        const result = await this.liveScraper({
+          postcode: i.postcode,
+          huisnummer: i.huisnummer,
+          geboortedatum: i.geboortedatum,
+          gezin: i.gezin,
+          eigenaar: i.eigenaar,
+        });
+        if (result.status === "success" && result.premie && result.premie > 0) {
+          return {
+            slug: this.slug, status: "success",
+            premie: result.premie,
+            dekking: result.dekking ?? getDekkingLabel(i.dekking),
+            eigenRisico: result.eigenRisico ?? this.defaultEigenRisico,
+            duration_ms: Date.now() - start, source: "live",
+          };
+        }
+      } catch { /* fallback */ }
+    }
+
+    const premie = calculateInboedelPremium(this.basePremie, i);
+    return {
+      slug: this.slug, status: "success", premie,
+      dekking: getDekkingLabel(i.dekking), eigenRisico: this.defaultEigenRisico,
+      duration_ms: Date.now() - start, source: "calculated",
+    };
+  }
+
+  protected async scrape(input: ScraperInput) {
+    const i = input as InboedelInput;
+    return { premie: calculateInboedelPremium(this.basePremie, i), dekking: getDekkingLabel(i.dekking), eigenRisico: this.defaultEigenRisico };
+  }
+}
+
+// ── Opstal ──
+
+export class LiveOpstalScraper extends BaseScraper {
+  slug: string;
+  naam: string;
+  productType = "opstal" as const;
+
+  private basePremie: number;
+  private defaultEigenRisico: string;
+  private liveScraper: LiveScraperFn;
+
+  constructor(slug: string, naam: string, basePremie: number, defaultEigenRisico: string, liveScraper: LiveScraperFn) {
+    super();
+    this.slug = slug;
+    this.naam = naam;
+    this.basePremie = basePremie;
+    this.defaultEigenRisico = defaultEigenRisico;
+    this.liveScraper = liveScraper;
+  }
+
+  async run(input: ScraperInput): Promise<ScraperResult> {
+    const start = Date.now();
+    const i = input as OpstalInput;
+
+    if (i.huisnummer) {
+      try {
+        const result = await this.liveScraper({
+          postcode: i.postcode,
+          huisnummer: i.huisnummer,
+          geboortedatum: i.geboortedatum,
+          eigenaar: i.eigenaar,
+        });
+        if (result.status === "success" && result.premie && result.premie > 0) {
+          return {
+            slug: this.slug, status: "success",
+            premie: result.premie,
+            dekking: result.dekking ?? getDekkingLabel(i.dekking),
+            eigenRisico: result.eigenRisico ?? this.defaultEigenRisico,
+            duration_ms: Date.now() - start, source: "live",
+          };
+        }
+      } catch { /* fallback */ }
+    }
+
+    const premie = calculateOpstalPremium(this.basePremie, i);
+    return {
+      slug: this.slug, status: "success", premie,
+      dekking: getDekkingLabel(i.dekking), eigenRisico: this.defaultEigenRisico,
+      duration_ms: Date.now() - start, source: "calculated",
+    };
+  }
+
+  protected async scrape(input: ScraperInput) {
+    const i = input as OpstalInput;
+    return { premie: calculateOpstalPremium(this.basePremie, i), dekking: getDekkingLabel(i.dekking), eigenRisico: this.defaultEigenRisico };
+  }
+}
+
+// ── Aansprakelijkheid ──
+
+export class LiveAansprakelijkheidScraper extends BaseScraper {
+  slug: string;
+  naam: string;
+  productType = "aansprakelijkheid" as const;
+
+  private basePremie: number;
+  private defaultEigenRisico: string;
+  private liveScraper: LiveScraperFn;
+
+  constructor(slug: string, naam: string, basePremie: number, defaultEigenRisico: string, liveScraper: LiveScraperFn) {
+    super();
+    this.slug = slug;
+    this.naam = naam;
+    this.basePremie = basePremie;
+    this.defaultEigenRisico = defaultEigenRisico;
+    this.liveScraper = liveScraper;
+  }
+
+  async run(input: ScraperInput): Promise<ScraperResult> {
+    const start = Date.now();
+    const i = input as AansprakelijkheidInput;
+
+    // AVP scrapers need at least geboortedatum for live
+    if (i.geboortedatum) {
+      try {
+        const result = await this.liveScraper({
+          postcode: i.postcode,
+          huisnummer: i.huisnummer ?? "",
+          geboortedatum: i.geboortedatum,
+          gezin: i.gezin,
+        });
+        if (result.status === "success" && result.premie && result.premie > 0) {
+          return {
+            slug: this.slug, status: "success",
+            premie: result.premie,
+            dekking: result.dekking ?? "Aansprakelijkheid Particulier",
+            eigenRisico: result.eigenRisico ?? this.defaultEigenRisico,
+            duration_ms: Date.now() - start, source: "live",
+          };
+        }
+      } catch { /* fallback */ }
+    }
+
+    const premie = calculateAansprakelijkheidPremium(this.basePremie, i);
+    return {
+      slug: this.slug, status: "success", premie,
+      dekking: "Aansprakelijkheid Particulier", eigenRisico: this.defaultEigenRisico,
+      duration_ms: Date.now() - start, source: "calculated",
+    };
+  }
+
+  protected async scrape(input: ScraperInput) {
+    const i = input as AansprakelijkheidInput;
+    return { premie: calculateAansprakelijkheidPremium(this.basePremie, i), dekking: "Aansprakelijkheid Particulier", eigenRisico: this.defaultEigenRisico };
+  }
+}
+
+// ── Reis ──
+
+export class LiveReisScraper extends BaseScraper {
+  slug: string;
+  naam: string;
+  productType = "reis" as const;
+
+  private basePremie: number;
+  private defaultEigenRisico: string;
+  private liveScraper: LiveScraperFn;
+
+  constructor(slug: string, naam: string, basePremie: number, defaultEigenRisico: string, liveScraper: LiveScraperFn) {
+    super();
+    this.slug = slug;
+    this.naam = naam;
+    this.basePremie = basePremie;
+    this.defaultEigenRisico = defaultEigenRisico;
+    this.liveScraper = liveScraper;
+  }
+
+  async run(input: ScraperInput): Promise<ScraperResult> {
+    const start = Date.now();
+    const i = input as ReisInput;
+
+    // Reis scrapers need geboortedatum for live
+    if (i.geboortedatum) {
+      try {
+        const result = await this.liveScraper({
+          postcode: "",
+          huisnummer: "",
+          geboortedatum: i.geboortedatum,
+          gezin: i.gezin,
+        });
+        if (result.status === "success" && result.premie && result.premie > 0) {
+          return {
+            slug: this.slug, status: "success",
+            premie: result.premie,
+            dekking: result.dekking ?? (i.doorlopend ? "Doorlopend" : "Kortlopend"),
+            eigenRisico: result.eigenRisico ?? this.defaultEigenRisico,
+            duration_ms: Date.now() - start, source: "live",
+          };
+        }
+      } catch { /* fallback */ }
+    }
+
+    const premie = calculateReisPremium(this.basePremie, i);
+    return {
+      slug: this.slug, status: "success", premie,
+      dekking: i.doorlopend ? "Doorlopend" : "Kortlopend", eigenRisico: this.defaultEigenRisico,
+      duration_ms: Date.now() - start, source: "calculated",
+    };
+  }
+
+  protected async scrape(input: ScraperInput) {
+    const i = input as ReisInput;
+    return { premie: calculateReisPremium(this.basePremie, i), dekking: i.doorlopend ? "Doorlopend" : "Kortlopend", eigenRisico: this.defaultEigenRisico };
+  }
+}

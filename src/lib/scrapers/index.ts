@@ -1,36 +1,32 @@
-import { BaseScraper } from "./base";
-import { InSharedScraper } from "./inshared";
-import { AsrScraper } from "./asr";
-import { AllianzDirectScraper } from "./allianz-direct";
-import { CentraalBeheerScraper } from "./centraal-beheer";
-import { FbtoScraper } from "./fbto";
-import { ZevenwoudenScraper } from "./zevenwouden";
-import { OhraScraper } from "./ohra";
-import { InterpolisScraper } from "./interpolis";
-import { NationaleNederlandenScraper } from "./nationale-nederlanden";
-import { UniveScraper } from "./unive";
-import { DitzoScraper } from "./ditzo";
-import { AegonScraper } from "./aegon";
+import { BaseScraper, type ProductType } from "./base";
+import { inboedelScrapers } from "./inboedel";
+import { opstalScrapers } from "./opstal";
+import { aansprakelijkheidScrapers } from "./aansprakelijkheid";
+import { reisScrapers } from "./reis";
 
-export type { ScraperInput, ScraperResult } from "./base";
+export type { ScraperInput, ScraperResult, ProductType, InboedelInput, OpstalInput, AansprakelijkheidInput, ReisInput } from "./base";
 
-/** All 12 registered scrapers */
-export const scrapers: BaseScraper[] = [
-  new InSharedScraper(),
-  new AsrScraper(),
-  new AllianzDirectScraper(),
-  new CentraalBeheerScraper(),
-  new FbtoScraper(),
-  new ZevenwoudenScraper(),
-  new OhraScraper(),
-  new InterpolisScraper(),
-  new NationaleNederlandenScraper(),
-  new UniveScraper(),
-  new DitzoScraper(),
-  new AegonScraper(),
-];
+/** All scrapers keyed by product type */
+const scrapersByProduct: Record<ProductType, BaseScraper[]> = {
+  inboedel: inboedelScrapers,
+  opstal: opstalScrapers,
+  aansprakelijkheid: aansprakelijkheidScrapers,
+  reis: reisScrapers,
+};
 
-/** Get scraper by slug */
+/** Get scrapers for a specific product type */
+export function getScrapers(productType: ProductType): BaseScraper[] {
+  return scrapersByProduct[productType] ?? [];
+}
+
+/** Backward compat: default inboedel scrapers */
+export const scrapers: BaseScraper[] = inboedelScrapers;
+
+/** Get scraper by slug (searches all products) */
 export function getScraper(slug: string): BaseScraper | undefined {
-  return scrapers.find((s) => s.slug === slug);
+  for (const list of Object.values(scrapersByProduct)) {
+    const found = list.find((s) => s.slug === slug);
+    if (found) return found;
+  }
+  return undefined;
 }

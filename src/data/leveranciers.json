@@ -1,0 +1,241 @@
+{
+  "laatst_bijgewerkt": "2026-03-09",
+  "bron": "ACM-verplichte modelcontracten per leverancier",
+  "leveranciers": {
+    "Powerpeers": {
+      "modelcontract_url": "https://powerpeers.nl/modelcontract",
+      "laatst_gescand": "2026-03-09",
+      "rating": 7.2,
+      "contracten": [
+        { "type": "Variabel", "normaal": 0.24, "dal": 0.24, "gas": 0.92, "vastrecht_stroom": 6.50, "vastrecht_gas": 6.50 }
+      ],
+      "affiliate": null
+    },
+    "Frank Energie": {
+      "modelcontract_url": "https://frankenergie.nl/modelcontract",
+      "laatst_gescand": "2026-03-09",
+      "rating": 7.6,
+      "contracten": [
+        { "type": "Dynamisch", "normaal": 0.215, "dal": 0.215, "gas": 1.248, "vastrecht_stroom": 4.95, "vastrecht_gas": 4.95 },
+        { "type": "1jaar", "normaal": 0.225, "dal": 0.218, "gas": 0.89, "vastrecht_stroom": 5.95, "vastrecht_gas": 5.95 }
+      ],
+      "affiliate": {
+        "welkomstbonus": 75,
+        "cashback_per_maand": 0,
+        "korting_stroom": 0.00,
+        "korting_gas": 0.00,
+        "duur_maanden": 12,
+        "code": "BESPAARWACHT",
+        "url": "https://frankenergie.nl/?ref=bespaarwacht"
+      }
+    },
+    "Delta": {
+      "modelcontract_url": "https://delta.nl/modelcontract",
+      "laatst_gescand": "2026-03-09",
+      "rating": 7.0,
+      "contracten": [
+        { "type": "Variabel", "normaal": 0.25, "dal": 0.22, "gas": 0.93, "vastrecht_stroom": 7.25, "vastrecht_gas": 7.25 }
+      ],
+      "affiliate": null
+    },
+    "Zonneplan": {
+      "modelcontract_url": "https://zonneplan.nl/modelcontract",
+      "laatst_gescand": "2026-03-09",
+      "rating": 8.1,
+      "contracten": [
+        { "type": "Dynamisch", "normaal": 0.21, "dal": 0.21, "gas": 0.86, "vastrecht_stroom": 2.75, "vastrecht_gas": 2.75 }
+      ],
+      "affiliate": {
+        "welkomstbonus": 50,
+        "cashback_per_maand": 0,
+        "korting_stroom": 0.00,
+        "korting_gas": 0.00,
+        "duur_maanden": 12,
+        "code": "BESPAARWACHT",
+        "url": "https://zonneplan.nl/?ref=bespaarwacht"
+      }
+    },
+    "Budget Energie": {
+      "modelcontract_url": "https://budgetenergie.nl/modelcontract",
+      "laatst_gescand": "2026-03-09",
+      "rating": 6.8,
+      "contracten": [
+        { "type": "Variabel", "normaal": 0.24, "dal": 0.21, "gas": 0.88, "vastrecht_stroom": 3.95, "vastrecht_gas": 3.95 },
+        { "type": "1jaar", "normaal": 0.235, "dal": 0.205, "gas": 0.87, "vastrecht_stroom": 3.95, "vastrecht_gas": 3.95 }
+      ],
+      "affiliate": {
+        "welkomstbonus": 180,
+        "cashback_per_maand": 0,
+        "korting_stroom": 0.00,
+        "korting_gas": 0.00,
+        "duur_maanden": 12,
+        "code": "BESPAARWACHT",
+        "url": "https://budgetenergie.nl/?ref=bespaarwacht"
+      }
+    },
+    "Tibber": {
+      "modelcontract_url": "https://tibber.com/nl/modelcontract",
+      "laatst_gescand": "2026-03-09",
+      "rating": 7.8,
+      "contracten": [
+        { "type": "Dynamisch", "normaal": 0.22, "dal": 0.22, "gas": 0.87, "vastrecht_stroom": 3.49, "vastrecht_gas": 2.50 }
+      ],
+      "affiliate": {
+        "welkomstbonus": 0,
+        "cashback_per_maand": 0,
+        "korting_stroom": 0.00,
+        "korting_gas": 0.00,
+        "duur_maanden": 0,
+        "code": "",
+        "url": "https://tibber.com/nl"
+      }
+    },
+    "Pure Energie": {
+      "modelcontract_url": "https://pure-energie.nl/modelcontract",
+      "laatst_gescand": "2026-03-09",
+      "rating": 7.4,
+      "contracten": [
+        { "type": "Variabel", "normaal": 0.245, "dal": 0.215, "gas": 0.91, "vastrecht_stroom": 5.50, "vastrecht_gas": 5.50 }
+      ],
+      "affiliate": null
+    },
+    "Engie": {
+      "modelcontract_url": "https://engie.nl/modelcontract",
+      "laatst_gescand": "2026-03-09",
+      "rating": 7.0,
+      "contracten": [
+        { "type": "Variabel", "normaal": 0.26, "dal": 0.23, "gas": 0.94, "vastrecht_stroom": 7.50, "vastrecht_gas": 7.50 },
+        { "type": "1jaar", "normaal": 0.255, "dal": 0.225, "gas": 0.92, "vastrecht_stroom": 7.50, "vastrecht_gas": 7.50 }
+      ],
+      "affiliate": null
+    },
+    "Oxxio": {
+      "modelcontract_url": "https://oxxio.nl/modelcontract",
+      "laatst_gescand": "2026-03-09",
+      "rating": 6.5,
+      "contracten": [
+        { "type": "Variabel", "normaal": 0.245, "dal": 0.215, "gas": 0.90, "vastrecht_stroom": 5.99, "vastrecht_gas": 5.99 }
+      ],
+      "affiliate": null
+    },
+    "Coolblue Energie": {
+      "modelcontract_url": "https://coolblue.nl/energie/modelcontract",
+      "laatst_gescand": "2026-03-09",
+      "rating": 8.0,
+      "contracten": [
+        { "type": "Variabel", "normaal": 0.239, "dal": 0.225, "gas": 0.90, "vastrecht_stroom": 5.25, "vastrecht_gas": 5.25 }
+      ],
+      "affiliate": null
+    },
+    "United Consumers": {
+      "modelcontract_url": "https://unitedconsumers.com/modelcontract",
+      "laatst_gescand": "2026-03-09",
+      "rating": 7.3,
+      "contracten": [
+        { "type": "Variabel", "normaal": 0.245, "dal": 0.215, "gas": 0.91, "vastrecht_stroom": 6.00, "vastrecht_gas": 6.00 }
+      ],
+      "affiliate": null
+    },
+    "Vandebron": {
+      "modelcontract_url": "https://vandebron.nl/modelcontract",
+      "laatst_gescand": "2026-03-09",
+      "rating": 7.5,
+      "contracten": [
+        { "type": "Dynamisch", "normaal": 0.225, "dal": 0.225, "gas": 0.89, "vastrecht_stroom": 5.50, "vastrecht_gas": 5.50 }
+      ],
+      "affiliate": null
+    },
+    "NLE": {
+      "modelcontract_url": "https://nle.nl/modelcontract",
+      "laatst_gescand": "2026-03-09",
+      "rating": 6.8,
+      "contracten": [
+        { "type": "Variabel", "normaal": 0.255, "dal": 0.225, "gas": 0.93, "vastrecht_stroom": 6.75, "vastrecht_gas": 6.75 }
+      ],
+      "affiliate": null
+    },
+    "Greenchoice": {
+      "modelcontract_url": "https://greenchoice.nl/modelcontract",
+      "laatst_gescand": "2026-03-09",
+      "rating": 7.2,
+      "contracten": [
+        { "type": "Variabel", "normaal": 0.26, "dal": 0.23, "gas": 0.93, "vastrecht_stroom": 3.75, "vastrecht_gas": 3.75 },
+        { "type": "3jaar", "normaal": 0.25, "dal": 0.22, "gas": 0.91, "vastrecht_stroom": 3.75, "vastrecht_gas": 3.75 }
+      ],
+      "affiliate": {
+        "welkomstbonus": 100,
+        "cashback_per_maand": 0,
+        "korting_stroom": 0.00,
+        "korting_gas": 0.00,
+        "duur_maanden": 12,
+        "code": "BESPAARWACHT",
+        "url": "https://greenchoice.nl/?ref=bespaarwacht"
+      }
+    },
+    "Vattenfall": {
+      "modelcontract_url": "https://vattenfall.nl/modelcontract",
+      "laatst_gescand": "2026-03-09",
+      "rating": 7.0,
+      "contracten": [
+        { "type": "Variabel", "normaal": 0.25, "dal": 0.22, "gas": 0.91, "vastrecht_stroom": 4.25, "vastrecht_gas": 4.25 },
+        { "type": "1jaar", "normaal": 0.245, "dal": 0.215, "gas": 0.90, "vastrecht_stroom": 4.25, "vastrecht_gas": 4.25 }
+      ],
+      "affiliate": {
+        "welkomstbonus": 250,
+        "cashback_per_maand": 0,
+        "korting_stroom": 0.00,
+        "korting_gas": 0.00,
+        "duur_maanden": 12,
+        "code": "BESPAARWACHT",
+        "url": "https://vattenfall.nl/?ref=bespaarwacht"
+      }
+    },
+    "ANWB Energie": {
+      "modelcontract_url": "https://anwbenergie.nl/modelcontract",
+      "laatst_gescand": "2026-03-09",
+      "rating": 7.6,
+      "contracten": [
+        { "type": "Dynamisch", "normaal": 0.23, "dal": 0.23, "gas": 0.89, "vastrecht_stroom": 3.50, "vastrecht_gas": 3.50 },
+        { "type": "1jaar", "normaal": 0.24, "dal": 0.21, "gas": 0.90, "vastrecht_stroom": 3.50, "vastrecht_gas": 3.50 }
+      ],
+      "affiliate": null
+    },
+    "Eneco": {
+      "modelcontract_url": "https://eneco.nl/modelcontract",
+      "laatst_gescand": "2026-03-09",
+      "rating": 7.1,
+      "contracten": [
+        { "type": "Variabel", "normaal": 0.27, "dal": 0.24, "gas": 0.95, "vastrecht_stroom": 4.50, "vastrecht_gas": 4.50 },
+        { "type": "1jaar", "normaal": 0.265, "dal": 0.235, "gas": 0.94, "vastrecht_stroom": 4.50, "vastrecht_gas": 4.50 },
+        { "type": "3jaar", "normaal": 0.26, "dal": 0.23, "gas": 0.93, "vastrecht_stroom": 4.50, "vastrecht_gas": 4.50 }
+      ],
+      "affiliate": {
+        "welkomstbonus": 150,
+        "cashback_per_maand": 0,
+        "korting_stroom": 0.00,
+        "korting_gas": 0.00,
+        "duur_maanden": 12,
+        "code": "BESPAARWACHT",
+        "url": "https://eneco.nl/?ref=bespaarwacht"
+      }
+    },
+    "Essent": {
+      "modelcontract_url": "https://essent.nl/modelcontract",
+      "laatst_gescand": "2026-03-09",
+      "rating": 6.9,
+      "contracten": [
+        { "type": "Variabel", "normaal": 0.28, "dal": 0.25, "gas": 0.96, "vastrecht_stroom": 4.60, "vastrecht_gas": 4.60 },
+        { "type": "1jaar", "normaal": 0.275, "dal": 0.245, "gas": 0.95, "vastrecht_stroom": 4.60, "vastrecht_gas": 4.60 }
+      ],
+      "affiliate": {
+        "welkomstbonus": 200,
+        "cashback_per_maand": 0,
+        "korting_stroom": 0.00,
+        "korting_gas": 0.00,
+        "duur_maanden": 12,
+        "code": "BESPAARWACHT",
+        "url": "https://essent.nl/?ref=bespaarwacht"
+      }
+    }
+  }
+}
