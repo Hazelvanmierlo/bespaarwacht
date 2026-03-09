@@ -1,8 +1,11 @@
 /* pdfjs-dist is loaded dynamically to avoid SSR issues (DOMMatrix not defined) */
+let _pdfjs: typeof import("pdfjs-dist") | null = null;
+
 async function getPdfjs() {
-  const pdfjsLib = await import("pdfjs-dist");
-  pdfjsLib.GlobalWorkerOptions.workerSrc = "/pdf.worker.min.mjs";
-  return pdfjsLib;
+  if (_pdfjs) return _pdfjs;
+  _pdfjs = await import("pdfjs-dist");
+  _pdfjs.GlobalWorkerOptions.workerSrc = "/pdf.worker.min.mjs";
+  return _pdfjs;
 }
 
 /* ── Types ── */
@@ -124,6 +127,9 @@ function findEAN(text: string, label: string): string | null {
 
 /* ── Specific parsers ── */
 function parseVattenfall(text: string): EnergieData {
+  // Detect if this is a monthly report (energierapport) vs yearly overview (jaaroverzicht)
+  const isMonthly = /maandelijks?\s*energierapport/i.test(text) || /periode.*(?:januari|februari|maart|april|mei|juni|juli|augustus|september|oktober|november|december)\s*\d{4}/i.test(text);
+
   return {
     leverancier: "Vattenfall",
     contractType: text.toLowerCase().includes("vast") ? "Vast" : "Variabel",
@@ -132,15 +138,23 @@ function parseVattenfall(text: string): EnergieData {
     eanGas: findEAN(text, "ean.*gas"),
     verbruikKwhDal: findNumber(text, [/dal[^0-9]*(\d[\d.,]*)\s*kwh/i, /laagtarief[^0-9]*(\d[\d.,]*)/i]),
     verbruikKwhPiek: findNumber(text, [/piek[^0-9]*(\d[\d.,]*)\s*kwh/i, /hoogtarief[^0-9]*(\d[\d.,]*)/i, /normaaltarief[^0-9]*(\d[\d.,]*)/i]),
-    verbruikKwhTotaal: findNumber(text, [/totaal[^0-9]*(\d[\d.,]*)\s*kwh/i, /verbruik[^0-9]*(\d[\d.,]*)\s*kwh/i]),
+    verbruikKwhTotaal: findNumber(text, [
+      /totaal[^0-9]*(\d[\d.,]*)\s*kwh/i,
+      /stroomverbruik[^0-9]*.*?(\d[\d.,]*)\s*kwh/i,
+      /verbruik[^0-9]*(\d[\d.,]*)\s*kwh/i,
+    ]),
     terugleveringKwh: findNumber(text, [/teruglevering[^0-9]*(\d[\d.,]*)\s*kwh/i, /terug[^0-9]*(\d[\d.,]*)\s*kwh/i]),
-    verbruikGasM3: findNumber(text, [/gas[^0-9]*(\d[\d.,]*)\s*m[³3]/i, /(\d[\d.,]*)\s*m[³3]/i]),
+    verbruikGasM3: findNumber(text, [
+      /gasverbruik[^0-9]*.*?(\d[\d.,]*)\s*m\s*[³3]/i,
+      /gas[^0-9]*(\d[\d.,]*)\s*m\s*[³3]/i,
+      /(\d[\d.,]*)\s*m\s*[³3]/i,
+    ]),
     kostenElektriciteitJaar: findNumber(text, [/elektr[^0-9]*€?\s*(\d[\d.,]*)/i]),
     kostenGasJaar: findNumber(text, [/gas[^0-9]*€?\s*(\d[\d.,]*)/i]),
     kostenTotaalJaar: findNumber(text, [/totaal[^0-9]*€?\s*(\d[\d.,]*)/i, /jaarbedrag[^0-9]*€?\s*(\d[\d.,]*)/i]),
     vastrecht: findNumber(text, [/vastrecht[^0-9]*€?\s*(\d[\d.,]*)/i, /vast[^0-9]*recht[^0-9]*€?\s*(\d[\d.,]*)/i]),
     netbeheerkosten: findNumber(text, [/netbeheer[^0-9]*€?\s*(\d[\d.,]*)/i]),
-    bron: "Vattenfall PDF",
+    bron: isMonthly ? "Vattenfall Maandrapport" : "Vattenfall PDF",
     kwaliteit: "redelijk",
     ontbrekendeVelden: [],
   };
@@ -157,7 +171,7 @@ function parseCoolblue(text: string): EnergieData {
     verbruikKwhPiek: findNumber(text, [/piek[^0-9]*(\d[\d.,]*)/i, /normaal[^0-9]*(\d[\d.,]*)\s*kwh/i]),
     verbruikKwhTotaal: findNumber(text, [/totaal[^0-9]*(\d[\d.,]*)\s*kwh/i]),
     terugleveringKwh: findNumber(text, [/teruglevering[^0-9]*(\d[\d.,]*)/i]),
-    verbruikGasM3: findNumber(text, [/gas[^0-9]*(\d[\d.,]*)\s*m[³3]/i]),
+    verbruikGasM3: findNumber(text, [/gas[^0-9]*(\d[\d.,]*)\s*m\s*[³3]/i]),
     kostenElektriciteitJaar: findNumber(text, [/elektr[^0-9]*€?\s*(\d[\d.,]*)/i]),
     kostenGasJaar: findNumber(text, [/gas[^0-9]*€?\s*(\d[\d.,]*)/i]),
     kostenTotaalJaar: findNumber(text, [/totaal[^0-9]*€?\s*(\d[\d.,]*)/i]),
@@ -180,7 +194,7 @@ function parseMeterbeheerStatus(text: string): EnergieData {
     verbruikKwhPiek: findNumber(text, [/piek[^0-9]*(\d[\d.,]*)/i, /hoogtarief[^0-9]*(\d[\d.,]*)/i, /normaaltarief[^0-9]*(\d[\d.,]*)/i]),
     verbruikKwhTotaal: findNumber(text, [/totaal[^0-9]*(\d[\d.,]*)\s*kwh/i]),
     terugleveringKwh: findNumber(text, [/teruglevering[^0-9]*(\d[\d.,]*)/i, /terug[^0-9]*(\d[\d.,]*)\s*kwh/i]),
-    verbruikGasM3: findNumber(text, [/gas[^0-9]*(\d[\d.,]*)\s*m[³3]/i, /(\d[\d.,]*)\s*m[³3]/i]),
+    verbruikGasM3: findNumber(text, [/gas[^0-9]*(\d[\d.,]*)\s*m\s*[³3]/i, /(\d[\d.,]*)\s*m\s*[³3]/i]),
     kostenElektriciteitJaar: null,
     kostenGasJaar: null,
     kostenTotaalJaar: null,
@@ -203,7 +217,7 @@ function parseGeneric(text: string, leverancier: string | null): EnergieData {
     verbruikKwhPiek: findNumber(text, [/piek[^0-9]*(\d[\d.,]*)/i, /hoogtarief[^0-9]*(\d[\d.,]*)/i, /normaaltarief[^0-9]*(\d[\d.,]*)/i]),
     verbruikKwhTotaal: findNumber(text, [/totaal[^0-9]*(\d[\d.,]*)\s*kwh/i, /verbruik[^0-9]*(\d[\d.,]*)\s*kwh/i]),
     terugleveringKwh: findNumber(text, [/teruglevering[^0-9]*(\d[\d.,]*)/i]),
-    verbruikGasM3: findNumber(text, [/gas[^0-9]*(\d[\d.,]*)\s*m[³3]/i, /(\d[\d.,]*)\s*m[³3]/i]),
+    verbruikGasM3: findNumber(text, [/gas[^0-9]*(\d[\d.,]*)\s*m\s*[³3]/i, /(\d[\d.,]*)\s*m\s*[³3]/i]),
     kostenElektriciteitJaar: findNumber(text, [/elektr[^0-9]*€?\s*(\d[\d.,]*)/i]),
     kostenGasJaar: findNumber(text, [/gas[^0-9]*€?\s*(\d[\d.,]*)/i]),
     kostenTotaalJaar: findNumber(text, [/totaal[^0-9]*€?\s*(\d[\d.,]*)/i, /jaarbedrag[^0-9]*€?\s*(\d[\d.,]*)/i]),

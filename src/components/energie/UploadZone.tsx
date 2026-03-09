@@ -53,10 +53,12 @@ export default function UploadZone({ onParsed }: UploadZoneProps) {
             ),
           );
         } catch (err) {
+          console.error("PDF parse error:", err);
+          const msg = err instanceof Error ? err.message : String(err);
           setFiles((prev) =>
             prev.map((f) =>
               f.file === entry.file
-                ? { ...f, status: "fout", error: err instanceof Error ? err.message : "Onbekende fout" }
+                ? { ...f, status: "fout", error: msg || "Kon PDF niet verwerken" }
                 : f,
             ),
           );
