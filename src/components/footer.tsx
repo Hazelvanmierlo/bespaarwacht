@@ -8,11 +8,11 @@ export default function Footer() {
         {/* Brand */}
         <div>
           <Link href="/" className="flex items-center gap-[9px] no-underline text-white">
-            <div className="w-[34px] h-[34px] rounded-lg bg-bw-green flex items-center justify-center">
+            <div className="w-[34px] h-[34px] rounded-xl bg-bw-blue flex items-center justify-center">
               <ShieldDownIcon />
             </div>
-            <span className="font-heading font-bold text-xl tracking-[-0.4px]">
-              Bespaar<span className="text-bw-green">Wacht</span>
+            <span className="font-heading font-bold text-lg tracking-[-0.3px]">
+              DeVerzekerings<span className="text-bw-blue-light">Agent</span>
             </span>
           </Link>
           <p className="text-[13px] text-white/40 leading-relaxed mt-2.5 max-w-[250px]">
@@ -25,21 +25,21 @@ export default function Footer() {
           <h4 className="text-[11px] font-bold uppercase tracking-[1px] text-white/30 mb-3">Verzekeringen</h4>
           <div className="flex flex-col gap-0.5">
             {["Zorgverzekering", "Autoverzekering", "Woonverzekering", "Reisverzekering", "Aansprakelijkheid", "Rechtsbijstand"].map((item) => (
-              <Link key={item} href="/upload" className="text-[13px] text-white/55 no-underline py-[3px] hover:text-white transition-colors">
+              <Link key={item} href="/upload?type=verzekering" className="text-[13px] text-white/55 no-underline py-[3px] hover:text-white transition-colors">
                 {item}
               </Link>
             ))}
           </div>
         </div>
 
-        {/* BespaarWacht */}
+        {/* DeVerzekeringsAgent */}
         <div>
-          <h4 className="text-[11px] font-bold uppercase tracking-[1px] text-white/30 mb-3">BespaarWacht</h4>
+          <h4 className="text-[11px] font-bold uppercase tracking-[1px] text-white/30 mb-3">Over ons</h4>
           <div className="flex flex-col gap-0.5">
             <Link href="/#hoe-werkt-het" className="text-[13px] text-white/55 no-underline py-[3px] hover:text-white transition-colors">Hoe het werkt</Link>
             <Link href="/#waarom" className="text-[13px] text-white/55 no-underline py-[3px] hover:text-white transition-colors">Over ons</Link>
-            <Link href="/#reviews" className="text-[13px] text-white/55 no-underline py-[3px] hover:text-white transition-colors">Blog</Link>
-            <Link href="/#reviews" className="text-[13px] text-white/55 no-underline py-[3px] hover:text-white transition-colors">FAQ</Link>
+            <Link href="/#reviews" className="text-[13px] text-white/55 no-underline py-[3px] hover:text-white transition-colors">Reviews</Link>
+            <Link href="/upload?type=energie" className="text-[13px] text-white/55 no-underline py-[3px] hover:text-white transition-colors">Energie vergelijken</Link>
             <Link href="/#reviews" className="text-[13px] text-white/55 no-underline py-[3px] hover:text-white transition-colors">Contact</Link>
           </div>
         </div>
@@ -59,11 +59,11 @@ export default function Footer() {
 
       {/* Bottom */}
       <div className="max-w-[1140px] mx-auto pt-4 border-t border-white/5 flex flex-wrap justify-between items-center text-[11.5px] text-white/25 gap-2">
-        <span>&copy; 2026 BespaarWacht B.V. — KvK 87654321</span>
+        <span>&copy; 2026 DeVerzekeringsAgent B.V. — KvK 87654321</span>
         <span>AVG Compliant &middot; Wft geregistreerd</span>
       </div>
       <div className="max-w-[1140px] mx-auto mt-3 text-[11px] text-white/20 leading-relaxed">
-        Bij een afgesloten verzekering via BespaarWacht ontvangen wij een vergoeding van de verzekeraar. Dit kost jou niets extra. De vergoeding heeft geen invloed op de vergelijkingsresultaten — de goedkoopste staat altijd bovenaan.
+        Bij een afgesloten verzekering via DeVerzekeringsAgent ontvangen wij een vergoeding van de verzekeraar. Dit kost jou niets extra. De vergoeding heeft geen invloed op de vergelijkingsresultaten — de goedkoopste staat altijd bovenaan.
       </div>
     </footer>
   );

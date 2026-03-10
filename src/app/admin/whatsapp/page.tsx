@@ -12,7 +12,7 @@ interface ConfigStatus {
 export default function WhatsAppAdminPage() {
   const [config, setConfig] = useState<ConfigStatus | null>(null);
   const [testTo, setTestTo] = useState("");
-  const [testMsg, setTestMsg] = useState("Hoi! Dit is een testbericht van BespaarWacht.");
+  const [testMsg, setTestMsg] = useState("Hoi! Dit is een testbericht van DeVerzekeringsAgent.");
   const [testResult, setTestResult] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -59,7 +59,7 @@ export default function WhatsAppAdminPage() {
             ))}
             <div className="mt-4 p-3 rounded-lg bg-bw-bg">
               <p className="text-sm text-bw-text-mid">
-                <strong>Webhook URL:</strong> <code>https://bespaarwacht.vercel.app{config.webhook_url}</code>
+                <strong>Webhook URL:</strong> <code>https://deverzkeringsagent.vercel.app{config.webhook_url}</code>
               </p>
               <p className="text-sm text-bw-text-mid mt-1">
                 <strong>Verify Token:</strong> <code>{config.verify_token}</code>
@@ -125,7 +125,7 @@ export default function WhatsAppAdminPage() {
             <p>Ga naar <a href="https://developers.facebook.com/apps" target="_blank" rel="noopener noreferrer" className="text-bw-blue hover:underline">developers.facebook.com/apps</a></p>
             <ul className="list-disc ml-4 mt-1 space-y-1">
               <li>Klik <strong>App maken</strong> &rarr; kies <strong>Business</strong> type</li>
-              <li>Naam: &quot;BespaarWacht WhatsApp&quot;</li>
+              <li>Naam: &quot;DeVerzekeringsAgent WhatsApp&quot;</li>
               <li>Koppel aan je Business Account</li>
             </ul>
           </Step>
@@ -160,7 +160,7 @@ export default function WhatsAppAdminPage() {
             <p>Voeg toe aan <code>.env.local</code> (lokaal) en Vercel dashboard (productie):</p>
             <pre className="mt-2 p-3 rounded-lg bg-bw-bg overflow-x-auto">{`WHATSAPP_TOKEN=EAAxxxxx...      # Permanent token uit stap 5
 WHATSAPP_PHONE_ID=123456789...  # Phone Number ID uit stap 5
-WEBHOOK_VERIFY_TOKEN=bespaarwacht_2026
+WEBHOOK_VERIFY_TOKEN=dva_2026
 ANTHROPIC_API_KEY=sk-ant-...    # Van console.anthropic.com`}</pre>
           </Step>
 
@@ -168,7 +168,7 @@ ANTHROPIC_API_KEY=sk-ant-...    # Van console.anthropic.com`}</pre>
             <ul className="list-disc ml-4 space-y-1">
               <li>Ga naar <a href="https://vercel.com" target="_blank" rel="noopener noreferrer" className="text-bw-blue hover:underline">vercel.com</a> &rarr; je project &rarr; <strong>Storage</strong></li>
               <li>Klik <strong>Create Database</strong> &rarr; <strong>KV (Redis)</strong></li>
-              <li>Naam: <code>bespaarwacht-kv</code></li>
+              <li>Naam: <code>dva-kv</code></li>
               <li><code>KV_REST_API_URL</code> en <code>KV_REST_API_TOKEN</code> worden automatisch aan Vercel env toegevoegd</li>
               <li>Kopieer ze ook naar je <code>.env.local</code> voor lokaal testen</li>
             </ul>
@@ -177,8 +177,8 @@ ANTHROPIC_API_KEY=sk-ant-...    # Van console.anthropic.com`}</pre>
           <Step n={8} title="Webhook instellen">
             <ul className="list-disc ml-4 space-y-1">
               <li>In Meta App dashboard &rarr; <strong>WhatsApp &rarr; Configuration</strong></li>
-              <li><strong>Callback URL:</strong> <code>https://bespaarwacht.vercel.app/api/whatsapp</code></li>
-              <li><strong>Verify Token:</strong> <code>bespaarwacht_2026</code></li>
+              <li><strong>Callback URL:</strong> <code>https://deverzkeringsagent.vercel.app/api/whatsapp</code></li>
+              <li><strong>Verify Token:</strong> <code>dva_2026</code></li>
               <li>Klik <strong>Verify and Save</strong></li>
               <li>Subscribe op: <strong>messages</strong></li>
             </ul>

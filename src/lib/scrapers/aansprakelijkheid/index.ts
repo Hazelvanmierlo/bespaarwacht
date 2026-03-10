@@ -30,7 +30,7 @@ function buildScrapers(): BaseScraper[] {
       new LiveAansprakelijkheidScraper("fbto", "FBTO", 2.75, "€ 0", scrapeFbtoAvp),
     ];
   } catch (err) {
-    console.warn("[BespaarWacht] Playwright niet beschikbaar voor aansprakelijkheid:", (err as Error).message);
+    console.warn("[DVA] Playwright niet beschikbaar voor aansprakelijkheid:", (err as Error).message);
     return calculatedScrapers;
   }
 }

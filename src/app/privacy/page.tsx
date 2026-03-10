@@ -5,7 +5,7 @@ export default function PrivacyPage() {
     <div className="max-w-[800px] mx-auto px-6 py-12 pb-20">
       <h1 className="font-heading text-[32px] font-bold text-bw-deep mb-2">Privacyverklaring</h1>
       <p className="text-[15px] text-bw-text-mid mb-8">
-        BespaarWacht hecht groot belang aan de bescherming van je persoonsgegevens. In deze privacyverklaring leggen wij uit hoe wij omgaan met je gegevens.
+        DeVerzekeringsAgent hecht groot belang aan de bescherming van je persoonsgegevens. In deze privacyverklaring leggen wij uit hoe wij omgaan met je gegevens.
       </p>
 
       {/* Key principles */}
@@ -43,7 +43,7 @@ export default function PrivacyPage() {
         <section>
           <h2 className="font-heading text-xl font-bold text-bw-deep mb-3">1. Wie zijn wij?</h2>
           <p className="text-sm text-bw-text-mid leading-relaxed">
-            BespaarWacht B.V. is een Nederlandse vergelijkingsservice voor verzekeringen. Wij helpen consumenten om de beste verzekering te vinden tegen de laagste prijs. Wij zijn geregistreerd bij de Kamer van Koophandel onder nummer 87654321.
+            DeVerzekeringsAgent B.V. is een Nederlandse vergelijkingsservice voor verzekeringen. Wij helpen consumenten om de beste verzekering te vinden tegen de laagste prijs. Wij zijn geregistreerd bij de Kamer van Koophandel onder nummer 87654321.
           </p>
         </section>
 
@@ -106,7 +106,7 @@ export default function PrivacyPage() {
         <section>
           <h2 className="font-heading text-xl font-bold text-bw-deep mb-3">6. Inkomsten en transparantie</h2>
           <p className="text-sm text-bw-text-mid leading-relaxed">
-            BespaarWacht is voor consumenten volledig gratis. Wij ontvangen een vergoeding (provisie) van de verzekeraar wanneer je via onze links een verzekering afsluit. Dit kost jou niets extra. De vergoeding heeft geen invloed op de vergelijkingsresultaten — de goedkoopste optie staat altijd bovenaan.
+            DeVerzekeringsAgent is voor consumenten volledig gratis. Wij ontvangen een vergoeding (provisie) van de verzekeraar wanneer je via onze links een verzekering afsluit. Dit kost jou niets extra. De vergoeding heeft geen invloed op de vergelijkingsresultaten — de goedkoopste optie staat altijd bovenaan.
           </p>
         </section>
 
@@ -120,7 +120,7 @@ export default function PrivacyPage() {
         <section>
           <h2 className="font-heading text-xl font-bold text-bw-deep mb-3">8. Contact en klachten</h2>
           <p className="text-sm text-bw-text-mid leading-relaxed">
-            Heb je vragen over je privacy of wil je gebruik maken van je rechten? Neem contact met ons op via privacy@bespaarwacht.nl. Mocht je ontevreden zijn over de verwerking van je gegevens, dan kun je een klacht indienen bij de Autoriteit Persoonsgegevens (autoriteitpersoonsgegevens.nl).
+            Heb je vragen over je privacy of wil je gebruik maken van je rechten? Neem contact met ons op via privacy@deverzkeringsagent.nl. Mocht je ontevreden zijn over de verwerking van je gegevens, dan kun je een klacht indienen bij de Autoriteit Persoonsgegevens (autoriteitpersoonsgegevens.nl).
           </p>
         </section>
       </div>

@@ -33,11 +33,11 @@ export default async function AdminLayout({
         <div className="max-w-[1200px] mx-auto flex items-center justify-between">
           <div className="flex items-center gap-3">
             <Link href="/admin" className="flex items-center gap-2 no-underline text-white">
-              <div className="w-8 h-8 rounded-lg bg-bw-green flex items-center justify-center">
+              <div className="w-8 h-8 rounded-lg bg-bw-blue flex items-center justify-center">
                 <ShieldDownIcon className="w-4 h-4" />
               </div>
               <span className="font-heading font-bold text-base text-white">
-                Bespaar<span className="text-bw-green">Wacht</span>
+                DeVerzekerings<span className="text-bw-blue-light">Agent</span>
               </span>
             </Link>
             <span className="text-[11px] font-bold text-white/30 bg-white/10 px-2 py-0.5 rounded">ADMIN</span>

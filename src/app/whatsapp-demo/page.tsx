@@ -17,7 +17,7 @@ const SCRIPT: ChatMsg[] = [
   {
     from: "bot",
     delay: 600,
-    text: "Hoi! 👋 Ik ben de BespaarWacht energie-assistent.\n\nStuur me je jaaroverzicht of energierekening (PDF of foto) en ik vergelijk direct 18 leveranciers voor je.\n\nGeen account nodig. Overstappen? Alleen IBAN + e-mail — wij regelen de rest.",
+    text: "Hoi! 👋 Ik ben de DeVerzekeringsAgent energie-assistent.\n\nStuur me je jaaroverzicht of energierekening (PDF of foto) en ik vergelijk direct 18 leveranciers voor je.\n\nGeen account nodig. Overstappen? Alleen IBAN + e-mail — wij regelen de rest.",
   },
   {
     from: "user",
@@ -101,7 +101,7 @@ const SCRIPT: ChatMsg[] = [
   {
     from: "bot",
     delay: 1500,
-    text: "🎉 Je overstap naar Frank Energie is aangevraagd!\n\n📧 Je ontvangt een bevestigingsmail op jan@email.nl\n📅 De overstap gaat in per je volgende contractdatum\n⚡ Je hoeft zelf niets te regelen — Frank Energie neemt contact op met Vattenfall\n\nBedankt dat je BespaarWacht hebt gebruikt! 💚\nHeb je nog vragen? Stuur gerust een bericht.",
+    text: "🎉 Je overstap naar Frank Energie is aangevraagd!\n\n📧 Je ontvangt een bevestigingsmail op jan@email.nl\n📅 De overstap gaat in per je volgende contractdatum\n⚡ Je hoeft zelf niets te regelen — Frank Energie neemt contact op met Vattenfall\n\nBedankt dat je DeVerzekeringsAgent hebt gebruikt! 💚\nHeb je nog vragen? Stuur gerust een bericht.",
   },
 ];
 
@@ -229,13 +229,13 @@ export default function WhatsAppDemoPage() {
           <div className="rounded-[2rem] border-[3px] border-bw-border bg-[#ECE5DD] shadow-[var(--shadow-bw-hover)] overflow-hidden">
             {/* WhatsApp header bar */}
             <div className="bg-[#075E54] text-white px-5 py-3.5 flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-[#25D366] flex items-center justify-center shrink-0">
+              <div className="w-10 h-10 rounded-full bg-bw-blue flex items-center justify-center shrink-0">
                 <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M12 2v20M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6" />
                 </svg>
               </div>
               <div>
-                <p className="font-semibold text-sm">BespaarWacht</p>
+                <p className="font-semibold text-sm">DeVerzekeringsAgent</p>
                 <p className="text-[11px] text-white/70">Energie-assistent</p>
               </div>
             </div>

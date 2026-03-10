@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useMemo, useCallback, useEffect } from "react";
+import { useState, useMemo, useCallback, useEffect, Suspense } from "react";
+import { useSearchParams } from "next/navigation";
 import type { EnergieData, ParseResult } from "@/lib/energie/pdf-parser";
 import type { ApparaatDetectie } from "@/lib/energie/apparaat-detectie";
 import { detecteerApparaten } from "@/lib/energie/apparaat-detectie";
@@ -17,6 +18,15 @@ import { ArrowRightIcon, CheckIcon } from "@/components/icons";
 type Phase = "upload" | "results";
 
 export default function EnergieAnalysePage() {
+  return (
+    <Suspense fallback={<div className="max-w-3xl mx-auto px-6 py-16 text-center text-bw-text-mid">Laden...</div>}>
+      <EnergieAnalyseContent />
+    </Suspense>
+  );
+}
+
+function EnergieAnalyseContent() {
+  const searchParams = useSearchParams();
   const [phase, setPhase] = useState<Phase>("upload");
   const [energieData, setEnergieData] = useState<EnergieData | null>(null);
   const [apparaten, setApparaten] = useState<ApparaatDetectie | null>(null);
@@ -28,6 +38,22 @@ export default function EnergieAnalysePage() {
       .then(setAffiliateUrls)
       .catch(() => {});
   }, []);
+
+  // Check for uploaded data from the universal upload page
+  useEffect(() => {
+    if (searchParams.get("source") === "upload") {
+      const stored = sessionStorage.getItem("bw-upload-energie");
+      if (stored) {
+        try {
+          const data = JSON.parse(stored) as EnergieData;
+          setEnergieData(data);
+          setApparaten(detecteerApparaten(data));
+          setPhase("results");
+          sessionStorage.removeItem("bw-upload-energie");
+        } catch { /* ignore parse errors */ }
+      }
+    }
+  }, [searchParams]);
 
   const handleParsed = useCallback((results: ParseResult[]) => {
     if (results.length === 0) return;
@@ -152,7 +178,7 @@ export default function EnergieAnalysePage() {
             )}
 
             {/* 2-column grid */}
-            <div className="grid grid-cols-1 lg:grid-cols-[1fr_380px] gap-6">
+            <div className="grid grid-cols-1 lg:grid-cols-[1fr_340px] xl:grid-cols-[1fr_380px] gap-6">
               {/* Left column */}
               <div className="space-y-6">
                 <div className="animate-fadeUp" style={{ animationDelay: "0.1s" }}>

@@ -3,9 +3,13 @@ import Anthropic from "@anthropic-ai/sdk";
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
-const PARSE_PROMPT = `Lees dit Nederlandse verzekeringspolis/polisblad uit.
-Geef ALLEEN een JSON object terug, geen markdown backticks, geen uitleg:
+const PARSE_PROMPT = `Analyseer dit Nederlandse document. Bepaal EERST of het een **verzekeringspolis** of een **energierekening/jaaroverzicht** is.
+
+Geef ALLEEN een JSON object terug, geen markdown backticks, geen uitleg.
+
+═══ ALS HET EEN VERZEKERINGSPOLIS IS: ═══
 {
+  "documentType": "verzekering",
   "naam": "string" of "",
   "adres": "string" of "",
   "postcode": "string" of "",
@@ -31,12 +35,44 @@ Geef ALLEEN een JSON object terug, geen markdown backticks, geen uitleg:
   "dekkingen": [{ "rubriek": "string", "diefstal": "string", "anders": "string" }]
 }
 
-Belangrijk:
+Belangrijk bij verzekeringen:
 - Als jaarpremie bekend is maar maandpremie niet: maandpremie = jaarpremie / 12
 - Als maandpremie bekend is maar jaarpremie niet: jaarpremie = maandpremie * 12
 - Detecteer het type verzekering automatisch uit de inhoud
-- Als het GEEN verzekeringspolis is: { "error": "geen_polis" }
-- Als je een veld niet kunt vinden, gebruik "" (lege string) of 0 voor nummers`;
+- Als je een veld niet kunt vinden, gebruik "" (lege string) of 0 voor nummers
+
+═══ ALS HET EEN ENERGIEREKENING/JAAROVERZICHT IS: ═══
+{
+  "documentType": "energie",
+  "leverancier": "naam van de energieleverancier",
+  "stroom_normaal_kwh": number (normaal/piektarief verbruik kWh),
+  "stroom_dal_kwh": number of null (daltarief verbruik, null als enkeltarief),
+  "stroom_kwh_jaar": number (totaal jaarverbruik),
+  "gas_m3_jaar": number of null,
+  "kosten_maand": number (totale maandkosten),
+  "kosten_jaar": number (geschat jaarbedrag),
+  "tarief_stroom_normaal": number (tarief per kWh normaal/piek),
+  "tarief_stroom_dal": number of null (tarief per kWh dal),
+  "tarief_gas_m3": number of null,
+  "teruglevering_kwh": number of null (terug geleverd aan net),
+  "stroom_vorig_jaar_kwh": number of null (verbruik vorig jaar),
+  "ean_stroom": "string" of null,
+  "ean_gas": "string" of null,
+  "contract_type": "vast" of "variabel" of "dynamisch",
+  "adres": "string" of null,
+  "naam": "string" of null (naam contracthouder),
+  "meter_type": "enkel" of "dubbel" (dubbel als er apart dal/piek staat),
+  "contract_einddatum": "YYYY-MM-DD" of null
+}
+
+Belangrijk bij energie:
+- Als er APART dal en normaal/piek verbruik staat → meter_type = "dubbel"
+- Als er alleen totaal verbruik staat → meter_type = "enkel", stroom_dal_kwh = null
+- Bij dubbeltarief: stroom_kwh_jaar = stroom_normaal_kwh + stroom_dal_kwh
+- Als je een veld niet kunt vinden, gebruik null
+
+═══ ALS HET GEEN VAN BEIDE IS: ═══
+{ "documentType": "onbekend" }`;
 
 const PRODUCT_TYPE_MAP: Record<string, string> = {
   "Inboedel": "inboedel",
@@ -95,9 +131,9 @@ export async function POST(req: NextRequest) {
     });
 
     const text = response.content[0].type === "text" ? response.content[0].text : "";
-    let polisData;
+    let parsed;
     try {
-      polisData = JSON.parse(text.replace(/```json|```/g, "").trim());
+      parsed = JSON.parse(text.replace(/```json|```/g, "").trim());
     } catch {
       return NextResponse.json(
         { error: "Kon het document niet uitlezen. Probeer een ander bestand." },
@@ -105,17 +141,32 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    if (polisData.error) {
+    // Handle document type
+    const documentType = parsed.documentType;
+
+    if (documentType === "onbekend" || !documentType) {
       return NextResponse.json(
-        { error: "Dit lijkt geen verzekeringspolis. Upload je polisblad of factuur." },
+        { error: "Dit document is niet herkend. Upload een verzekeringspolis of energierekening." },
         { status: 422 }
       );
     }
 
-    // Detect product type
-    const productType = PRODUCT_TYPE_MAP[polisData.type] || "inboedel";
+    if (documentType === "verzekering") {
+      // Remove documentType from polisData
+      const { documentType: _, ...polisData } = parsed;
+      const productType = PRODUCT_TYPE_MAP[polisData.type] || "inboedel";
+      return NextResponse.json({ type: "verzekering", polisData, productType });
+    }
 
-    return NextResponse.json({ polisData, productType });
+    if (documentType === "energie") {
+      const { documentType: _, ...energieData } = parsed;
+      return NextResponse.json({ type: "energie", energieData });
+    }
+
+    return NextResponse.json(
+      { error: "Onverwacht documenttype. Probeer opnieuw." },
+      { status: 422 }
+    );
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     console.error("Parse error:", msg, err);

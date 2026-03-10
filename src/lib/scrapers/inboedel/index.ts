@@ -30,7 +30,7 @@ function buildScrapers(): BaseScraper[] {
       new LiveInboedelScraper("interpolis", "Interpolis", 13.40, "€ 0", scrapeInterpolisInboedel),
     ];
   } catch (err) {
-    console.warn("[BespaarWacht] Playwright niet beschikbaar, fallback naar berekende premies:", (err as Error).message);
+    console.warn("[DVA] Playwright niet beschikbaar, fallback naar berekende premies:", (err as Error).message);
     return calculatedScrapers;
   }
 }

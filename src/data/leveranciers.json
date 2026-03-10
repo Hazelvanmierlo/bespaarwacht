@@ -26,7 +26,7 @@
         "korting_gas": 0.00,
         "duur_maanden": 12,
         "code": "BESPAARWACHT",
-        "url": "https://frankenergie.nl/?ref=bespaarwacht"
+        "url": "https://frankenergie.nl/?ref=deverzkeringsagent"
       }
     },
     "Delta": {
@@ -52,7 +52,7 @@
         "korting_gas": 0.00,
         "duur_maanden": 12,
         "code": "BESPAARWACHT",
-        "url": "https://zonneplan.nl/?ref=bespaarwacht"
+        "url": "https://zonneplan.nl/?ref=deverzkeringsagent"
       }
     },
     "Budget Energie": {
@@ -70,7 +70,7 @@
         "korting_gas": 0.00,
         "duur_maanden": 12,
         "code": "BESPAARWACHT",
-        "url": "https://budgetenergie.nl/?ref=bespaarwacht"
+        "url": "https://budgetenergie.nl/?ref=deverzkeringsagent"
       }
     },
     "Tibber": {
@@ -169,7 +169,7 @@
         "korting_gas": 0.00,
         "duur_maanden": 12,
         "code": "BESPAARWACHT",
-        "url": "https://greenchoice.nl/?ref=bespaarwacht"
+        "url": "https://greenchoice.nl/?ref=deverzkeringsagent"
       }
     },
     "Vattenfall": {
@@ -187,7 +187,7 @@
         "korting_gas": 0.00,
         "duur_maanden": 12,
         "code": "BESPAARWACHT",
-        "url": "https://vattenfall.nl/?ref=bespaarwacht"
+        "url": "https://vattenfall.nl/?ref=deverzkeringsagent"
       }
     },
     "ANWB Energie": {
@@ -216,7 +216,7 @@
         "korting_gas": 0.00,
         "duur_maanden": 12,
         "code": "BESPAARWACHT",
-        "url": "https://eneco.nl/?ref=bespaarwacht"
+        "url": "https://eneco.nl/?ref=deverzkeringsagent"
       }
     },
     "Essent": {
@@ -234,7 +234,7 @@
         "korting_gas": 0.00,
         "duur_maanden": 12,
         "code": "BESPAARWACHT",
-        "url": "https://essent.nl/?ref=bespaarwacht"
+        "url": "https://essent.nl/?ref=deverzkeringsagent"
       }
     }
   }

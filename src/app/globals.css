@@ -1,17 +1,20 @@
 @import "tailwindcss";
 
 @theme {
-  --color-bw-deep: #0F2137;
-  --color-bw-navy: #1A365D;
-  --color-bw-blue: #2B6CB0;
-  --color-bw-blue-light: #EBF4FF;
-  --color-bw-blue-pale: #F7FAFF;
+  --color-bw-deep: #0F172A;
+  --color-bw-navy: #1E3A5F;
+  --color-bw-blue: #1A56DB;
+  --color-bw-blue-light: #EFF6FF;
+  --color-bw-blue-pale: #F8FAFF;
+  --color-bw-blue-strong: #1447B8;
   --color-bw-green: #16A34A;
   --color-bw-green-bg: #ECFDF5;
   --color-bw-green-strong: #15803D;
   --color-bw-green-dark: #166534;
-  --color-bw-orange: #EA580C;
+  --color-bw-orange: #F97316;
+  --color-bw-orange-strong: #EA580C;
   --color-bw-orange-bg: #FFF7ED;
+  --color-bw-orange-light: #FFEDD5;
   --color-bw-red: #DC2626;
   --color-bw-red-bg: #FEF2F2;
   --color-bw-text: #1E293B;
@@ -21,14 +24,17 @@
   --color-bw-bg: #F8FAFC;
   --color-bw-white: #FFFFFF;
 
-  --font-heading: "Fraunces", serif;
-  --font-body: "DM Sans", sans-serif;
+  --font-heading: "Inter", sans-serif;
+  --font-body: "Inter", sans-serif;
 
 }
 
 :root {
-  --shadow-bw: 0 1px 3px rgba(15,33,55,.05), 0 4px 16px rgba(15,33,55,.04);
-  --shadow-bw-hover: 0 4px 12px rgba(15,33,55,.07), 0 12px 32px rgba(15,33,55,.05);
+  --shadow-bw: 0 1px 3px rgba(15,33,55,.06), 0 4px 16px rgba(15,33,55,.05);
+  --shadow-bw-hover: 0 4px 12px rgba(15,33,55,.08), 0 16px 40px rgba(15,33,55,.06);
+  --shadow-bw-card: 0 1px 2px rgba(15,33,55,.04), 0 2px 8px rgba(15,33,55,.03);
+  --shadow-bw-card-hover: 0 8px 24px rgba(15,33,55,.08), 0 2px 6px rgba(15,33,55,.04);
+  --shadow-bw-elevated: 0 8px 30px rgba(15,33,55,.1), 0 2px 8px rgba(15,33,55,.05);
 }
 
 html {
@@ -37,7 +43,7 @@ html {
 }
 
 body {
-  font-family: "DM Sans", sans-serif;
+  font-family: "Inter", sans-serif;
   color: #1E293B;
   background: #FFFFFF;
   -webkit-font-smoothing: antialiased;
@@ -75,8 +81,8 @@ body {
   to { opacity: 1; transform: scale(1); }
 }
 @keyframes pulse-dot {
-  0%, 100% { box-shadow: 0 0 0 0 rgba(22, 163, 74, 0.35); }
-  50% { box-shadow: 0 0 0 5px rgba(22, 163, 74, 0); }
+  0%, 100% { box-shadow: 0 0 0 0 rgba(26, 86, 219, 0.35); }
+  50% { box-shadow: 0 0 0 5px rgba(26, 86, 219, 0); }
 }
 @keyframes spin {
   to { transform: rotate(360deg); }
@@ -87,6 +93,33 @@ body {
 .animate-scaleIn { animation: scaleIn 0.4s ease both; }
 .animate-pulse-dot { animation: pulse-dot 2s ease-in-out infinite; }
 .animate-spin-loader { animation: spin 0.6s linear infinite; }
+
+/* ── Gradient backgrounds ── */
+.bg-hero-gradient {
+  background: linear-gradient(180deg, #FFFFFF 0%, #EFF6FF 60%, #F8FAFC 100%);
+}
+.bg-trust-gradient {
+  background: linear-gradient(90deg, #EFF6FF 0%, #F0F7FF 50%, #EFF6FF 100%);
+}
+.bg-section-alt {
+  background: linear-gradient(180deg, #F8FAFC 0%, #F1F5F9 100%);
+}
+
+/* ── Card enhancements ── */
+.card-elevated {
+  box-shadow: var(--shadow-bw-card);
+  transition: box-shadow 0.25s ease, transform 0.25s ease, border-color 0.25s ease;
+}
+.card-elevated:hover {
+  box-shadow: var(--shadow-bw-card-hover);
+  transform: translateY(-2px);
+}
+
+/* ── Subtle grid pattern for hero ── */
+.bg-grid-pattern {
+  background-image: radial-gradient(circle, #E2E8F0 1px, transparent 1px);
+  background-size: 24px 24px;
+}
 
 /* ── Fade-in on scroll (IntersectionObserver) ── */
 .fade-in {

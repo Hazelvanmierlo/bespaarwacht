@@ -424,7 +424,7 @@ function AnalyseDemoContent() {
       {/* ── DISCLAIMER ── */}
       <div className="mt-4 p-3 bg-bw-bg rounded-lg border-l-[3px] border-bw-border">
         <p className="text-[11px] text-bw-text-light leading-relaxed">
-          <strong className="text-bw-text-mid">Provisie-disclosure:</strong> Bij afsluiting via BespaarWacht ontvangen wij een vergoeding van de verzekeraar. Dit kost jou niets extra. Premies zijn berekend op basis van je profiel (feb 2026).
+          <strong className="text-bw-text-mid">Provisie-disclosure:</strong> Bij afsluiting via DeVerzekeringsAgent ontvangen wij een vergoeding van de verzekeraar. Dit kost jou niets extra. Premies zijn berekend op basis van je profiel (feb 2026).
         </p>
       </div>
     </div>

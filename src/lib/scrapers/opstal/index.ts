@@ -30,7 +30,7 @@ function buildScrapers(): BaseScraper[] {
       new LiveOpstalScraper("interpolis", "Interpolis", 13.40, "€ 0", scrapeInterpolisOpstal),
     ];
   } catch (err) {
-    console.warn("[BespaarWacht] Playwright niet beschikbaar voor opstal:", (err as Error).message);
+    console.warn("[DVA] Playwright niet beschikbaar voor opstal:", (err as Error).message);
     return calculatedScrapers;
   }
 }

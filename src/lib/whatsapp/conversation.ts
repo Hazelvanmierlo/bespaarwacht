@@ -29,7 +29,7 @@ export async function handleIncomingMessage(from: string, message: any, messageT
   switch (conv.state) {
     case 'WELCOME':
       await sendText(from,
-        "Hey! \u{1F44B} Ik ben BespaarWacht.\n\n" +
+        "Hey! \u{1F44B} Ik ben DeVerzekeringsAgent.\n\n" +
         "Stuur me je energierekening (PDF of foto) en ik vertel je binnen 10 seconden of je teveel betaalt.\n\n" +
         "\u{1F512} Je data wordt alleen gebruikt voor je advies en wordt niet opgeslagen.",
       );
@@ -193,7 +193,7 @@ export async function handleIncomingMessage(from: string, message: any, messageT
         await sendText(from,
           `\u{1F4F8} *Deel met vrienden:*\n\n` +
           `Stuur dit bericht:\n\n` +
-          `_"Check bespaarwacht.nl \u{2014} ${naam} bespaart \u{20AC}${besparing}/mnd op energie \u{1F926}"_\n\n` +
+          `_"Check deverzkeringsagent.nl \u{2014} ${naam} bespaart \u{20AC}${besparing}/mnd op energie \u{1F926}"_\n\n` +
           `Of vertel ze: stuur je energierekening naar dit nummer!`,
         );
       } else {

@@ -30,7 +30,7 @@ function buildScrapers(): BaseScraper[] {
       new LiveReisScraper("fbto", "FBTO", 7.25, "€ 0", scrapeFbtoReis),
     ];
   } catch (err) {
-    console.warn("[BespaarWacht] Playwright niet beschikbaar voor reis:", (err as Error).message);
+    console.warn("[DVA] Playwright niet beschikbaar voor reis:", (err as Error).message);
     return calculatedScrapers;
   }
 }

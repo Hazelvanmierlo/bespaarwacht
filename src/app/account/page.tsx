@@ -201,7 +201,7 @@ export default function AccountPage() {
             )}
             <Link
               href="/upload"
-              className="inline-flex items-center gap-1.5 px-5 py-2.5 rounded-lg text-sm font-semibold bg-bw-green text-white no-underline hover:bg-bw-green-strong transition-colors"
+              className="inline-flex items-center gap-1.5 px-5 py-2.5 rounded-lg text-sm font-semibold bg-bw-orange text-white no-underline hover:bg-bw-orange-strong transition-colors"
             >
               <UploadIcon className="w-4 h-4" /> Nieuwe polis
             </Link>
@@ -214,7 +214,7 @@ export default function AccountPage() {
           </div>
           <div>
             <div className="text-[13px] font-semibold text-bw-deep">
-              BespaarWacht houdt je polissen 24/7 in de gaten
+              DeVerzekeringsAgent houdt je polissen 24/7 in de gaten
             </div>
             <div className="text-[12px] text-bw-text-mid">
               We vergelijken dagelijks alle aanbieders en melden ons zodra we iets beters vinden. Jij hoeft niets te doen.
@@ -235,7 +235,7 @@ export default function AccountPage() {
               <h3 className="text-2xl md:text-3xl font-heading font-bold mb-1">
                 {demoPolissen.length} polissen worden bewaakt
               </h3>
-              <p className="text-white/60 text-sm">BespaarWacht controleert dagelijks alle aanbieders voor jou.</p>
+              <p className="text-white/60 text-sm">DeVerzekeringsAgent controleert dagelijks alle aanbieders voor jou.</p>
             </div>
             <div className="flex gap-4 md:gap-6">
               <div className="text-center">
@@ -394,7 +394,7 @@ export default function AccountPage() {
                           className={`px-4 py-2.5 rounded-lg text-sm font-semibold no-underline transition-colors inline-flex items-center gap-1.5 ${
                             p.status === "action"
                               ? "bg-bw-orange text-white hover:bg-[#C2410C]"
-                              : "bg-bw-green text-white hover:bg-bw-green-strong"
+                              : "bg-bw-orange text-white hover:bg-bw-orange-strong"
                           }`}
                         >
                           {p.status === "action" ? "Actie ondernemen" : "Bekijk alternatief"} <ArrowRightIcon className="w-3.5 h-3.5" />
@@ -492,7 +492,7 @@ export default function AccountPage() {
           <p className="text-sm text-bw-text-mid mb-6">Upload je eerste polis en sla de analyse op om 24/7 monitoring te activeren.</p>
           <Link
             href="/upload"
-            className="inline-flex items-center gap-1.5 px-6 py-3 rounded-[10px] text-[15px] font-semibold bg-bw-green text-white no-underline hover:bg-bw-green-strong transition-colors"
+            className="inline-flex items-center gap-1.5 px-6 py-3 rounded-[10px] text-[15px] font-semibold bg-bw-orange text-white no-underline hover:bg-bw-orange-strong transition-colors"
           >
             <UploadIcon className="w-4 h-4" /> Start nu <ArrowRightIcon className="w-4 h-4" />
           </Link>
@@ -521,7 +521,7 @@ export default function AccountPage() {
             </div>
           </div>
           <div className="p-3.5 bg-bw-bg rounded-[10px] mb-3">
-            <div className="text-xs font-bold text-bw-deep mb-2">Jouw AVG-rechten bij BespaarWacht</div>
+            <div className="text-xs font-bold text-bw-deep mb-2">Jouw AVG-rechten bij DeVerzekeringsAgent</div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-1.5">
               {[
                 ["Recht op inzage", "Bekijk altijd welke data wij bewaren"],
@@ -542,7 +542,7 @@ export default function AccountPage() {
             </div>
           </div>
           <div className="text-[11px] text-bw-text-light leading-relaxed">
-            BespaarWacht verwerkt gegevens conform de AVG (Algemene Verordening Gegevensbescherming). Grondslag: uitvoering overeenkomst (art. 6 lid 1b AVG) en gerechtvaardigd belang (art. 6 lid 1f AVG). Dataminimalisatie is ons uitgangspunt — wij verzamelen alleen wat strikt noodzakelijk is.
+            DeVerzekeringsAgent verwerkt gegevens conform de AVG (Algemene Verordening Gegevensbescherming). Grondslag: uitvoering overeenkomst (art. 6 lid 1b AVG) en gerechtvaardigd belang (art. 6 lid 1f AVG). Dataminimalisatie is ons uitgangspunt — wij verzamelen alleen wat strikt noodzakelijk is.
           </div>
         </div>
       </div>

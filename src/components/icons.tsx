@@ -95,6 +95,6 @@ export function XIcon({ className = "w-5 h-5" }: { className?: string }) {
 
 export function PulseDot() {
   return (
-    <span className="inline-block w-[7px] h-[7px] rounded-full bg-bw-green animate-pulse-dot" />
+    <span className="inline-block w-[7px] h-[7px] rounded-full bg-bw-blue animate-pulse-dot" />
   );
 }

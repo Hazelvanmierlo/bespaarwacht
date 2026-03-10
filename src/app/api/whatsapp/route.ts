@@ -27,7 +27,7 @@ function validateTwilioSignature(req: NextRequest, body: string): boolean {
 }
 
 export async function GET() {
-  return NextResponse.json({ status: 'ok', service: 'BespaarWacht WhatsApp' });
+  return NextResponse.json({ status: 'ok', service: 'DeVerzekeringsAgent WhatsApp' });
 }
 
 export async function POST(req: NextRequest) {
