@@ -72,8 +72,8 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // Fire and forget — return 200 quickly
-    handleIncomingMessage(from, message, messageType).catch(console.error);
+    // Await the handler — serverless functions terminate after response
+    await handleIncomingMessage(from, message, messageType);
 
     return NextResponse.json({ status: 'ok' });
   } catch (error) {
