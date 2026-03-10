@@ -1,6 +1,8 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" fill="none">
-  <rect width="48" height="48" rx="10" fill="#16A34A"/>
-  <path d="M24 10L14 14V24C14 32 24 38 24 38C24 38 34 32 34 24V14L24 10Z" stroke="white" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
-  <path d="M24 18V28" stroke="white" stroke-width="2.5" stroke-linecap="round"/>
-  <path d="M19 25L24 30L29 25" stroke="white" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+  <!-- Blue rounded square background -->
+  <rect width="48" height="48" rx="12" fill="#1A56DB"/>
+  <!-- Shield shape -->
+  <path d="M24 8L12 13V23C12 32.5 24 40 24 40C24 40 36 32.5 36 23V13L24 8Z" fill="white" opacity="0.95"/>
+  <!-- Checkmark inside shield -->
+  <path d="M18 23L22 27L30 19" stroke="#1A56DB" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
 </svg>
