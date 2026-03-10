@@ -5,6 +5,7 @@ import { ShieldDownIcon } from "@/components/icons";
 
 const navItems = [
   { href: "/admin", label: "Dashboard", icon: "📊" },
+  { href: "/admin/energy-monitor", label: "Energie Monitor", icon: "⚡" },
   { href: "/admin/verzekeraars", label: "Verzekeraars", icon: "🏢" },
   { href: "/admin/scrapers", label: "Scrapers", icon: "🔄" },
   { href: "/admin/gebruikers", label: "Gebruikers", icon: "👥" },

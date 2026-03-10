@@ -13,6 +13,7 @@
   "dependencies": {
     "@anthropic-ai/sdk": "^0.78.0",
     "@auth/supabase-adapter": "^1.11.1",
+    "@sparticuz/chromium": "^143.0.4",
     "@supabase/supabase-js": "^2.97.0",
     "@vercel/kv": "^3.0.0",
     "bcryptjs": "^3.0.3",
@@ -20,8 +21,10 @@
     "next-auth": "^5.0.0-beta.30",
     "pdf-parse": "^2.4.5",
     "pdfjs-dist": "^5.5.207",
+    "puppeteer-core": "^24.39.0",
     "react": "19.2.3",
-    "react-dom": "19.2.3"
+    "react-dom": "19.2.3",
+    "resend": "^6.9.3"
   },
   "devDependencies": {
     "@playwright/test": "^1.58.2",

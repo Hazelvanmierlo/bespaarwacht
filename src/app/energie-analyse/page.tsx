@@ -111,7 +111,7 @@ function EnergieAnalyseContent() {
     const sorted = [...vergelijking].sort((a, b) => a.totaalJaar - b.totaalJaar);
     const huidige = energieData?.leverancier
       ? vergelijking.find(
-          (r) => r.leverancier.naam.toLowerCase() === energieData.leverancier!.toLowerCase(),
+          (r) => r.leverancier.naam.toLowerCase().includes(energieData.leverancier!.toLowerCase()),
         )
       : sorted[sorted.length - 1];
     if (!huidige) return sorted[sorted.length - 1].totaalJaar - sorted[0].totaalJaar;

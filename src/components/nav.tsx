@@ -54,12 +54,22 @@ export default function Nav() {
 
           {/* Login / Account */}
           {session?.user ? (
-            <Link
-              href="/account"
-              className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-lg text-sm font-semibold text-bw-deep border border-bw-border hover:bg-bw-bg transition-all"
-            >
-              Mijn polissen
-            </Link>
+            <>
+              {(session.user as { role?: string }).role === "admin" && (
+                <Link
+                  href="/admin"
+                  className="text-bw-text-light text-xs font-medium px-2 py-1 rounded hover:text-bw-blue hover:bg-bw-blue-light transition-all"
+                >
+                  Admin
+                </Link>
+              )}
+              <Link
+                href="/account"
+                className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-lg text-sm font-semibold text-bw-deep border border-bw-border hover:bg-bw-bg transition-all"
+              >
+                Mijn polissen
+              </Link>
+            </>
           ) : (
             <Link
               href="/login"
