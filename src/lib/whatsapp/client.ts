@@ -6,11 +6,11 @@ const MESSAGES_URL = `https://api.twilio.com/2010-04-01/Accounts/${TWILIO_SID}/M
 const authHeader = 'Basic ' + Buffer.from(`${TWILIO_SID}:${TWILIO_AUTH}`).toString('base64');
 
 export async function sendText(to: string, text: string) {
-  const body = new URLSearchParams({
-    From: TWILIO_FROM,
-    To: `whatsapp:+${to}`,
-    Body: text,
-  });
+  const params = [
+    `From=${encodeURIComponent(TWILIO_FROM)}`,
+    `To=${encodeURIComponent(`whatsapp:+${to}`)}`,
+    `Body=${encodeURIComponent(text)}`,
+  ].join('&');
 
   const res = await fetch(MESSAGES_URL, {
     method: 'POST',
@@ -18,7 +18,7 @@ export async function sendText(to: string, text: string) {
       'Authorization': authHeader,
       'Content-Type': 'application/x-www-form-urlencoded',
     },
-    body: body.toString(),
+    body: params,
   });
   return res.json();
 }
