@@ -1,12 +1,49 @@
 import { NextRequest, NextResponse } from "next/server";
-import { PDFParse } from "pdf-parse";
-import { extractPolisFromText, detectProductType, detectProductTypeFromText } from "@/lib/pdf-parser";
-import path from "path";
-import { pathToFileURL } from "url";
+import Anthropic from "@anthropic-ai/sdk";
 
-// Point pdfjs-dist to the worker bundled with pdf-parse
-const workerPath = path.join(process.cwd(), "node_modules/pdf-parse/dist/worker/pdf.worker.mjs");
-PDFParse.setWorker(pathToFileURL(workerPath).href);
+const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+
+const PARSE_PROMPT = `Lees dit Nederlandse verzekeringspolis/polisblad uit.
+Geef ALLEEN een JSON object terug, geen markdown backticks, geen uitleg:
+{
+  "naam": "string" of "",
+  "adres": "string" of "",
+  "postcode": "string" of "",
+  "woonplaats": "string" of "",
+  "polisnummer": "string" of "",
+  "verzekeraar": "string" of "",
+  "type": "Inboedel" of "Opstal" of "Aansprakelijkheid" of "Reis" of "Onbekend",
+  "dekking": "Basis" of "Uitgebreid" of "Extra Uitgebreid" of "All Risk" of "string",
+  "voorwaarden": "string" of "",
+  "jaarpremie": number of 0,
+  "maandpremie": number of 0,
+  "eigenRisico": "string" of "",
+  "ingangsdatum": "string" of "",
+  "verlengingsdatum": "string" of "",
+  "opzegtermijn": "string" of "",
+  "gezin": "Alleenstaand" of "Gezin / samenwonend" of "",
+  "woning": "Vrijstaand" of "Tussenwoning" of "Hoekwoning" of "Appartement" of "",
+  "bouwaard": "string" of "",
+  "oppervlakte": "string" of "",
+  "huisnummer": "string" of "",
+  "geboortedatum": "string" of "",
+  "eigenaar": "Eigenaar" of "Huurder" of "",
+  "dekkingen": [{ "rubriek": "string", "diefstal": "string", "anders": "string" }]
+}
+
+Belangrijk:
+- Als jaarpremie bekend is maar maandpremie niet: maandpremie = jaarpremie / 12
+- Als maandpremie bekend is maar jaarpremie niet: jaarpremie = maandpremie * 12
+- Detecteer het type verzekering automatisch uit de inhoud
+- Als het GEEN verzekeringspolis is: { "error": "geen_polis" }
+- Als je een veld niet kunt vinden, gebruik "" (lege string) of 0 voor nummers`;
+
+const PRODUCT_TYPE_MAP: Record<string, string> = {
+  "Inboedel": "inboedel",
+  "Opstal": "opstal",
+  "Aansprakelijkheid": "aansprakelijkheid",
+  "Reis": "reis",
+};
 
 export async function POST(req: NextRequest) {
   try {
@@ -14,54 +51,76 @@ export async function POST(req: NextRequest) {
     const file = formData.get("file") as File | null;
 
     if (!file) {
-      return NextResponse.json({ error: "Geen PDF bestand ontvangen" }, { status: 400 });
+      return NextResponse.json({ error: "Geen bestand ontvangen" }, { status: 400 });
     }
 
-    if (!file.name.toLowerCase().endsWith(".pdf")) {
-      return NextResponse.json({ error: "Alleen PDF bestanden worden geaccepteerd" }, { status: 400 });
+    const fileName = file.name.toLowerCase();
+    const fileType = file.type;
+    const isPdf = fileName.endsWith(".pdf") || fileType === "application/pdf";
+    const isImage = fileType.startsWith("image/") || /\.(jpg|jpeg|png|gif|webp)$/.test(fileName);
+
+    if (!isPdf && !isImage) {
+      return NextResponse.json(
+        { error: "Upload een PDF of afbeelding (JPG, PNG)." },
+        { status: 400 }
+      );
     }
 
-    // Read file as ArrayBuffer for pdf-parse v2
     const arrayBuffer = await file.arrayBuffer();
-    const data = new Uint8Array(arrayBuffer);
+    const base64 = Buffer.from(arrayBuffer).toString("base64");
 
-    const parser = new PDFParse({ data });
-    const textResult = await parser.getText();
-    const text = textResult.text;
-    await parser.destroy();
+    // Build Claude Vision content based on file type
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const content: any[] = [];
 
-    if (!text || text.trim().length < 20) {
-      return NextResponse.json(
-        { error: "Kon geen tekst uit de PDF halen. Probeer een ander bestand." },
-        { status: 422 }
-      );
+    if (isPdf) {
+      content.push({
+        type: "document",
+        source: { type: "base64", media_type: "application/pdf", data: base64 },
+      });
+    } else {
+      const mimeType = fileType || "image/jpeg";
+      content.push({
+        type: "image",
+        source: { type: "base64", media_type: mimeType, data: base64 },
+      });
     }
 
-    // Extract structured polis data from text
-    const polisData = extractPolisFromText(text);
+    content.push({ type: "text", text: PARSE_PROMPT });
 
-    if (!polisData) {
-      return NextResponse.json(
-        { error: "Kon geen polisgegevens herkennen in de PDF. Is dit een Nederlands polisblad?" },
-        { status: 422 }
-      );
-    }
-
-    // Detect product type — prefer structured detection, fall back to text-based
-    const productType = polisData.type !== "Onbekend"
-      ? detectProductType(polisData)
-      : detectProductTypeFromText(text);
-
-    return NextResponse.json({
-      polisData,
-      productType,
-      textLength: text.length,
+    const response = await anthropic.messages.create({
+      model: "claude-sonnet-4-20250514",
+      max_tokens: 3000,
+      messages: [{ role: "user", content }],
     });
+
+    const text = response.content[0].type === "text" ? response.content[0].text : "";
+    let polisData;
+    try {
+      polisData = JSON.parse(text.replace(/```json|```/g, "").trim());
+    } catch {
+      return NextResponse.json(
+        { error: "Kon het document niet uitlezen. Probeer een ander bestand." },
+        { status: 422 }
+      );
+    }
+
+    if (polisData.error) {
+      return NextResponse.json(
+        { error: "Dit lijkt geen verzekeringspolis. Upload je polisblad of factuur." },
+        { status: 422 }
+      );
+    }
+
+    // Detect product type
+    const productType = PRODUCT_TYPE_MAP[polisData.type] || "inboedel";
+
+    return NextResponse.json({ polisData, productType });
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
-    console.error("PDF parse error:", msg, err);
+    console.error("Parse error:", msg, err);
     return NextResponse.json(
-      { error: "Fout bij het verwerken van de PDF. Probeer het opnieuw.", detail: msg },
+      { error: "Fout bij het verwerken. Probeer het opnieuw.", detail: msg },
       { status: 500 }
     );
   }

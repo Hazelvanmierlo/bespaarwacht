@@ -46,8 +46,10 @@ export default function UploadPage() {
       return;
     }
 
-    if (!pdfFile.name.toLowerCase().endsWith(".pdf")) {
-      setUploadError("Selecteer een PDF bestand.");
+    const name = pdfFile.name.toLowerCase();
+    const isValid = name.endsWith(".pdf") || name.endsWith(".jpg") || name.endsWith(".jpeg") || name.endsWith(".png") || name.endsWith(".webp");
+    if (!isValid) {
+      setUploadError("Upload een PDF of afbeelding (JPG, PNG).");
       return;
     }
 
@@ -248,7 +250,7 @@ export default function UploadPage() {
     <div className="max-w-[640px] mx-auto px-6 py-16">
       <h2 className="font-heading text-[28px] font-bold text-bw-deep mb-2">Polis uploaden</h2>
       <p className="text-[15px] text-bw-text-mid mb-8">
-        Upload je polisblad als PDF. Wij analyseren het automatisch en vinden betere opties.
+        Upload je polisblad als PDF of foto. Wij analyseren het automatisch en vinden betere opties.
       </p>
 
       {/* Product type selector */}
@@ -288,14 +290,14 @@ export default function UploadPage() {
         onDragLeave={() => setIsDragging(false)}
         onDrop={handleDrop}
       >
-        <input ref={fileRef} type="file" accept=".pdf" className="hidden" onChange={handleInputChange} />
+        <input ref={fileRef} type="file" accept=".pdf,.jpg,.jpeg,.png,.webp,image/*" className="hidden" onChange={handleInputChange} />
 
         {isUploading ? (
           <>
             <div className="w-16 h-16 rounded-2xl bg-bw-green-bg flex items-center justify-center mx-auto mb-4">
               <div className="w-8 h-8 border-3 border-bw-green border-t-transparent rounded-full animate-spin" />
             </div>
-            <div className="text-base font-semibold text-bw-deep mb-1">PDF wordt verwerkt...</div>
+            <div className="text-base font-semibold text-bw-deep mb-1">Document wordt verwerkt...</div>
             <div className="text-sm text-bw-text-light">Even geduld, we lezen je polis uit.</div>
           </>
         ) : (
@@ -307,10 +309,10 @@ export default function UploadPage() {
                 <line x1="12" y1="3" x2="12" y2="15" />
               </svg>
             </div>
-            <div className="text-base font-semibold text-bw-deep mb-1">Sleep je PDF hierheen</div>
+            <div className="text-base font-semibold text-bw-deep mb-1">Sleep je bestand hierheen</div>
             <div className="text-sm text-bw-text-light mb-5">of klik om een bestand te selecteren</div>
             <div className="flex justify-center gap-4 text-xs text-bw-text-light">
-              <span>📄 PDF formaat</span>
+              <span>📄 PDF of foto</span>
               <span>🔒 Wordt niet opgeslagen</span>
               <span>⚡ Analyse in 5 sec</span>
             </div>
