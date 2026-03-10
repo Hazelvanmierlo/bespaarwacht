@@ -3,6 +3,10 @@
     {
       "path": "/api/cron/scrape",
       "schedule": "0 6 * * *"
+    },
+    {
+      "path": "/api/cron/energy-update",
+      "schedule": "0 3 * * *"
     }
   ]
 }

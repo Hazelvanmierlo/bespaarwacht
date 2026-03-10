@@ -204,6 +204,10 @@ function UploadContent() {
     if (file) handleFile(file);
   }, [handleFile]);
 
+  // Check if this is manual input (no file was uploaded)
+  const isManualInput = energieData?.leverancier === "" && energieData?.kosten_maand === 0 && !parsedData;
+  const isManualInputVerzekering = parsedData?.verzekeraar === "" && parsedData?.maandpremie === 0;
+
   // === ENERGIE CONFIRMATION VIEW ===
   if (energieData) {
     return (
@@ -211,8 +215,14 @@ function UploadContent() {
         <div className="flex items-center gap-4 mb-2">
           <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-bw-green-bg to-[#D1FAE5] flex items-center justify-center text-xl shadow-[0_2px_8px_rgba(22,163,74,0.1)]">⚡</div>
           <div>
-            <h2 className="font-heading text-[26px] font-bold text-bw-deep">Klopt dit?</h2>
-            <p className="text-[14px] text-bw-text-mid">We hebben deze gegevens uit je energierekening gehaald. Pas aan indien nodig.</p>
+            <h2 className="font-heading text-[26px] font-bold text-bw-deep">
+              {isManualInput ? "Vul je gegevens in" : "Klopt dit?"}
+            </h2>
+            <p className="text-[14px] text-bw-text-mid">
+              {isManualInput
+                ? "Vul je verbruik en huidige leverancier in voor een persoonlijke vergelijking."
+                : "We hebben deze gegevens uit je energierekening gehaald. Pas aan indien nodig."}
+            </p>
           </div>
         </div>
 
@@ -276,7 +286,9 @@ function UploadContent() {
         <div className="mt-4 flex items-center gap-2 px-3 py-2 bg-[#F0FDF4] rounded-lg border border-[#BBF7D0]">
           <LockIcon />
           <span className="text-[11px] text-bw-green-dark">
-            <strong>Je bestand is al verwijderd.</strong> Alleen deze gegevens worden gebruikt voor de vergelijking.
+            {isManualInput
+              ? <><strong>Privacy gewaarborgd.</strong> Je gegevens worden alleen gebruikt voor deze vergelijking.</>
+              : <><strong>Je bestand is al verwijderd.</strong> Alleen deze gegevens worden gebruikt voor de vergelijking.</>}
           </span>
         </div>
       </div>
@@ -288,10 +300,18 @@ function UploadContent() {
     return (
       <div className="max-w-[680px] mx-auto px-4 sm:px-6 py-8 sm:py-16">
         <div className="flex items-center gap-4 mb-2">
-          <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-bw-blue-light to-[#DBEAFE] flex items-center justify-center text-xl shadow-[0_2px_8px_rgba(43,108,176,0.1)]">📄</div>
+          <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-bw-blue-light to-[#DBEAFE] flex items-center justify-center text-xl shadow-[0_2px_8px_rgba(43,108,176,0.1)]">
+            {isManualInputVerzekering ? "📋" : "📄"}
+          </div>
           <div>
-            <h2 className="font-heading text-[26px] font-bold text-bw-deep">Klopt dit?</h2>
-            <p className="text-[14px] text-bw-text-mid">We hebben deze gegevens uit je polis gehaald. Pas aan indien nodig.</p>
+            <h2 className="font-heading text-[26px] font-bold text-bw-deep">
+              {isManualInputVerzekering ? "Vul je gegevens in" : "Klopt dit?"}
+            </h2>
+            <p className="text-[14px] text-bw-text-mid">
+              {isManualInputVerzekering
+                ? "Vul je huidige verzekeringsgegevens in en ontdek of je goedkoper uit kunt."
+                : "We hebben deze gegevens uit je polis gehaald. Pas aan indien nodig."}
+            </p>
           </div>
         </div>
 
@@ -408,7 +428,9 @@ function UploadContent() {
         <div className="mt-4 flex items-center gap-2 px-3 py-2 bg-[#F0FDF4] rounded-lg border border-[#BBF7D0]">
           <LockIcon />
           <span className="text-[11px] text-bw-green-dark">
-            <strong>Je PDF is al verwijderd.</strong> Alleen deze gegevens worden gebruikt voor de vergelijking.
+            {isManualInputVerzekering
+              ? <><strong>Privacy gewaarborgd.</strong> Je gegevens worden alleen gebruikt voor deze vergelijking.</>
+              : <><strong>Je PDF is al verwijderd.</strong> Alleen deze gegevens worden gebruikt voor de vergelijking.</>}
           </span>
         </div>
       </div>
@@ -564,31 +586,87 @@ function UploadContent() {
         </div>
       </div>
 
-      {/* Demo buttons — only for verzekeringen */}
-      {docCategory === "verzekering" && (
-        <div className="mt-8 p-5 bg-white rounded-xl border border-bw-border">
-          <div className="text-[13px] font-semibold text-bw-deep mb-2">💡 Demo: probeer met voorbeeldpolis</div>
-          <p className="text-[13px] text-bw-text-mid mb-4">
-            Geen PDF bij de hand? Kies een producttype en bekijk de analyse met voorbeelddata.
-          </p>
+      {/* Manual input option */}
+      <div className="mt-8 p-5 bg-white rounded-xl border border-bw-border">
+        <div className="text-[13px] font-semibold text-bw-deep mb-2">
+          {docCategory === "energie" ? "⚡ Geen energierekening bij de hand?" : "📋 Geen polisblad bij de hand?"}
+        </div>
+        <p className="text-[13px] text-bw-text-mid mb-4">
+          {docCategory === "energie"
+            ? "Vul je verbruik en leverancier handmatig in. We vergelijken direct alle leveranciers."
+            : "Vul je verzekeringsgegevens handmatig in en ontdek of je goedkoper uit kunt."}
+        </p>
+        {docCategory === "energie" ? (
+          <button
+            onClick={() => {
+              setEnergieData({
+                leverancier: "",
+                stroom_normaal_kwh: 2500,
+                stroom_dal_kwh: null,
+                stroom_kwh_jaar: 2500,
+                gas_m3_jaar: 1200,
+                kosten_maand: 0,
+                kosten_jaar: 0,
+                tarief_stroom_normaal: 0,
+                tarief_stroom_dal: null,
+                tarief_gas_m3: null,
+                teruglevering_kwh: null,
+                contract_type: "variabel",
+                meter_type: "enkel",
+                contract_einddatum: null,
+                naam: null,
+                adres: null,
+                ean_stroom: null,
+                ean_gas: null,
+                stroom_vorig_jaar_kwh: null,
+              });
+            }}
+            className="w-full inline-flex items-center justify-center gap-2 px-5 py-3.5 sm:py-3 rounded-xl text-[14px] font-semibold bg-bw-green-bg text-bw-green-strong border border-[rgba(22,163,74,0.2)] cursor-pointer font-[inherit] hover:bg-[#D1FAE5] transition-all min-h-[48px]"
+          >
+            Vul handmatig in <ArrowRightIcon className="w-3.5 h-3.5" />
+          </button>
+        ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
             {PRODUCTS.map((p) => (
               <button
                 key={p.type}
-                onClick={() => router.push(`/analyse/demo?product=${p.type}`)}
+                onClick={() => {
+                  setParsedData({
+                    verzekeraar: "",
+                    maandpremie: 0,
+                    jaarpremie: 0,
+                    dekking: p.type === "inboedel" || p.type === "opstal" ? "Uitgebreid" : "",
+                    eigenRisico: "€ 0",
+                    postcode: "",
+                    woning: "Tussenwoning",
+                    oppervlakte: "",
+                    gezin: "Gezin / samenwonend",
+                    ingangsdatum: "",
+                    opzegtermijn: "",
+                    bouwaard: "",
+                    naam: "",
+                    adres: "",
+                    polisnummer: "",
+                    geboortedatum: "",
+                    huisnummer: "",
+                    eigenaar: "Eigenaar",
+                    type: PRODUCT_LABELS[p.type],
+                  } as PolisData);
+                  setDetectedProduct(p.type);
+                }}
                 className="flex items-center gap-3 px-4 py-3.5 sm:py-3 rounded-lg text-left bg-bw-bg border border-bw-border cursor-pointer font-[inherit] hover:bg-[#E2E8F0] hover:border-[#94A3B8] transition-all min-h-[48px]"
               >
                 <span className="text-lg">{p.icon}</span>
                 <div>
                   <div className="text-[12px] font-semibold text-bw-deep">{p.label}</div>
-                  <div className="text-[11px] text-bw-text-light">{p.description}</div>
+                  <div className="text-[11px] text-bw-text-light">Vul zelf in</div>
                 </div>
                 <ArrowRightIcon className="w-3 h-3 ml-auto text-bw-text-light" />
               </button>
             ))}
           </div>
-        </div>
-      )}
+        )}
+      </div>
     </div>
   );
 }

@@ -49,17 +49,17 @@ export default function Footer() {
           <h4 className="text-[11px] font-bold uppercase tracking-[1px] text-white/30 mb-3">Juridisch</h4>
           <div className="flex flex-col gap-0.5">
             <Link href="/privacy" className="text-[13px] text-white/55 no-underline py-[3px] hover:text-white transition-colors">Privacybeleid</Link>
-            <Link href="/privacy" className="text-[13px] text-white/55 no-underline py-[3px] hover:text-white transition-colors">Voorwaarden</Link>
-            <Link href="/privacy" className="text-[13px] text-white/55 no-underline py-[3px] hover:text-white transition-colors">Cookies</Link>
-            <Link href="/privacy" className="text-[13px] text-white/55 no-underline py-[3px] hover:text-white transition-colors">Klachtenregeling</Link>
-            <Link href="/privacy" className="text-[13px] text-white/55 no-underline py-[3px] hover:text-white transition-colors">Dienstenwijzer</Link>
+            <Link href="/voorwaarden" className="text-[13px] text-white/55 no-underline py-[3px] hover:text-white transition-colors">Voorwaarden</Link>
+            <Link href="/cookies" className="text-[13px] text-white/55 no-underline py-[3px] hover:text-white transition-colors">Cookies</Link>
+            <Link href="/klachten" className="text-[13px] text-white/55 no-underline py-[3px] hover:text-white transition-colors">Klachtenregeling</Link>
+            <Link href="/dienstwijzer" className="text-[13px] text-white/55 no-underline py-[3px] hover:text-white transition-colors">Dienstenwijzer</Link>
           </div>
         </div>
       </div>
 
       {/* Bottom */}
       <div className="max-w-[1140px] mx-auto pt-4 border-t border-white/5 flex flex-wrap justify-between items-center text-[11.5px] text-white/25 gap-2">
-        <span>&copy; 2026 DeVerzekeringsAgent B.V. — KvK 87654321</span>
+        <span>&copy; 2026 Fraction B.V. (h/o DeVerzekeringsAgent) — KvK 91544467</span>
         <span>AVG Compliant &middot; Wft geregistreerd</span>
       </div>
       <div className="max-w-[1140px] mx-auto mt-3 text-[11px] text-white/20 leading-relaxed">
