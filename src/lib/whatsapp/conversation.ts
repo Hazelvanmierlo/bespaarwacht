@@ -1,6 +1,6 @@
 import { kv } from '@vercel/kv';
 import { sendText, sendButtons, downloadMedia } from './client';
-import { parseEnergyReport, parseEnergyImage } from './parser';
+import { parseEnergyReport, parseEnergyImage, parseBankCard } from './parser';
 import { vergelijk } from './comparison';
 import { detectProfile } from '../energy/detection';
 import { validateIBAN, validateEmail } from '../utils/iban-validator';
@@ -205,6 +205,39 @@ export async function handleIncomingMessage(from: string, message: any, messageT
     case 'COLLECT_INFO': {
       const text = message.text?.body || '';
       if (!conv.personalInfo) conv.personalInfo = {};
+
+      // Parse IBAN from bank card photo
+      if (messageType === 'image' && !conv.personalInfo.iban) {
+        await sendText(from, "\u{1F4B3} Bankpas ontvangen, even uitlezen...");
+        try {
+          const mediaUrl = message.image.url;
+          const buffer = await downloadMedia(mediaUrl);
+          const mime = message.image.mime_type || 'image/jpeg';
+          const result = await parseBankCard(buffer, mime);
+
+          if ('iban' in result && result.iban) {
+            const ibanResult = validateIBAN(result.iban);
+            if (ibanResult.valid) {
+              conv.personalInfo.iban = ibanResult.iban;
+              conv.personalInfo.ibanBank = ibanResult.bankName;
+              await sendText(from, `\u{2705} IBAN gevonden: *${ibanResult.iban}* (${ibanResult.bankName})`);
+            } else {
+              await sendText(from, `\u{274C} IBAN op de foto is ongeldig. Typ je IBAN handmatig of stuur een duidelijkere foto.`);
+              await setState(from, conv);
+              return;
+            }
+          } else {
+            await sendText(from, "Ik kon geen IBAN vinden op deze foto. Typ je IBAN handmatig of stuur een foto van je bankpas.");
+            await setState(from, conv);
+            return;
+          }
+        } catch (error) {
+          console.error('Bank card parse error:', error);
+          await sendText(from, "Er ging iets mis bij het uitlezen. Typ je IBAN handmatig.");
+          await setState(from, conv);
+          return;
+        }
+      }
 
       const ibanMatch = text.match(/[A-Z]{2}\d{2}\s?[A-Z]{4}\s?\d{4}\s?\d{4}\s?\d{2,4}/i);
       if (ibanMatch) {

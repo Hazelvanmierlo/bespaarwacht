@@ -57,6 +57,33 @@ export async function parseEnergyReport(pdfBuffer: Buffer): Promise<EnergyData |
   }
 }
 
+export async function parseBankCard(imageBuffer: Buffer, mimeType: string): Promise<{ iban: string } | { error: string }> {
+  const base64 = imageBuffer.toString('base64');
+
+  const response = await anthropic.messages.create({
+    model: 'claude-sonnet-4-20250514',
+    max_tokens: 500,
+    messages: [{
+      role: 'user',
+      content: [
+        { type: 'image', source: { type: 'base64', media_type: mimeType as 'image/jpeg' | 'image/png' | 'image/gif' | 'image/webp', data: base64 } },
+        { type: 'text', text: `Lees het IBAN nummer van deze bankpas/betaalpas foto.
+Geef ALLEEN een JSON object terug, geen markdown backticks, geen uitleg:
+{ "iban": "NL00BANK0000000000" }
+
+Als er geen IBAN zichtbaar is: { "error": "geen_iban" }` },
+      ],
+    }],
+  });
+
+  const text = response.content[0].type === 'text' ? response.content[0].text : '';
+  try {
+    return JSON.parse(text.replace(/```json|```/g, '').trim());
+  } catch {
+    return { error: 'parse_failed' };
+  }
+}
+
 export async function parseEnergyImage(imageBuffer: Buffer, mimeType: string): Promise<EnergyData | { error: string }> {
   const base64 = imageBuffer.toString('base64');
 
