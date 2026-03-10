@@ -1,9 +1,10 @@
-/* pdfjs-dist is loaded dynamically to avoid SSR issues (DOMMatrix not defined) */
-let _pdfjs: typeof import("pdfjs-dist") | null = null;
+/* Use legacy build for mobile Safari compatibility */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+let _pdfjs: any = null;
 
 async function getPdfjs() {
   if (_pdfjs) return _pdfjs;
-  _pdfjs = await import("pdfjs-dist");
+  _pdfjs = await import("pdfjs-dist/legacy/build/pdf.mjs");
   _pdfjs.GlobalWorkerOptions.workerSrc = "/pdf.worker.min.mjs";
   return _pdfjs;
 }
@@ -56,7 +57,7 @@ export async function parsePDF(file: File): Promise<ParseResult> {
     const page = await pdf.getPage(i);
     const content = await page.getTextContent();
     const pageText = content.items
-      .map((item) => ("str" in item ? item.str : ""))
+      .map((item: { str?: string }) => (item.str ?? ""))
       .join(" ");
     fullText += pageText + "\n";
   }
