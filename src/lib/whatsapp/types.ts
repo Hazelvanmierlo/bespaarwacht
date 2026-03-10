@@ -18,6 +18,7 @@ export interface EnergyData {
   adres: string | null;
   naam: string | null;
   meter_type: 'enkel' | 'dubbel';
+  contract_einddatum: string | null;
 }
 
 // ═══ LEVERANCIER DATABASE (uit modelcontracten) ═══

@@ -76,8 +76,9 @@ export async function handleIncomingMessage(from: string, message: any, messageT
             verbruikTekst + '\n' +
             (d.gas_m3_jaar ? `\u{1F525} Gas: *${d.gas_m3_jaar} m\u{00B3}*/jaar\n` : '') +
             `\u{1F4B0} Kosten: *\u{20AC}${d.kosten_maand}/maand* (\u{20AC}${d.kosten_jaar?.toLocaleString('nl-NL')}/jaar)\n` +
-            `\u{1F4CF} Meter: *${d.meter_type === 'dubbel' ? 'Dubbeltarief' : 'Enkeltarief'}*\n\n` +
-            `Klopt dit?`;
+            `\u{1F4CF} Meter: *${d.meter_type === 'dubbel' ? 'Dubbeltarief' : 'Enkeltarief'}*\n` +
+            (d.contract_einddatum ? `\u{1F4C5} Contract tot: *${d.contract_einddatum}*\n` : '') +
+            `\nKlopt dit?`;
 
           await sendButtons(from, samenvatting, ['Ja, klopt \u{2713}', 'Nee, pas aan']);
           conv.state = 'CONFIRM_DATA';

@@ -23,7 +23,8 @@ Geef ALLEEN een JSON object terug, geen markdown backticks, geen uitleg:
   "contract_type": "vast" of "variabel" of "dynamisch",
   "adres": "string" of null,
   "naam": "string" of null (naam contracthouder),
-  "meter_type": "enkel" of "dubbel" (dubbel als er apart dal/piek staat)
+  "meter_type": "enkel" of "dubbel" (dubbel als er apart dal/piek staat),
+  "contract_einddatum": "YYYY-MM-DD" of null (einddatum huidig contract, bijv. "2026-12-31")
 }
 
 Belangrijk:
