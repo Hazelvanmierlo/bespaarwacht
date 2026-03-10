@@ -50,7 +50,7 @@ export interface ParseResult {
 export async function parsePDF(file: File): Promise<ParseResult> {
   const pdfjsLib = await getPdfjs();
   const buffer = await file.arrayBuffer();
-  const pdf = await pdfjsLib.getDocument({ data: buffer }).promise;
+  const pdf = await pdfjsLib.getDocument({ data: buffer, standardFontDataUrl: "/standard_fonts/" }).promise;
 
   let fullText = "";
   for (let i = 1; i <= pdf.numPages; i++) {

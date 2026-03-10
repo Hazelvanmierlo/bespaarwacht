@@ -6,6 +6,7 @@ import { detectProfile } from '../energy/detection';
 import { validateIBAN, validateEmail } from '../utils/iban-validator';
 import { saveLead } from './leads';
 import { ConversationState, EnergyData } from './types';
+import { getTrackingUrl, isMockMode } from '../daisycon/service';
 
 const TTL = 86400; // 24 uur
 
@@ -40,8 +41,8 @@ export async function handleIncomingMessage(from: string, message: any, messageT
         await sendText(from, "\u{1F4C4} Ontvangen! Even je rapport uitlezen...");
 
         try {
-          const mediaId = messageType === 'document' ? message.document.id : message.image.id;
-          const buffer = await downloadMedia(mediaId);
+          const mediaUrl = messageType === 'document' ? message.document.url : message.image.url;
+          const buffer = await downloadMedia(mediaUrl);
 
           let result;
           if (messageType === 'document') {
@@ -90,11 +91,10 @@ export async function handleIncomingMessage(from: string, message: any, messageT
       break;
 
     case 'CONFIRM_DATA': {
-      const buttonText = messageType === 'interactive'
-        ? message.interactive?.button_reply?.title
-        : message.text?.body;
+      const buttonText = (message.text?.body || '').trim();
+      const lower = buttonText.toLowerCase();
 
-      if (buttonText?.includes('Ja') || buttonText?.toLowerCase()?.includes('klopt')) {
+      if (lower === '1' || lower.includes('ja') || lower.includes('klopt')) {
         const d = conv.data as EnergyData;
 
         const profile = detectProfile(d);
@@ -139,11 +139,10 @@ export async function handleIncomingMessage(from: string, message: any, messageT
     }
 
     case 'CHOOSE_ACTION': {
-      const choice = messageType === 'interactive'
-        ? message.interactive?.button_reply?.title
-        : message.text?.body;
+      const choice = (message.text?.body || '').trim();
+      const choiceLower = choice.toLowerCase();
 
-      if (choice?.includes('Stap over')) {
+      if (choiceLower === '1' || choiceLower.includes('stap over') || choiceLower.includes('overstappen')) {
         const top = conv.comparison?.top3[0];
         conv.chosenProvider = top?.naam || 'de goedkoopste';
         const d = conv.data as EnergyData;
@@ -162,7 +161,7 @@ export async function handleIncomingMessage(from: string, message: any, messageT
           `_Stuur ze allebei in \u{00E9}\u{00E9}n bericht._`,
         );
         conv.state = 'COLLECT_INFO';
-      } else if (choice?.includes('Meer details')) {
+      } else if (choiceLower === '2' || choiceLower.includes('meer details') || choiceLower.includes('details')) {
         const d = conv.data as EnergyData;
         const c = conv.comparison!;
 
@@ -187,7 +186,7 @@ export async function handleIncomingMessage(from: string, message: any, messageT
 
         await sendText(from, advies);
         await sendButtons(from, 'Wil je overstappen?', ['\u{1F504} Stap over', '\u{1F4F8} Deel resultaat', '\u{274C} Nee bedankt']);
-      } else if (choice?.includes('Deel')) {
+      } else if (choiceLower === '3' || choiceLower.includes('deel')) {
         const naam = (conv.data as EnergyData).naam?.split(' ')[0] || 'ik';
         const besparing = conv.comparison?.besparingPerMaand || 0;
         await sendText(from,
@@ -257,27 +256,45 @@ export async function handleIncomingMessage(from: string, message: any, messageT
     }
 
     case 'CONFIRM_SWITCH': {
-      const confirmChoice = messageType === 'interactive'
-        ? message.interactive?.button_reply?.title
-        : message.text?.body;
+      const confirmChoice = (message.text?.body || '').trim();
+      const confirmLower = confirmChoice.toLowerCase();
 
-      if (confirmChoice?.includes('Ja') || confirmChoice?.toLowerCase()?.includes('akkoord')) {
+      if (confirmLower === '1' || confirmLower.includes('ja') || confirmLower.includes('akkoord')) {
         const provider = conv.chosenProvider!;
         const top = conv.comparison?.top3.find(t => t.naam === provider);
         const besparing = top?.besparing_jaar1 || 0;
         const bespBasis = top?.besparing_basis || 0;
 
-        await sendText(from,
+        // Haal affiliate tracking URL op (met telefoonnummer als sub-ID)
+        let affiliateUrl: string | null = null;
+        try {
+          affiliateUrl = await getTrackingUrl(provider, from);
+        } catch (e) {
+          console.error('[conversation] Affiliate URL ophalen mislukt:', e);
+        }
+
+        // Sla affiliate info op in conversation state
+        conv.affiliateUrl = affiliateUrl || undefined;
+        conv.affiliateBron = isMockMode() ? 'mock' : 'daisycon';
+
+        let bevestigingTekst =
           `\u{1F389} *Overstap aangevraagd!*\n\n` +
           `\u{1F4CB} Van: ${conv.comparison?.huidig.naam} \u{2192} Naar: ${provider}\n` +
           `\u{1F4B0} Besparing jaar 1: *\u{20AC}${besparing}*\n` +
           (besparing !== bespBasis ? `\u{1F4B0} Doorlopend: *\u{20AC}${bespBasis}/jaar*\n` : '') +
           `\u{1F4C5} Ingangsdatum: ~6 weken\n` +
           `\u{23F0} Bedenktijd: 14 dagen\n` +
-          `\u{1F4E7} Bevestiging naar: ${conv.personalInfo?.email}\n\n` +
+          `\u{1F4E7} Bevestiging naar: ${conv.personalInfo?.email}\n\n`;
+
+        if (affiliateUrl) {
+          bevestigingTekst += `Stap over via deze link: ${affiliateUrl}\n\n`;
+        }
+
+        bevestigingTekst +=
           `${provider} stuurt je binnen 5 werkdagen een bevestiging op ${conv.personalInfo?.email}. Zij zeggen ${conv.comparison?.huidig.naam} voor je op.\n\n` +
-          `Je hoeft niets te doen! \u{1F389}`,
-        );
+          `Je hoeft niets te doen! \u{1F389}`;
+
+        await sendText(from, bevestigingTekst);
 
         // Save lead to database
         try {

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import type { BerekeningResultaat } from "@/lib/energie/leveranciers";
 import CountUp from "./CountUp";
 
@@ -9,6 +9,7 @@ type FilterType = "alles" | "vast" | "variabel" | "dynamisch" | "groen";
 interface VergelijkingProps {
   resultaten: BerekeningResultaat[];
   huidigeLeverancier: string | null;
+  affiliateUrls?: Record<string, string>; // leverancier naam → tracking URL
 }
 
 const filterTabs: { key: FilterType; label: string }[] = [
@@ -19,7 +20,7 @@ const filterTabs: { key: FilterType; label: string }[] = [
   { key: "groen", label: "Groen" },
 ];
 
-export default function Vergelijking({ resultaten, huidigeLeverancier }: VergelijkingProps) {
+export default function Vergelijking({ resultaten, huidigeLeverancier, affiliateUrls }: VergelijkingProps) {
   const [filter, setFilter] = useState<FilterType>("alles");
 
   const heeftGas = resultaten.some((r) => r.kostenGas != null);
@@ -69,6 +70,7 @@ export default function Vergelijking({ resultaten, huidigeLeverancier }: Vergeli
               <th className="px-3 py-3 text-right font-semibold text-bw-text-mid border-b border-bw-border">Vastrecht</th>
               <th className="px-3 py-3 text-right font-semibold text-bw-text-mid border-b border-bw-border">Korting</th>
               <th className="px-5 py-3 text-right font-bold text-bw-deep border-b border-bw-border">Totaal/jr</th>
+              <th className="px-3 py-3 text-center font-semibold text-bw-text-mid border-b border-bw-border"></th>
             </tr>
           </thead>
           <tbody>
@@ -124,6 +126,20 @@ export default function Vergelijking({ resultaten, huidigeLeverancier }: Vergeli
                     ) : (
                       `€${r.totaalJaar}`
                     )}
+                  </td>
+                  <td className="px-3 py-3 border-b border-bw-border text-center">
+                    {!isHuidig && affiliateUrls?.[r.leverancier.naam] ? (
+                      <a
+                        href={affiliateUrls[r.leverancier.naam]}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-block px-3 py-1.5 bg-bw-green text-white rounded-lg text-xs font-semibold no-underline hover:bg-bw-green/90 transition-colors"
+                      >
+                        Overstappen
+                      </a>
+                    ) : !isHuidig ? (
+                      <span className="text-xs text-bw-text-light">-</span>
+                    ) : null}
                   </td>
                 </tr>
               );

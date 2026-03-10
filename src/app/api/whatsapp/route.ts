@@ -1,30 +1,73 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { handleIncomingMessage } from '@/lib/whatsapp/conversation';
+import crypto from 'crypto';
 
-export async function GET(req: NextRequest) {
-  const params = req.nextUrl.searchParams;
-  const mode = params.get('hub.mode');
-  const token = params.get('hub.verify_token');
-  const challenge = params.get('hub.challenge');
+function validateTwilioSignature(req: NextRequest, body: string): boolean {
+  const authToken = process.env.TWILIO_AUTH_TOKEN;
+  const signature = req.headers.get('x-twilio-signature');
+  if (!authToken || !signature) return false;
 
-  if (mode === 'subscribe' && token === process.env.WEBHOOK_VERIFY_TOKEN) {
-    return new NextResponse(challenge, { status: 200 });
+  // Build the full URL (Twilio uses the webhook URL for validation)
+  const url = req.url;
+
+  // Parse params and sort them alphabetically
+  const params = new URLSearchParams(body);
+  const sortedKeys = [...params.keys()].sort();
+  let dataString = url;
+  for (const key of sortedKeys) {
+    dataString += key + params.get(key);
   }
-  return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+
+  const computed = crypto
+    .createHmac('sha1', authToken)
+    .update(dataString)
+    .digest('base64');
+
+  return computed === signature;
+}
+
+export async function GET() {
+  return NextResponse.json({ status: 'ok', service: 'BespaarWacht WhatsApp' });
 }
 
 export async function POST(req: NextRequest) {
   try {
-    const body = await req.json();
-    const entry = body.entry?.[0];
-    const changes = entry?.changes?.[0];
-    const value = changes?.value;
-    const message = value?.messages?.[0];
+    const body = await req.text();
 
-    if (!message) return NextResponse.json({ status: 'no message' });
+    // Validate Twilio signature in production
+    if (process.env.NODE_ENV === 'production' && !validateTwilioSignature(req, body)) {
+      console.error('Invalid Twilio signature');
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
 
-    const from = message.from;
-    const messageType = message.type;
+    const params = new URLSearchParams(body);
+    const fromRaw = params.get('From') || '';         // whatsapp:+31626800726
+    const messageBody = params.get('Body') || '';
+    const numMedia = parseInt(params.get('NumMedia') || '0', 10);
+
+    // Strip "whatsapp:+" prefix to get plain phone number
+    const from = fromRaw.replace('whatsapp:+', '');
+    if (!from) return NextResponse.json({ status: 'no sender' });
+
+    // Build a message object compatible with the conversation handler
+    let messageType = 'text';
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const message: any = {
+      text: { body: messageBody },
+    };
+
+    if (numMedia > 0) {
+      const mediaUrl = params.get('MediaUrl0') || '';
+      const mediaContentType = params.get('MediaContentType0') || '';
+
+      if (mediaContentType === 'application/pdf') {
+        messageType = 'document';
+        message.document = { url: mediaUrl, mime_type: mediaContentType };
+      } else if (mediaContentType.startsWith('image/')) {
+        messageType = 'image';
+        message.image = { url: mediaUrl, mime_type: mediaContentType };
+      }
+    }
 
     // Fire and forget — return 200 quickly
     handleIncomingMessage(from, message, messageType).catch(console.error);

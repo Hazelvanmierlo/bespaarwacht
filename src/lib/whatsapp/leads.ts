@@ -38,6 +38,8 @@ export async function saveLead(phone: string, conv: ConversationState) {
 
       bron: 'whatsapp',
       status: 'aangevraagd',
+      affiliate_url: conv.affiliateUrl || null,
+      affiliate_bron: conv.affiliateBron || 'mock',
     })
     .select('id')
     .single();

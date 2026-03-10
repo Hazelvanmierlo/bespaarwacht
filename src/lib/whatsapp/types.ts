@@ -77,6 +77,8 @@ export interface ConversationState {
   comparison?: ComparisonResult;
   chosenProvider?: string;
   personalInfo?: { iban?: string; email?: string; ibanBank?: string };
+  affiliateUrl?: string;
+  affiliateBron?: 'mock' | 'daisycon';
   timestamp: number;
 }
 

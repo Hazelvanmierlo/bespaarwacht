@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useCallback } from "react";
+import { useState, useMemo, useCallback, useEffect } from "react";
 import type { EnergieData, ParseResult } from "@/lib/energie/pdf-parser";
 import type { ApparaatDetectie } from "@/lib/energie/apparaat-detectie";
 import { detecteerApparaten } from "@/lib/energie/apparaat-detectie";
@@ -20,6 +20,14 @@ export default function EnergieAnalysePage() {
   const [phase, setPhase] = useState<Phase>("upload");
   const [energieData, setEnergieData] = useState<EnergieData | null>(null);
   const [apparaten, setApparaten] = useState<ApparaatDetectie | null>(null);
+  const [affiliateUrls, setAffiliateUrls] = useState<Record<string, string>>({});
+
+  useEffect(() => {
+    fetch("/api/daisycon/urls")
+      .then(r => r.json())
+      .then(setAffiliateUrls)
+      .catch(() => {});
+  }, []);
 
   const handleParsed = useCallback((results: ParseResult[]) => {
     if (results.length === 0) return;
@@ -154,6 +162,7 @@ export default function EnergieAnalysePage() {
                   <Vergelijking
                     resultaten={vergelijking}
                     huidigeLeverancier={energieData.leverancier}
+                    affiliateUrls={affiliateUrls}
                   />
                 </div>
               </div>

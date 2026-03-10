@@ -8,6 +8,7 @@ const navItems = [
   { href: "/admin/verzekeraars", label: "Verzekeraars", icon: "🏢" },
   { href: "/admin/scrapers", label: "Scrapers", icon: "🔄" },
   { href: "/admin/gebruikers", label: "Gebruikers", icon: "👥" },
+  { href: "/admin/daisycon", label: "Daisycon", icon: "🔗" },
 ];
 
 export default async function AdminLayout({

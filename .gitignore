@@ -24,6 +24,9 @@
 .DS_Store
 *.pem
 
+# generated from node_modules via postinstall
+/public/standard_fonts
+
 # debug
 npm-debug.log*
 yarn-debug.log*
