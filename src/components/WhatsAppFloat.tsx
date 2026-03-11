@@ -1,11 +1,13 @@
 'use client';
 
 const WA_NUMBER = process.env.NEXT_PUBLIC_WHATSAPP_NUMBER || '14155238886';
+const WA_JOIN = process.env.NEXT_PUBLIC_WHATSAPP_JOIN_CODE || '';
+const WA_TEXT = WA_JOIN || 'Hoi';
 
 export function WhatsAppFloat() {
   return (
     <a
-      href={`https://wa.me/${WA_NUMBER}?text=Hoi`}
+      href={`https://wa.me/${WA_NUMBER}?text=${encodeURIComponent(WA_TEXT)}`}
       target="_blank"
       rel="noopener noreferrer"
       className="fixed bottom-6 right-6 z-50 bg-[#25D366] text-white rounded-full p-4 shadow-lg hover:bg-[#128C7E] transition-all hover:scale-110 group"

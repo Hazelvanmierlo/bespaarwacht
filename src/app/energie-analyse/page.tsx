@@ -4,6 +4,8 @@ import { useState, useMemo, useCallback, useEffect, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 
 const WA_NUMBER = process.env.NEXT_PUBLIC_WHATSAPP_NUMBER || '14155238886';
+const WA_JOIN = process.env.NEXT_PUBLIC_WHATSAPP_JOIN_CODE || '';
+const WA_TEXT = WA_JOIN || 'Hoi';
 import type { EnergieData, ParseResult } from "@/lib/energie/pdf-parser";
 import type { ApparaatDetectie } from "@/lib/energie/apparaat-detectie";
 import { detecteerApparaten } from "@/lib/energie/apparaat-detectie";
@@ -255,7 +257,7 @@ function EnergieAnalyseContent() {
             Overstappen? Alleen IBAN + e-mail. Wij regelen de rest.
           </p>
           <a
-            href={`https://wa.me/${WA_NUMBER}?text=Hoi`}
+            href={`https://wa.me/${WA_NUMBER}?text=${encodeURIComponent(WA_TEXT)}`}
             target="_blank"
             rel="noopener noreferrer"
             className="inline-flex items-center gap-3 bg-[#25D366] hover:bg-[#128C7E] text-white font-bold py-3.5 px-7 rounded-xl text-[15px] transition-all hover:scale-105 shadow-lg no-underline"
