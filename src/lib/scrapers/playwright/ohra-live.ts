@@ -4,146 +4,205 @@ import {
   createPage,
   acceptCookies,
   closeBrowser,
+  createLogger,
+  waitForStep,
+  extractPrice,
   type LiveScraperInput,
   type LiveScraperResult,
 } from "./utils";
 
 export async function scrapeOhra(input: LiveScraperInput): Promise<LiveScraperResult> {
   const start = Date.now();
+  const logger = createLogger("OHRA-inboedel");
   let browser: Browser | null = null;
 
   try {
     browser = await launchBrowser();
     const page = await createPage(browser);
+    logger.log("Browser gestart");
 
-    // ── Navigate directly to calculator ──
+    // ── Navigate to calculator ──
     await page.goto("https://www.ohra.nl/inboedelverzekering/berekenen", {
       waitUntil: "networkidle",
       timeout: 20000,
     });
-    await page.waitForTimeout(3000);
+    logger.log("Pagina geladen");
+
+    await waitForStep(page, { selector: "#root_geboortedatum", timeout: 10000 });
     await acceptCookies(page);
+    logger.log("Cookies geaccepteerd");
 
     // ── Geboortedatum ──
-    await page.fill("#root_geboortedatum", input.geboortedatum ?? "15-06-1985");
+    await page.fill("#root_geboortedatum", input.geboortedatum);
     await page.waitForTimeout(300);
+    logger.log("Geboortedatum ingevuld", input.geboortedatum);
 
-    // ── Gezinssamenstelling ──
-    // 0=Mijzelf, 1=Mijzelf+partner, 2=Mijzelf+kind(eren), 3=Mijzelf+partner+kind(eren)
-    const isGezin = input.gezin?.toLowerCase().includes("gezin") || input.gezin?.toLowerCase().includes("samen");
-    const gezinIndex = isGezin ? "3" : "0";
-    await page.locator(`label[for="root_gezinssamenstelling-${gezinIndex}"]`).click({ force: true });
+    // ── Gezinssamenstelling (radio by label text) ──
+    const isGezin =
+      input.gezin?.toLowerCase().includes("gezin") ||
+      input.gezin?.toLowerCase().includes("samen");
+    const gezinLabel = isGezin
+      ? "Mijzelf, partner en kind(eren)"
+      : "Mijzelf";
+    try {
+      // Use getByRole for reliable radio selection by accessible name
+      await page.getByRole("radio", { name: gezinLabel, exact: true }).click();
+    } catch {
+      // Fallback: try clicking the label text directly
+      await page.getByText(gezinLabel, { exact: true }).first().click();
+    }
     await page.waitForTimeout(300);
+    logger.log("Gezinssamenstelling", gezinLabel);
 
-    // ── Eigenaar/Huurder ──
-    // 0=Eigenaar, 1=Huurder
-    const eigenaarIndex = input.eigenaar !== false ? "0" : "1";
-    await page.locator(`label[for="root_eigenaarhuurder-${eigenaarIndex}"]`).click({ force: true });
+    // ── Eigenaar/Huurder (radio by label text) ──
+    const eigenaarLabel = input.eigenaar ? "Eigenaar" : "Huurder";
+    try {
+      await page.getByRole("radio", { name: eigenaarLabel, exact: true }).click();
+    } catch {
+      await page.getByText(eigenaarLabel, { exact: true }).first().click();
+    }
     await page.waitForTimeout(300);
+    logger.log("Eigenaar/Huurder", eigenaarLabel);
 
     // ── Postcode + Huisnummer ──
     await page.fill("#root_postcode", input.postcode);
     await page.fill("#root_huisnummer", input.huisnummer);
-    await page.waitForTimeout(1000);
+    // Trigger blur to start address lookup
+    await page.locator("#root_huisnummer").evaluate((el) => el.dispatchEvent(new Event("blur", { bubbles: true })));
+    await page.waitForTimeout(1500);
+    logger.log("Adres ingevuld", `${input.postcode} ${input.huisnummer}`);
 
-    // ── Address picker (toevoeging) — select first option if visible ──
+    // ── Toevoeging (Adres) — select first real option if dropdown appears ──
     try {
       const toevoegingSelect = page.locator('select[name="root_toevoeging"]');
-      if (await toevoegingSelect.isVisible({ timeout: 2000 })) {
-        await toevoegingSelect.selectOption({ index: 0 });
+      if (await toevoegingSelect.isVisible({ timeout: 3000 })) {
+        // Wait for address API to populate options
+        await page.waitForTimeout(2000);
+        const optionCount = await toevoegingSelect.evaluate(
+          (sel: HTMLSelectElement) => sel.options.length
+        );
+        if (optionCount > 1) {
+          // Select first real option (skip "Maak een keuze")
+          await toevoegingSelect.selectOption({ index: 1 });
+          logger.log("Toevoeging geselecteerd", `${optionCount} opties`);
+        } else {
+          logger.log("Toevoeging zichtbaar maar geen opties", "API mogelijk niet beschikbaar");
+        }
         await page.waitForTimeout(300);
       }
-    } catch { /* might not appear */ }
+    } catch {
+      logger.log("Geen toevoeging dropdown");
+    }
 
-    // ── Bestemming: "Eigen bewoning" ──
+    // ── Bestemming: "Eigen bewoning" (by label) ──
     try {
-      const bestemmingSelect = page.locator('select[name="root_bestemming"]');
+      const bestemmingSelect = page.getByLabel("Bestemming van je woning");
       if (await bestemmingSelect.isVisible({ timeout: 2000 })) {
-        await bestemmingSelect.selectOption("0"); // "Eigen bewoning"
+        await bestemmingSelect.selectOption("Eigen bewoning");
         await page.waitForTimeout(300);
+        logger.log("Bestemming", "Eigen bewoning");
       }
-    } catch { /* might not be visible */ }
+    } catch {
+      // Might not be visible for certain address types
+      logger.log("Bestemming overgeslagen");
+    }
 
-    // ── Dakbedekking: "Pannen" ──
+    // ── Dakbedekking: "Pannen" (by label) ──
     try {
-      const dakSelect = page.locator('select[name="root_dakbedekking"]');
+      const dakSelect = page.getByLabel("Waar is je dak van gemaakt?");
       if (await dakSelect.isVisible({ timeout: 2000 })) {
-        await dakSelect.selectOption("0"); // "Pannen"
+        await dakSelect.selectOption("Pannen");
         await page.waitForTimeout(300);
+        logger.log("Dakbedekking", "Pannen");
       }
-    } catch { /* might not be visible */ }
+    } catch {
+      logger.log("Dakbedekking overgeslagen");
+    }
 
-    // ── Bouwaard (muren): "Steen" ──
+    // ── Bouwaard (muren): "Steen" (by label) ──
     try {
-      const bouwSelect = page.locator('select[name="root_bouwaard"]');
+      const bouwSelect = page.getByLabel("Waar zijn je muren van gemaakt?");
       if (await bouwSelect.isVisible({ timeout: 2000 })) {
-        await bouwSelect.selectOption("0"); // "Steen"
+        await bouwSelect.selectOption("Steen");
         await page.waitForTimeout(300);
+        logger.log("Bouwaard", "Steen");
       }
-    } catch { /* might not be visible */ }
+    } catch {
+      logger.log("Bouwaard overgeslagen");
+    }
+
+    // ── Handle toevoeging again if it appeared after selecting bestemming ──
+    try {
+      const toevoegingSelect = page.locator('select[name="root_toevoeging"]');
+      if (await toevoegingSelect.isVisible({ timeout: 1000 })) {
+        const optionCount = await toevoegingSelect.evaluate(
+          (sel: HTMLSelectElement) => sel.options.length
+        );
+        if (optionCount > 1) {
+          await toevoegingSelect.selectOption({ index: 1 });
+          logger.log("Toevoeging (2e poging)", `${optionCount} opties`);
+        }
+      }
+    } catch { /* ignore */ }
 
     // ── Click "Bereken je premie" ──
-    await page.locator('button:has-text("Bereken je premie")').click();
-    await page.waitForTimeout(10000);
+    const submitButton = page.getByRole("button", { name: "Bereken je premie" });
+    await submitButton.click();
+    logger.log("Bereken je premie geklikt");
 
-    // ── Extract premie from results page ──
-    const allText = await page.locator("body").innerText();
-    const result = extractOhraPremie(allText);
+    // ── Wait for results page ──
+    const hasResults = await waitForStep(page, {
+      text: "per maand",
+      timeout: 15000,
+    });
+    if (!hasResults) {
+      // Fallback: wait a fixed time for slow connections
+      await page.waitForTimeout(5000);
+    }
+    logger.log("Resultaatpagina", hasResults ? "gevonden" : "timeout — probeer toch");
+
+    // ── Extract premium from results ──
+    // Try "Basis" section first for lowest inboedel premium
+    let premie = await extractPrice(page, {
+      sectionLabel: "Basis",
+      minPrice: 2,
+      maxPrice: 80,
+    });
+
+    if (!premie) {
+      // Fallback: any price on the page
+      premie = await extractPrice(page, { minPrice: 2, maxPrice: 80 });
+    }
 
     await closeBrowser(browser);
 
-    if (result) {
+    if (premie) {
+      logger.log("Premie gevonden", `${premie} per maand`);
       return {
         status: "success",
-        premie: result.premie,
-        dekking: result.dekking,
+        premie,
+        dekking: "Inboedel Basis",
         eigenRisico: "€ 0",
         duration_ms: Date.now() - start,
+        stepLog: logger.getSteps(),
       };
     }
 
-    return { status: "error", error: "Premie niet gevonden op pagina.", duration_ms: Date.now() - start };
+    logger.fail("Premie extractie", "Geen premie gevonden op pagina");
+    return {
+      status: "error",
+      error: "Premie niet gevonden op pagina.",
+      duration_ms: Date.now() - start,
+      stepLog: logger.getSteps(),
+    };
   } catch (err) {
+    logger.fail("Scraper", (err as Error).message);
     await closeBrowser(browser);
-    return { status: "error", error: (err as Error).message, duration_ms: Date.now() - start };
+    return {
+      status: "error",
+      error: (err as Error).message,
+      duration_ms: Date.now() - start,
+      stepLog: logger.getSteps(),
+    };
   }
-}
-
-function extractOhraPremie(text: string): { premie: number; dekking: string } | undefined {
-  // OHRA results page shows:
-  //   Basis         All Risk
-  //   € 6,18        € 13,47
-  //   per maand     per maand
-
-  // Look for "Basis" section price first, then "All Risk"
-  // Pattern: "Geen\n€ X,XX\nper maand\nKies\n€ Y,YY\nper maand\nKies"
-  // The "Geen" row is followed by Basis price then All Risk price
-
-  const prices: { premie: number; dekking: string }[] = [];
-
-  // Match all "€ X,XX\nper maand" patterns (excluding marketing like "800.000")
-  const pricePattern = /€\s*(\d{1,3})[,.](\d{2})\s*(?:\r?\n|\s)*per maand/gi;
-  let match;
-  while ((match = pricePattern.exec(text)) !== null) {
-    const price = parseFloat(`${match[1]}.${match[2]}`);
-    // Monthly insurance premiums are typically between €2 and €80
-    if (price >= 2 && price <= 80) {
-      prices.push({ premie: price, dekking: "Inboedel" });
-    }
-  }
-
-  if (prices.length === 0) return undefined;
-
-  // The first valid price is typically Basis inboedel
-  // Try to identify Basis vs All Risk from context
-  const basisMatch = text.match(/Basis[\s\S]*?€\s*(\d{1,3})[,.](\d{2})\s*(?:\r?\n|\s)*per maand/i);
-  if (basisMatch) {
-    const basisPremie = parseFloat(`${basisMatch[1]}.${basisMatch[2]}`);
-    if (basisPremie >= 2 && basisPremie <= 80) {
-      return { premie: basisPremie, dekking: "Inboedel Basis" };
-    }
-  }
-
-  // Fallback: return first valid price
-  return prices[0];
 }
