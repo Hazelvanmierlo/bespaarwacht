@@ -4,9 +4,10 @@ import type { Browser, Page } from "playwright";
 export interface LiveScraperInput {
   postcode: string;
   huisnummer: string;
-  geboortedatum?: string;
-  gezin?: string;
-  eigenaar?: boolean;
+  geboortedatum: string;          // required — no hardcoded defaults
+  gezin: string;                   // "alleenstaand" | "gezin"
+  eigenaar?: boolean;              // true = eigenaar, false = huurder (default: false)
+  woningtype?: string;
 }
 
 /** Standard result interface for all live scrapers */
@@ -17,6 +18,7 @@ export interface LiveScraperResult {
   eigenRisico?: string;
   error?: string;
   duration_ms: number;
+  stepLog?: string[];
 }
 
 /**
@@ -138,9 +140,14 @@ export function scrapeWarn(name: string, message: string): void {
   console.warn(`[scraper:${name}] ${message}`);
 }
 
+export interface FillResult {
+  success: boolean;
+  method: string;
+}
+
 /**
  * Find and fill an input field by trying attribute selectors first, then label text.
- * Returns true if the field was found and filled.
+ * Returns a FillResult indicating success and which method was used.
  */
 export async function fillField(
   page: Page,
@@ -148,7 +155,7 @@ export async function fillField(
   labelTexts: string[],
   value: string,
   options?: { timeout?: number; useKeyboard?: boolean }
-): Promise<boolean> {
+): Promise<FillResult> {
   const timeout = options?.timeout ?? 3000;
   const useKeyboard = options?.useKeyboard ?? false;
 
@@ -167,7 +174,7 @@ export async function fillField(
     const attrInput = page.locator(attrSelectors).first();
     if (await attrInput.isVisible({ timeout })) {
       await doFill(attrInput);
-      return true;
+      return { success: true, method: "attribute" };
     }
   } catch { /* try label fallback */ }
 
@@ -177,7 +184,7 @@ export async function fillField(
       const labelInput = page.getByLabel(label, { exact: false });
       if (await labelInput.isVisible({ timeout: 1500 })) {
         await doFill(labelInput);
-        return true;
+        return { success: true, method: "label" };
       }
     } catch { /* try next */ }
   }
@@ -188,12 +195,23 @@ export async function fillField(
       const placeholderInput = page.getByPlaceholder(label, { exact: false });
       if (await placeholderInput.isVisible({ timeout: 1500 })) {
         await doFill(placeholderInput);
-        return true;
+        return { success: true, method: "placeholder" };
       }
     } catch { /* try next */ }
   }
 
-  return false;
+  // Try role-based lookup (getByRole textbox with name)
+  for (const label of labelTexts) {
+    try {
+      const roleInput = page.getByRole("textbox", { name: label });
+      if (await roleInput.isVisible({ timeout: 1500 })) {
+        await doFill(roleInput);
+        return { success: true, method: "role" };
+      }
+    } catch { /* try next */ }
+  }
+
+  return { success: false, method: "none" };
 }
 
 /** Parse Dutch price string "12,50" or "12.50" to number 12.50 */
@@ -210,4 +228,92 @@ export async function closeBrowser(browser: Browser | null): Promise<void> {
   } catch {
     // Ignore close errors
   }
+}
+
+// ---------------------------------------------------------------------------
+// Step logger — structured logging for scraper diagnostics
+// ---------------------------------------------------------------------------
+
+export interface StepLogger {
+  log: (step: string, detail?: string) => void;
+  fail: (step: string, error: string) => void;
+  getSteps: () => string[];
+}
+
+export function createLogger(scraperName: string): StepLogger {
+  const steps: string[] = [];
+  return {
+    log(step: string, detail?: string) {
+      const msg = `[${scraperName}] ${step}${detail ? ` — ${detail}` : ""} ✓`;
+      steps.push(msg);
+      console.log(msg);
+    },
+    fail(step: string, error: string) {
+      const msg = `[${scraperName}] ${step} — FAILED: ${error}`;
+      steps.push(msg);
+      console.warn(msg);
+    },
+    getSteps: () => steps,
+  };
+}
+
+// ---------------------------------------------------------------------------
+// waitForStep — wait for a selector, text, or load state
+// ---------------------------------------------------------------------------
+
+export async function waitForStep(
+  page: Page,
+  options?: { selector?: string; text?: string; timeout?: number }
+): Promise<boolean> {
+  const timeout = options?.timeout ?? 5000;
+  try {
+    if (options?.selector) {
+      await page.waitForSelector(options.selector, { state: "visible", timeout });
+      return true;
+    }
+    if (options?.text) {
+      await page.getByText(options.text).first().waitFor({ state: "visible", timeout });
+      return true;
+    }
+    await page.waitForLoadState("domcontentloaded", { timeout });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+// ---------------------------------------------------------------------------
+// extractPrice — find a monthly premium price from page text
+// ---------------------------------------------------------------------------
+
+export async function extractPrice(
+  page: Page,
+  options?: { sectionLabel?: string; minPrice?: number; maxPrice?: number }
+): Promise<number | null> {
+  const min = options?.minPrice ?? 2;
+  const max = options?.maxPrice ?? 200;
+  const allText = await page.locator("body").innerText();
+  let searchText = allText;
+  if (options?.sectionLabel) {
+    const idx = searchText.toLowerCase().indexOf(options.sectionLabel.toLowerCase());
+    if (idx !== -1) searchText = searchText.substring(idx, idx + 500);
+  }
+  const patterns = [
+    /€\s*(\d{1,3})\s*[,.]\s*(\d{2})\s*(?:\r?\n|\s)*(?:per maand|p\/m|\/mnd)/gi,
+    /(?:per maand|p\/m|\/mnd)\s*€?\s*(\d{1,3})\s*[,.]\s*(\d{2})/gi,
+    /(?:Maandpremie|Uw premie|Maandbedrag)[^\n]*?€?\s*(\d{1,3})\s*[,.]\s*(\d{2})/gi,
+  ];
+  for (const pattern of patterns) {
+    const matches = [...searchText.matchAll(pattern)];
+    for (const match of matches) {
+      const price = parseFloat(`${match[1]}.${match[2]}`);
+      if (price >= min && price <= max) return price;
+    }
+  }
+  const fallback = [...searchText.matchAll(/€\s*(\d{1,3})\s*[,.]\s*(\d{2})/g)];
+  for (const match of fallback) {
+    const price = parseFloat(`${match[1]}.${match[2]}`);
+    if (price >= min && price <= max) return price;
+  }
+  return null;
 }
