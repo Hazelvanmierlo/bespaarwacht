@@ -5,9 +5,9 @@ async function main() {
 
   // Werkend adres: Graaf Janlaan 10, Amstelveen
   const addresses = [
-    { postcode: "1181EC", huisnummer: "10" },  // Amstelveen (werkt!)
-    { postcode: "3511LX", huisnummer: "20" },  // Utrecht Centrum
-    { postcode: "6211CL", huisnummer: "5" },   // Maastricht
+    { postcode: "1181EC", huisnummer: "10", geboortedatum: "15-06-1990", gezin: "alleenstaand" },
+    { postcode: "3511LX", huisnummer: "20", geboortedatum: "15-06-1990", gezin: "alleenstaand" },
+    { postcode: "6211CL", huisnummer: "5", geboortedatum: "15-06-1990", gezin: "alleenstaand" },
   ];
 
   for (const addr of addresses) {

@@ -4,106 +4,155 @@ import {
   createPage,
   acceptCookies,
   closeBrowser,
+  createLogger,
+  waitForStep,
+  extractPrice,
   type LiveScraperInput,
   type LiveScraperResult,
 } from "./utils";
 
 export async function scrapeInShared(input: LiveScraperInput): Promise<LiveScraperResult> {
   const start = Date.now();
+  const logger = createLogger("InShared-inboedel");
   let browser: Browser | null = null;
 
   try {
     browser = await launchBrowser();
     const page = await createPage(browser);
+    logger.log("Browser gestart");
 
-    // ── Landing page → Calculator ──
+    // ── Step 1: Landing page ──
     await page.goto("https://www.inshared.nl/woonverzekering/inboedelverzekering", {
       waitUntil: "domcontentloaded",
       timeout: 15000,
     });
-    await page.waitForTimeout(2500);
-    await acceptCookies(page);
+    await page.waitForTimeout(2000);
+    logger.log("Landingspagina geladen");
 
+    await acceptCookies(page);
+    logger.log("Cookies geaccepteerd");
+
+    // Fill postcode + huisnummer on landing page (use #id — there are duplicate placeholders)
     await page.fill("#postal-code", input.postcode);
     await page.fill("#house-number", input.huisnummer);
     await page.waitForTimeout(300);
+    logger.log("Postcode + huisnummer ingevuld", `${input.postcode} ${input.huisnummer}`);
+
+    // Click "Bereken uw premie"
     await page.locator('button[title="Bereken uw premie"]').click();
-    await page.waitForTimeout(4000);
+    await waitForStep(page, { selector: "#cyno-date-input-0", timeout: 10000 });
+    logger.log("Calculator formulier geladen");
 
-    // ── Calculator formulier ──
-    await page.fill("#postalCode", input.postcode);
-    await page.fill("#houseNumber", input.huisnummer);
-    await page.press("#houseNumber", "Tab");
-    await page.waitForTimeout(2500);
+    // ── Step 2: Calculator formulier ──
+    // Address is pre-filled from landing page. Wait for street to resolve.
+    await page.waitForTimeout(1500);
 
-    // Huisnummer toevoeging
-    try {
-      const hasAddition = await page.locator("#houseNumberAddition option").count();
-      if (hasAddition > 1) {
-        await page.selectOption("#houseNumberAddition", { index: 1 });
-        await page.waitForTimeout(500);
-      }
-    } catch { /* no addition dropdown */ }
-
-    // Rieten dak: Nee
-    await page.evaluate(() => {
-      const radio = document.getElementById("straw_roofing_indication-N") as HTMLInputElement;
-      if (radio) { radio.checked = true; radio.dispatchEvent(new Event("change", { bubbles: true })); radio.click(); }
-    });
-    await page.waitForTimeout(500);
+    // Rieten dak: Nee — click the label text next to the radio
+    await page.locator("label[for='straw_roofing_indication-N']").click();
+    await page.waitForTimeout(300);
+    logger.log("Rieten dak", "Nee");
 
     // Beveiliging: Geen
     await page.selectOption("#security_type_code", "GEEN");
     await page.waitForTimeout(300);
+    logger.log("Beveiliging", "Geen");
 
-    // Geboortedatum
+    // Geboortedatum — use the custom date input
     const gebInput = page.locator("#cyno-date-input-0");
     await gebInput.click();
-    await gebInput.fill(input.geboortedatum ?? "15-06-1985");
+    await gebInput.fill(input.geboortedatum);
     await gebInput.press("Tab");
     await page.waitForTimeout(500);
+    logger.log("Geboortedatum", input.geboortedatum);
 
     // Gezinssamenstelling
     const gezinCode = mapGezinToInShared(input.gezin);
     await page.selectOption("#family_composition_code", gezinCode);
     await page.waitForTimeout(300);
+    logger.log("Gezinssamenstelling", `${input.gezin} -> ${gezinCode}`);
 
-    // Eigenaar/huurder
-    const ownerId = input.eigenaar !== false ? "tenant_owner_code-E" : "tenant_owner_code-H";
-    await page.evaluate((id) => {
-      const radio = document.getElementById(id) as HTMLInputElement;
-      if (radio) { radio.checked = true; radio.dispatchEvent(new Event("change", { bubbles: true })); radio.click(); }
-    }, ownerId);
-    await page.waitForTimeout(500);
+    // Eigenaar/huurder — click the label for the radio
+    // Default: huurder (eigenaar=false)
+    const isEigenaar = input.eigenaar === true;
+    const ownerLabelFor = isEigenaar ? "tenant_owner_code-E" : "tenant_owner_code-H";
+    await page.locator(`label[for='${ownerLabelFor}']`).click();
+    await page.waitForTimeout(300);
+    logger.log("Eigenaar/huurder", isEigenaar ? "Eigenaar" : "Huurder");
 
-    // Klik "Ga verder"
-    await page.evaluate(() => {
-      const btns = Array.from(document.querySelectorAll("button"));
-      const gaVerder = btns.find((b) => b.textContent?.includes("Ga verder"));
-      if (gaVerder) gaVerder.click();
+    // Click "Ga verder"
+    await page.getByRole("button", { name: "Ga verder" }).click();
+    logger.log("Ga verder geklikt");
+
+    // ── Step 3: Wait for results page ──
+    const resultsLoaded = await waitForStep(page, { text: "Per maand", timeout: 15000 });
+    if (!resultsLoaded) {
+      // Check for validation errors
+      const errorText = await page.locator(".alert--validation, .wuc-form-error").first().textContent().catch(() => null);
+      if (errorText) {
+        logger.fail("Resultaten laden", `Validatiefout: ${errorText}`);
+        await closeBrowser(browser);
+        return { status: "error", error: `Validatiefout: ${errorText}`, duration_ms: Date.now() - start, stepLog: logger.getSteps() };
+      }
+      logger.fail("Resultaten laden", "Timeout — premie pagina niet geladen");
+      await closeBrowser(browser);
+      return { status: "error", error: "Timeout bij laden premie pagina", duration_ms: Date.now() - start, stepLog: logger.getSteps() };
+    }
+    logger.log("Resultaatpagina geladen");
+
+    // ── Step 4: Extract premium ──
+    // InShared splits prices across separate <span> elements ("6" + ",75")
+    // so innerText may have newlines between them. Use textContent which
+    // concatenates without whitespace, and also try the Maandbedrag button.
+    await page.waitForTimeout(2000);
+    let premie = await page.evaluate(() => {
+      // Strategy 1: Find the Maandbedrag button/header (always shows total)
+      const body = document.body.textContent || "";
+      const mbMatch = body.match(/Maandbedrag\s*(\d{1,3})\s*[,.]\s*(\d{2})/);
+      if (mbMatch) return parseFloat(`${mbMatch[1]}.${mbMatch[2]}`);
+
+      // Strategy 2: Find "Per maand" near "Inboedel" using textContent
+      const allDivs = document.querySelectorAll("div, section, fieldset");
+      for (const el of allDivs) {
+        const tc = el.textContent || "";
+        if (tc.includes("Inboedel") && tc.includes("Per maand")) {
+          const match = tc.match(/Per maand\s*(\d{1,3})\s*[,.]\s*(\d{2})/);
+          if (match) {
+            const price = parseFloat(`${match[1]}.${match[2]}`);
+            if (price >= 2 && price <= 100) return price;
+          }
+        }
+      }
+
+      // Strategy 3: grab all digit,digit patterns from textContent
+      const allPrices = [...body.matchAll(/(\d{1,3}),(\d{2})/g)]
+        .map((m) => parseFloat(`${m[1]}.${m[2]}`))
+        .filter((p) => p >= 2 && p <= 100);
+      return allPrices.length > 0 ? allPrices[0] : null;
     });
-    await page.waitForTimeout(10000);
-
-    // ── Premie uitlezen ──
-    const allText = await page.locator("body").innerText();
-    const premies = extractPremies(allText);
-
+    // Fallback to generic extractPrice
+    if (!premie) {
+      premie = await extractPrice(page, { minPrice: 2, maxPrice: 100 });
+    }
     await closeBrowser(browser);
 
-    if (premies.inboedel || premies.totaal) {
+    if (premie) {
+      logger.log("Premie gevonden", `${premie}`);
       return {
         status: "success",
-        premie: premies.inboedel ?? premies.totaal,
+        premie,
         dekking: "Inboedel Standaard",
-        eigenRisico: "€ 0",
+        eigenRisico: "\u20AC 0",
         duration_ms: Date.now() - start,
+        stepLog: logger.getSteps(),
       };
     }
 
-    return { status: "error", error: "Premie niet gevonden.", duration_ms: Date.now() - start };
+    logger.fail("Premie extractie", "Geen premie gevonden op pagina");
+    return { status: "error", error: "Premie niet gevonden.", duration_ms: Date.now() - start, stepLog: logger.getSteps() };
   } catch (err) {
+    logger.fail("Onverwachte fout", (err as Error).message);
     await closeBrowser(browser);
-    return { status: "error", error: (err as Error).message, duration_ms: Date.now() - start };
+    return { status: "error", error: (err as Error).message, duration_ms: Date.now() - start, stepLog: logger.getSteps() };
   }
 }
 
@@ -112,43 +161,4 @@ function mapGezinToInShared(gezin?: string): string {
   const lower = gezin.toLowerCase();
   if (lower.includes("alleen") || lower === "alleenstaand") return "1ZON";
   return "2MET";
-}
-
-interface ExtractedPremies {
-  inboedel?: number;
-  totaal?: number;
-}
-
-function extractPremies(text: string): ExtractedPremies {
-  const result: ExtractedPremies = {};
-
-  function parsePrice(match: RegExpMatchArray | null): number | undefined {
-    if (!match) return undefined;
-    return parseFloat(`${match[1]}.${match[2]}`);
-  }
-
-  // Maandbedrag totaal
-  const totaalMatch = text.match(/[Mm]aandbedrag\s+(\d{1,3})\s*[,.]\s*(\d{2})/);
-  result.totaal = parsePrice(totaalMatch);
-
-  // Inboedel premie
-  const inboedelMatch = text.match(/Inboedel[\s\S]{0,300}?Per maand\s+(\d{1,3})\s*[,.]\s*(\d{2})/);
-  result.inboedel = parsePrice(inboedelMatch);
-
-  // Fallback: "Per maand" prijzen
-  if (!result.inboedel) {
-    const perMaandAll = [...text.matchAll(/Per maand\s+(\d{1,3})\s*[,.]\s*(\d{2})/g)];
-    if (perMaandAll.length >= 1) result.inboedel = parsePrice(perMaandAll[0]);
-  }
-
-  // Fallback: losse prijzen
-  if (!result.inboedel && !result.totaal) {
-    const allPrices = [...text.matchAll(/(?:^|\s)(\d{1,3})\s*[,.]\s*(\d{2})(?:\s|$)/gm)]
-      .map((m) => parseFloat(`${m[1]}.${m[2]}`))
-      .filter((p) => p > 2 && p < 100);
-    const unique = [...new Set(allPrices)];
-    if (unique.length >= 1) result.inboedel = unique[0];
-  }
-
-  return result;
 }
