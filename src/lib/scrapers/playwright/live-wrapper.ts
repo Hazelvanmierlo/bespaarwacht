@@ -42,15 +42,22 @@ export class LiveInboedelScraper extends BaseScraper {
     const start = Date.now();
     const i = input as InboedelInput;
 
-    if (i.huisnummer) {
+    if (i.huisnummer && i.geboortedatum) {
       try {
-        const result = await this.liveScraper({
+        const liveInput: LiveScraperInput = {
           postcode: i.postcode,
           huisnummer: i.huisnummer,
           geboortedatum: i.geboortedatum,
-          gezin: i.gezin,
-          eigenaar: i.eigenaar,
-        });
+          gezin: i.gezin ?? "alleenstaand",
+          eigenaar: i.eigenaar ?? false,
+          woningtype: i.woningtype,
+        };
+        const result = await Promise.race([
+          this.liveScraper(liveInput),
+          new Promise<LiveScraperResult>((_, reject) =>
+            setTimeout(() => reject(new Error("Live scraper timeout (60s)")), 60000)
+          ),
+        ]);
         if (result.status === "success" && result.premie && result.premie > 0) {
           return {
             slug: this.slug, status: "success",
@@ -58,6 +65,7 @@ export class LiveInboedelScraper extends BaseScraper {
             dekking: result.dekking ?? getDekkingLabel(i.dekking),
             eigenRisico: result.eigenRisico ?? this.defaultEigenRisico,
             duration_ms: Date.now() - start, source: "live",
+            stepLog: result.stepLog,
           };
         }
         console.warn(`[scraper:${this.slug}] Live returned status="${result.status}" premie=${result.premie ?? "none"}, falling back to calculated`);
@@ -104,14 +112,22 @@ export class LiveOpstalScraper extends BaseScraper {
     const start = Date.now();
     const i = input as OpstalInput;
 
-    if (i.huisnummer) {
+    if (i.huisnummer && i.geboortedatum) {
       try {
-        const result = await this.liveScraper({
+        const liveInput: LiveScraperInput = {
           postcode: i.postcode,
           huisnummer: i.huisnummer,
           geboortedatum: i.geboortedatum,
-          eigenaar: i.eigenaar,
-        });
+          gezin: "alleenstaand",
+          eigenaar: i.eigenaar ?? false,
+          woningtype: i.woningtype,
+        };
+        const result = await Promise.race([
+          this.liveScraper(liveInput),
+          new Promise<LiveScraperResult>((_, reject) =>
+            setTimeout(() => reject(new Error("Live scraper timeout (60s)")), 60000)
+          ),
+        ]);
         if (result.status === "success" && result.premie && result.premie > 0) {
           return {
             slug: this.slug, status: "success",
@@ -119,6 +135,7 @@ export class LiveOpstalScraper extends BaseScraper {
             dekking: result.dekking ?? getDekkingLabel(i.dekking),
             eigenRisico: result.eigenRisico ?? this.defaultEigenRisico,
             duration_ms: Date.now() - start, source: "live",
+            stepLog: result.stepLog,
           };
         }
         console.warn(`[scraper:${this.slug}] Live returned status="${result.status}" premie=${result.premie ?? "none"}, falling back to calculated`);
@@ -168,12 +185,18 @@ export class LiveAansprakelijkheidScraper extends BaseScraper {
     // AVP scrapers need at least geboortedatum for live
     if (i.geboortedatum) {
       try {
-        const result = await this.liveScraper({
+        const liveInput: LiveScraperInput = {
           postcode: i.postcode,
           huisnummer: i.huisnummer ?? "",
           geboortedatum: i.geboortedatum,
-          gezin: i.gezin,
-        });
+          gezin: i.gezin ?? "alleenstaand",
+        };
+        const result = await Promise.race([
+          this.liveScraper(liveInput),
+          new Promise<LiveScraperResult>((_, reject) =>
+            setTimeout(() => reject(new Error("Live scraper timeout (60s)")), 60000)
+          ),
+        ]);
         if (result.status === "success" && result.premie && result.premie > 0) {
           return {
             slug: this.slug, status: "success",
@@ -181,6 +204,7 @@ export class LiveAansprakelijkheidScraper extends BaseScraper {
             dekking: result.dekking ?? "Aansprakelijkheid Particulier",
             eigenRisico: result.eigenRisico ?? this.defaultEigenRisico,
             duration_ms: Date.now() - start, source: "live",
+            stepLog: result.stepLog,
           };
         }
         console.warn(`[scraper:${this.slug}] Live returned status="${result.status}" premie=${result.premie ?? "none"}, falling back to calculated`);
@@ -230,12 +254,18 @@ export class LiveReisScraper extends BaseScraper {
     // Reis scrapers need geboortedatum for live
     if (i.geboortedatum) {
       try {
-        const result = await this.liveScraper({
+        const liveInput: LiveScraperInput = {
           postcode: "",
           huisnummer: "",
           geboortedatum: i.geboortedatum,
-          gezin: i.gezin,
-        });
+          gezin: i.gezin ?? "alleenstaand",
+        };
+        const result = await Promise.race([
+          this.liveScraper(liveInput),
+          new Promise<LiveScraperResult>((_, reject) =>
+            setTimeout(() => reject(new Error("Live scraper timeout (60s)")), 60000)
+          ),
+        ]);
         if (result.status === "success" && result.premie && result.premie > 0) {
           return {
             slug: this.slug, status: "success",
@@ -243,6 +273,7 @@ export class LiveReisScraper extends BaseScraper {
             dekking: result.dekking ?? (i.doorlopend ? "Doorlopend" : "Kortlopend"),
             eigenRisico: result.eigenRisico ?? this.defaultEigenRisico,
             duration_ms: Date.now() - start, source: "live",
+            stepLog: result.stepLog,
           };
         }
         console.warn(`[scraper:${this.slug}] Live returned status="${result.status}" premie=${result.premie ?? "none"}, falling back to calculated`);

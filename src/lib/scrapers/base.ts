@@ -53,6 +53,7 @@ export interface ScraperResult {
   duration_ms: number;
   error?: string;
   source?: "live" | "calculated";
+  stepLog?: string[];
 }
 
 export abstract class BaseScraper {
