@@ -4,6 +4,8 @@ import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { ArrowRightIcon } from "@/components/icons";
 
+const WA_NUMBER = process.env.NEXT_PUBLIC_WHATSAPP_NUMBER || '14155238886';
+
 /* ── Chat message types ── */
 interface ChatMsg {
   from: "bot" | "user";
@@ -284,7 +286,7 @@ export default function WhatsAppDemoPage() {
           {/* CTA under phone */}
           <div className="mt-8 text-center space-y-4">
             <a
-              href="https://wa.me/14155238886?text=Hoi"
+              href={`https://wa.me/${WA_NUMBER}?text=Hoi`}
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center gap-3 bg-[#25D366] hover:bg-[#128C7E] text-white font-bold py-3.5 px-7 rounded-xl text-[15px] transition-all hover:scale-105 shadow-lg no-underline"

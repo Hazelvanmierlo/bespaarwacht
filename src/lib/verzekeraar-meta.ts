@@ -19,6 +19,22 @@ const BASE_META: Record<string, Pick<MetaEntry, "naam" | "beoordeling" | "beoord
   aegon: { naam: "Aegon", beoordeling: 4, beoordelingBron: "MoneyView \u2605\u2605\u2605\u2605", kleur: "#003B71" },
 };
 
+/** Short USP per verzekeraar (for result cards) */
+export const VERZEKERAAR_USP: Record<string, string> = {
+  inshared: "Geen schade? Jaarbeloning terug. 100% online.",
+  asr: "Scherpe premie, uitgebreide dekking. MoneyView Beste Prijs.",
+  "allianz-direct": "Direct online afsluiten. Geen tussenpersoon, lagere kosten.",
+  "centraal-beheer": "Beste verzekeraar Consumentenbond. Uitstekende klantenservice.",
+  fbto: "Top-score Consumentenbond. Flexibele dekkingen, snel online.",
+  zevenwouden: "Hoge klanttevredenheid. Onderdeel Achmea, lokale service.",
+  ohra: "Jarenlange ervaring, betrouwbare afhandeling.",
+  interpolis: "Kristalhelder verzekerd. Via Rabobank, breed netwerk.",
+  nn: "Groot en betrouwbaar. Uitgebreid productaanbod.",
+  unive: "Coöperatie zonder winstoogmerk. Regionale betrokkenheid.",
+  ditzo: "Budget-keuze voor wie alleen basisdekking nodig heeft.",
+  aegon: "Internationale verzekeraar. Solide financiële basis.",
+};
+
 /** Product-specific metadata (url + highlight) */
 const PRODUCT_META: Record<ProductType, Record<string, { url: string; highlight: string }>> = {
   inboedel: {
