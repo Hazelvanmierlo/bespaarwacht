@@ -4,171 +4,280 @@ import {
   createPage,
   acceptCookies,
   closeBrowser,
-  parseDutchPrice,
+  createLogger,
+  waitForStep,
+  extractPrice,
   clickFirstVisible,
   type LiveScraperInput,
   type LiveScraperResult,
 } from "../utils";
 
-export async function scrapeFbtoInboedel(input: LiveScraperInput): Promise<LiveScraperResult> {
+const URL =
+  "https://www.fbto.nl/woonverzekering/premie-berekenen/start-inboedelverzekering";
+
+export async function scrapeFbtoInboedel(
+  input: LiveScraperInput,
+): Promise<LiveScraperResult> {
   const start = Date.now();
+  const logger = createLogger("FBTO-inboedel");
   let browser: Browser | null = null;
 
   try {
+    // ── Launch browser ──
     browser = await launchBrowser();
     const page = await createPage(browser);
+    logger.log("browser", "launched");
 
-    // ── Navigate to wizard ──
-    await page.goto("https://www.fbto.nl/woonverzekering/premie-berekenen/start-inboedelverzekering", {
-      waitUntil: "domcontentloaded",
-      timeout: 15000,
-    });
-    await page.waitForTimeout(3000);
+    // ── Step 1: Navigate to wizard ──
+    await page.goto(URL, { waitUntil: "domcontentloaded", timeout: 15000 });
+    await page.waitForTimeout(2000);
     await acceptCookies(page);
+    logger.log("navigate", URL);
 
-    // ── Wizard start: "Ok, laten we beginnen!" → "Nee" ──
-    try {
-      const startBtn = page.locator('button:has-text("Ok, laten we beginnen")').first();
-      if (await startBtn.isVisible({ timeout: 3000 })) {
-        await startBtn.click({ force: true });
-        await page.waitForTimeout(2000);
-      }
-    } catch { /* continue */ }
-    try {
-      const neeBtn = page.locator('button:has-text("Nee")').first();
-      if (await neeBtn.isVisible({ timeout: 3000 })) {
-        await neeBtn.click({ force: true });
-        await page.waitForTimeout(2000);
-      }
-    } catch { /* continue */ }
+    // ── Step 2: "Ok, laten we beginnen!" ──
+    const startClicked = await clickFirstVisible(
+      page,
+      'button:has-text("Ok, laten we beginnen")',
+      { timeout: 5000, label: "Ok, laten we beginnen" },
+    );
+    if (startClicked) {
+      await page.waitForTimeout(2000);
+      logger.log("start-wizard", "clicked 'Ok, laten we beginnen'");
+    } else {
+      logger.fail("start-wizard", "button not found");
+    }
 
-    // ── Address: use pressSequentially + Tab to trigger Angular API ──
-    const pcField = page.locator('input[name="verzekerd-adres-postcode"], input[name*="postcode"]').first();
-    if (await pcField.isVisible({ timeout: 3000 })) {
+    // ── Step 3: "Heb je al een woonverzekering bij FBTO?" → Nee ──
+    await waitForStep(page, { text: "Heb je al een woonverzekering", timeout: 5000 });
+    const neeVerzekeringClicked = await clickFirstVisible(
+      page,
+      'button:has-text("Nee")',
+      { timeout: 5000, label: "Nee (al verzekering)" },
+    );
+    if (neeVerzekeringClicked) {
+      await page.waitForTimeout(2000);
+      logger.log("heb-je-al-verzekering", "clicked 'Nee'");
+    } else {
+      logger.fail("heb-je-al-verzekering", "'Nee' button not found");
+    }
+
+    // ── Step 4: Address — postcode + huisnummer ──
+    await waitForStep(page, { text: "Wat is het adres", timeout: 5000 });
+
+    const pcField = page
+      .locator('input[name*="postcode"], textbox[name="Postcode"]')
+      .first();
+    if (!(await pcField.isVisible({ timeout: 3000 }))) {
+      // Fallback: getByRole
+      const pcRole = page.getByRole("textbox", { name: "Postcode" });
+      await pcRole.click();
+      await pcRole.pressSequentially(input.postcode, { delay: 60 });
+    } else {
       await pcField.click();
       await pcField.pressSequentially(input.postcode, { delay: 60 });
-      await page.keyboard.press("Tab");
-      await page.waitForTimeout(500);
     }
+    await page.keyboard.press("Tab");
+    await page.waitForTimeout(500);
+    logger.log("postcode", input.postcode);
 
-    const hnField = page.locator('input[name="verzekerd-adres-huisnummer"], input[name*="huisnummer"]').first();
-    if (await hnField.isVisible({ timeout: 2000 })) {
+    const hnField = page
+      .locator('input[name*="huisnummer"], textbox[name="Huisnummer"]')
+      .first();
+    if (!(await hnField.isVisible({ timeout: 2000 }))) {
+      const hnRole = page.getByRole("textbox", { name: "Huisnummer" });
+      await hnRole.click();
+      await hnRole.pressSequentially(input.huisnummer, { delay: 60 });
+    } else {
       await hnField.click();
       await hnField.pressSequentially(input.huisnummer, { delay: 60 });
-      await page.keyboard.press("Tab");
-      await page.waitForTimeout(3000);
     }
+    await page.keyboard.press("Tab");
+    await page.waitForTimeout(1500);
+    logger.log("huisnummer", input.huisnummer);
 
     // Click "Ga verder" to submit address
-    await clickFirstVisible(page,
-      'button:has-text("Ga verder")',
-      { timeout: 3000, label: "Ga verder (address)" }
-    );
+    await clickFirstVisible(page, 'button:has-text("Ga verder")', {
+      timeout: 3000,
+      label: "Ga verder (adres)",
+    });
     await page.waitForTimeout(3000);
+    logger.log("adres-submit", "clicked 'Ga verder'");
 
-    // ── Navigate through wizard steps ──
-    for (let step = 0; step < 12; step++) {
-      const bodyText = await page.locator("body").innerText();
-
-      // Check for premium
-      const premie = extractFbtoPremie(bodyText);
-      if (premie) {
-        await closeBrowser(browser);
-        return {
-          status: "success",
-          premie,
-          dekking: "Inboedel",
-          eigenRisico: "€ 0",
-          duration_ms: Date.now() - start,
-        };
-      }
-
-      // Check for error
-      if (bodyText.includes("niet online verzekeren") || bodyText.includes("Internal Server Error")) {
-        break;
-      }
-
-      // Fill geboortedatum if on that page (field name is "date-of-birth")
-      try {
-        const gbField = page.locator('input[name="date-of-birth"], input[placeholder*="DD-MM"], input[name*="geboortedatum"]').first();
-        if (await gbField.isVisible({ timeout: 500 })) {
-          await gbField.click();
-          await gbField.pressSequentially(input.geboortedatum ?? "15-06-1985", { delay: 30 });
-          await page.keyboard.press("Tab");
-          await page.waitForTimeout(500);
-        }
-      } catch { /* not on this page */ }
-
-      // Click next: Ga verder, Nee, choice buttons, etc.
-      let clicked = false;
-      for (const sel of [
-        'button:has-text("Ga verder")',
-        'button:has-text("Nee")',
-        'button:has-text("Gehuurd")',        // gekocht-of-gehuurd
-        'button:has-text("1 persoon")',      // aantal-personen
-        'button:has-text("Volgende")',
-        'button:has-text("Bereken")',
-      ]) {
+    // ── Step 5: Woningtype — accept auto-detected default ──
+    const woningtypeVisible = await waitForStep(page, {
+      text: "Wat voor woning",
+      timeout: 5000,
+    });
+    if (woningtypeVisible) {
+      // If a specific woningtype is requested, select it from dropdown
+      if (input.woningtype) {
         try {
-          const btn = page.locator(sel).first();
-          if (await btn.isVisible({ timeout: 1500 })) {
-            await btn.click({ force: true });
-            clicked = true;
-            await page.waitForTimeout(3000);
-            break;
+          const dropdown = page.locator("select, [role=combobox]").first();
+          if (await dropdown.isVisible({ timeout: 2000 })) {
+            await dropdown.selectOption({ label: input.woningtype });
+            logger.log("woningtype", `selected '${input.woningtype}'`);
           }
-        } catch { /* try next */ }
+        } catch {
+          logger.log("woningtype", "kept auto-detected value");
+        }
+      } else {
+        logger.log("woningtype", "kept auto-detected value");
       }
-      if (!clicked) break;
+      await clickFirstVisible(page, 'button:has-text("Ga verder")', {
+        timeout: 3000,
+        label: "Ga verder (woningtype)",
+      });
+      await page.waitForTimeout(2000);
+    } else {
+      logger.log("woningtype", "step skipped (not visible)");
     }
 
+    // ── Step 6: "Heeft je woning een rieten dak?" → Nee ──
+    const rietenDakVisible = await waitForStep(page, {
+      text: "rieten dak",
+      timeout: 5000,
+    });
+    if (rietenDakVisible) {
+      await clickFirstVisible(page, 'button:has-text("Nee")', {
+        timeout: 3000,
+        label: "Nee (rieten dak)",
+      });
+      await page.waitForTimeout(2000);
+      logger.log("rieten-dak", "clicked 'Nee'");
+    } else {
+      logger.log("rieten-dak", "step skipped (not visible)");
+    }
+
+    // ── Step 7: "Gekocht of gehuurd?" ──
+    const koopHuurVisible = await waitForStep(page, {
+      text: "gekocht of gehuurd",
+      timeout: 5000,
+    });
+    if (koopHuurVisible) {
+      const koopHuurLabel = input.eigenaar ? "Gekocht" : "Gehuurd";
+      await clickFirstVisible(
+        page,
+        `button:has-text("${koopHuurLabel}")`,
+        { timeout: 3000, label: koopHuurLabel },
+      );
+      await page.waitForTimeout(2000);
+      logger.log("gekocht-of-gehuurd", `clicked '${koopHuurLabel}'`);
+    } else {
+      logger.fail("gekocht-of-gehuurd", "step not found");
+    }
+
+    // ── Step 8: "Woon je op kamers?" → Nee (only when Gehuurd) ──
+    const kamerbewoner = await waitForStep(page, {
+      text: "Woon je op kamers",
+      timeout: 4000,
+    });
+    if (kamerbewoner) {
+      await clickFirstVisible(page, 'button:has-text("Nee")', {
+        timeout: 3000,
+        label: "Nee (kamerbewoner)",
+      });
+      await page.waitForTimeout(2000);
+      logger.log("kamerbewoner", "clicked 'Nee'");
+    } else {
+      logger.log("kamerbewoner", "step skipped (not visible — eigenaar path)");
+    }
+
+    // ── Step 9: Geboortedatum ──
+    const gbVisible = await waitForStep(page, {
+      text: "geboortedatum",
+      timeout: 5000,
+    });
+    if (gbVisible) {
+      const gbField = page
+        .getByRole("textbox", { name: /geboortedatum/i })
+        .first();
+      if (await gbField.isVisible({ timeout: 3000 })) {
+        await gbField.click();
+        await gbField.pressSequentially(input.geboortedatum, { delay: 30 });
+        await page.keyboard.press("Tab");
+        await page.waitForTimeout(500);
+        logger.log("geboortedatum", input.geboortedatum);
+      } else {
+        // Fallback: try input with placeholder DD-MM
+        const gbFallback = page
+          .locator('input[placeholder*="DD-MM"], input[name*="geboortedatum"], input[name="date-of-birth"]')
+          .first();
+        await gbFallback.click();
+        await gbFallback.pressSequentially(input.geboortedatum, { delay: 30 });
+        await page.keyboard.press("Tab");
+        await page.waitForTimeout(500);
+        logger.log("geboortedatum", `${input.geboortedatum} (fallback selector)`);
+      }
+
+      await clickFirstVisible(page, 'button:has-text("Ga verder")', {
+        timeout: 3000,
+        label: "Ga verder (geboortedatum)",
+      });
+      await page.waitForTimeout(2000);
+    } else {
+      logger.fail("geboortedatum", "step not found");
+    }
+
+    // ── Step 10: Aantal personen ──
+    const personenVisible = await waitForStep(page, {
+      text: "Hoeveel personen",
+      timeout: 5000,
+    });
+    if (personenVisible) {
+      // Map gezin input to FBTO button label
+      const personenLabel =
+        input.gezin === "alleenstaand" ? "1 persoon" : "2 personen";
+      await clickFirstVisible(
+        page,
+        `button:has-text("${personenLabel}")`,
+        { timeout: 3000, label: personenLabel },
+      );
+      await page.waitForTimeout(3000);
+      logger.log("aantal-personen", `clicked '${personenLabel}'`);
+    } else {
+      logger.fail("aantal-personen", "step not found");
+    }
+
+    // ── Step 11: Extract premium from results page ──
+    await waitForStep(page, {
+      text: "inboedelverzekering",
+      timeout: 10000,
+    });
     await page.waitForTimeout(2000);
-    const allText = await page.locator("body").innerText();
-    const premie = extractFbtoPremie(allText);
+
+    const premie = await extractPrice(page, {
+      sectionLabel: "inboedelverzekering",
+    });
 
     await closeBrowser(browser);
 
     if (premie) {
-      return { status: "success", premie, dekking: "Inboedel", eigenRisico: "€ 0", duration_ms: Date.now() - start };
+      logger.log("premie", `€ ${premie.toFixed(2)} per maand`);
+      return {
+        status: "success",
+        premie,
+        dekking: "Inboedel",
+        eigenRisico: "€ 0",
+        duration_ms: Date.now() - start,
+        stepLog: logger.getSteps(),
+      };
     }
-    return { status: "error", error: "Premie niet gevonden op pagina.", duration_ms: Date.now() - start };
+
+    logger.fail("premie", "niet gevonden op pagina");
+    return {
+      status: "error",
+      error: "Premie niet gevonden op pagina.",
+      duration_ms: Date.now() - start,
+      stepLog: logger.getSteps(),
+    };
   } catch (err) {
     await closeBrowser(browser);
-    return { status: "error", error: (err as Error).message, duration_ms: Date.now() - start };
+    logger.fail("crash", (err as Error).message);
+    return {
+      status: "error",
+      error: (err as Error).message,
+      duration_ms: Date.now() - start,
+      stepLog: logger.getSteps(),
+    };
   }
-}
-
-function extractFbtoPremie(text: string): number | undefined {
-  // FBTO shows prices like "€ 4,61" on the inboedelverzekering page
-  // The first non-zero price after "Kies de verzekering" is the base premium
-  const section = text.match(/inboedelverzekering[\s\S]{0,500}/i);
-  if (section) {
-    const prices = section[0].match(/€\s*(\d{1,3})\s*[,.]\s*(\d{2})/g);
-    if (prices) {
-      for (const p of prices) {
-        const match = p.match(/€\s*(\d{1,3})\s*[,.]\s*(\d{2})/);
-        if (match) {
-          const price = parseFloat(`${match[1]}.${match[2]}`);
-          if (price > 1 && price < 100) return price;
-        }
-      }
-    }
-  }
-
-  // Fallback: standard patterns
-  const patterns = [
-    /(?:per maand|p\/m|\/mnd)\s*€?\s*(\d{1,3})\s*[,.]\s*(\d{2})/i,
-    /€\s*(\d{1,3})\s*[,.]\s*(\d{2})\s*(?:per maand|p\/m|\/mnd)/i,
-  ];
-  for (const pattern of patterns) {
-    const match = text.match(pattern);
-    if (match) {
-      const price = parseFloat(`${match[1]}.${match[2]}`);
-      if (price > 2 && price < 100) return price;
-    }
-  }
-
-  const premieSection = text.match(/[Pp]remie[\s\S]{0,200}/);
-  if (premieSection) return parseDutchPrice(premieSection[0]);
-  return undefined;
 }
