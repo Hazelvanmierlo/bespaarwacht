@@ -45,6 +45,7 @@ export async function POST() {
     premie_gevonden: result.premie ?? null,
     duration_ms: result.duration_ms,
     error_message: result.error ?? null,
+    step_log: result.stepLog ?? null,
   });
 
   if (result.status === "success" && result.premie) {

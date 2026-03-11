@@ -48,6 +48,7 @@ export async function GET(req: NextRequest) {
           premie_gevonden: result.premie ?? null,
           duration_ms: result.duration_ms,
           error_message: result.error ?? null,
+          step_log: result.stepLog ?? null,
         });
 
         // Save premium if successful
