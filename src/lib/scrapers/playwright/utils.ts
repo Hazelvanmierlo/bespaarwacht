@@ -59,10 +59,12 @@ export async function acceptCookies(page: Page): Promise<void> {
   try {
     const selectors = [
       '#onetrust-accept-btn-handler',
+      '#onetrust-reject-all-handler',
       'button[title="Akkoord"]',
       'button:has-text("Alles accepteren")',
       'button:has-text("Alle cookies accepteren")',
       'button:has-text("Accepteer alle cookies")',
+      'button:has-text("Alles afwijzen")',
       'button:has-text("Akkoord")',
       'button[data-element="all-button"]',
       '.cookie-accept-all',

@@ -27,6 +27,9 @@
 # generated from node_modules via postinstall
 /public/standard_fonts
 
+# playwright MCP logs/screenshots
+.playwright-mcp/
+
 # debug
 npm-debug.log*
 yarn-debug.log*

@@ -55,7 +55,7 @@ export class LiveInboedelScraper extends BaseScraper {
         const result = await Promise.race([
           this.liveScraper(liveInput),
           new Promise<LiveScraperResult>((_, reject) =>
-            setTimeout(() => reject(new Error("Live scraper timeout (60s)")), 60000)
+            setTimeout(() => reject(new Error("Live scraper timeout (120s)")), 120000)
           ),
         ]);
         if (result.status === "success" && result.premie && result.premie > 0) {
@@ -125,7 +125,7 @@ export class LiveOpstalScraper extends BaseScraper {
         const result = await Promise.race([
           this.liveScraper(liveInput),
           new Promise<LiveScraperResult>((_, reject) =>
-            setTimeout(() => reject(new Error("Live scraper timeout (60s)")), 60000)
+            setTimeout(() => reject(new Error("Live scraper timeout (120s)")), 120000)
           ),
         ]);
         if (result.status === "success" && result.premie && result.premie > 0) {
@@ -194,7 +194,7 @@ export class LiveAansprakelijkheidScraper extends BaseScraper {
         const result = await Promise.race([
           this.liveScraper(liveInput),
           new Promise<LiveScraperResult>((_, reject) =>
-            setTimeout(() => reject(new Error("Live scraper timeout (60s)")), 60000)
+            setTimeout(() => reject(new Error("Live scraper timeout (120s)")), 120000)
           ),
         ]);
         if (result.status === "success" && result.premie && result.premie > 0) {
@@ -263,7 +263,7 @@ export class LiveReisScraper extends BaseScraper {
         const result = await Promise.race([
           this.liveScraper(liveInput),
           new Promise<LiveScraperResult>((_, reject) =>
-            setTimeout(() => reject(new Error("Live scraper timeout (60s)")), 60000)
+            setTimeout(() => reject(new Error("Live scraper timeout (120s)")), 120000)
           ),
         ]);
         if (result.status === "success" && result.premie && result.premie > 0) {

@@ -68,8 +68,17 @@ export async function scrapeAsrInboedel(
     const gezinCombo = page.getByRole("combobox", {
       name: "Gezinssamenstelling",
     });
-    await gezinCombo.click();
-    await page.getByRole("option", { name: gezinLabel }).click();
+    await gezinCombo.click({ force: true });
+    await page.waitForTimeout(500);
+    // ASR uses a custom listbox — wait for options to appear
+    try {
+      await page.getByRole("option", { name: gezinLabel }).click({ timeout: 3000 });
+    } catch {
+      // Retry: click combobox again to open dropdown
+      await gezinCombo.click({ force: true });
+      await page.waitForTimeout(1000);
+      await page.getByRole("option", { name: gezinLabel }).click({ timeout: 5000 });
+    }
     logger.log("Gezinssamenstelling", gezinLabel);
 
     // ── 2. Geboortedatum ─────────────────────────────────────────────────
@@ -98,10 +107,10 @@ export async function scrapeAsrInboedel(
 
     // ── 5. Koop- of huurwoning ───────────────────────────────────────────
     if (input.eigenaar) {
-      await page.getByRole("radio", { name: "Koopwoning" }).click();
+      await page.getByRole("radio", { name: "Koopwoning" }).click({ force: true });
       logger.log("Woningtype", "Koopwoning");
     } else {
-      await page.getByRole("radio", { name: "Huurwoning" }).click();
+      await page.getByRole("radio", { name: "Huurwoning" }).click({ force: true });
       logger.log("Woningtype", "Huurwoning");
     }
 
@@ -123,7 +132,7 @@ export async function scrapeAsrInboedel(
       const particulierGroup = page.getByRole("radiogroup", {
         name: /particulier/i,
       });
-      await particulierGroup.getByRole("radio", { name: "Ja" }).click();
+      await particulierGroup.getByRole("radio", { name: "Ja" }).click({ force: true });
       logger.log("Particulier gebruik", "Ja");
     } catch {
       logger.fail("Particulier gebruik", "Radio niet gevonden");
@@ -131,7 +140,7 @@ export async function scrapeAsrInboedel(
 
     // ── 7. Soort muren → Steen ───────────────────────────────────────────
     try {
-      await page.getByRole("radio", { name: "Steen" }).click();
+      await page.getByRole("radio", { name: "Steen" }).click({ force: true });
       logger.log("Soort muren", "Steen");
     } catch {
       logger.fail("Soort muren", "Radio niet gevonden");
@@ -140,7 +149,7 @@ export async function scrapeAsrInboedel(
     // ── 8. Soort dak → Schuin dak met pannen of mastiek ──────────────────
     try {
       const dakCombo = page.getByRole("combobox", { name: "Soort dak" });
-      await dakCombo.click();
+      await dakCombo.click({ force: true });
       await page
         .getByRole("option", { name: "Schuin dak met pannen of mastiek" })
         .click();
@@ -153,19 +162,19 @@ export async function scrapeAsrInboedel(
     const submitBtn = page.getByRole("button", {
       name: /Verder naar.*Bekijk je premie/i,
     });
-    await submitBtn.click();
+    await submitBtn.click({ force: true });
     logger.log("Submit", "Verder naar: Bekijk je premie");
 
     // Wait for the results page with premium info
     const premieVisible = await waitForStep(page, {
       text: "p/mnd",
-      timeout: 10_000,
+      timeout: 15_000,
     });
     if (!premieVisible) {
-      // Fallback: wait for receipt section
+      // Fallback: wait for receipt section or any price pattern
       await waitForStep(page, {
         text: "Je betaalt per maand",
-        timeout: 5_000,
+        timeout: 10_000,
       });
     }
     logger.log("Resultatenpagina geladen");
