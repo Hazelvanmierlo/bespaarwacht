@@ -22,22 +22,88 @@ const PRODUCT_LABELS: Record<ProductType, string> = {
 };
 
 const PRODUCT_ICONS: Record<ProductType, string> = {
-  inboedel: "🏠",
-  opstal: "🏗️",
-  aansprakelijkheid: "🛡️",
-  reis: "✈️",
+  inboedel: "\u{1F3E0}",
+  opstal: "\u{1F3D7}\uFE0F",
+  aansprakelijkheid: "\u{1F6E1}\uFE0F",
+  reis: "\u{2708}\uFE0F",
 };
 
 const LIVE_ENABLED = process.env.NEXT_PUBLIC_ENABLE_LIVE_SCRAPERS === "true";
 
 const analyzeSteps = [
-  { step: 1, label: "PDF uitlezen", desc: "Polisgegevens worden geëxtraheerd" },
+  { step: 1, label: "PDF uitlezen", desc: "Polisgegevens worden ge\u{00EB}xtraheerd" },
   { step: 2, label: "Anonimisering", desc: "Persoonsgegevens worden verwijderd" },
   { step: 3, label: LIVE_ENABLED ? "Live premies ophalen" : "Premies berekenen", desc: LIVE_ENABLED ? "Live premies ophalen bij verzekeraars..." : "Exacte premie per verzekeraar berekend" },
   { step: 4, label: "Resultaten klaar", desc: "Betere opties gevonden!" },
 ];
 
 type SortMode = "besparing" | "premie" | "beoordeling";
+
+/* ── Coverage items per dekking type ── */
+const COVERAGE_INBOEDEL: Record<string, { label: string; basis: boolean; uitgebreid: boolean; allrisk: boolean }> = {
+  brand: { label: "Brand & storm", basis: true, uitgebreid: true, allrisk: true },
+  inbraak: { label: "Inbraak & diefstal", basis: true, uitgebreid: true, allrisk: true },
+  water: { label: "Waterschade", basis: false, uitgebreid: true, allrisk: true },
+  lekkage: { label: "Lekkage", basis: false, uitgebreid: true, allrisk: true },
+  glas: { label: "Glasbreuk", basis: false, uitgebreid: true, allrisk: true },
+  allrisk: { label: "Onverwachte schade", basis: false, uitgebreid: false, allrisk: true },
+};
+
+const COVERAGE_OPSTAL: Record<string, { label: string; basis: boolean; uitgebreid: boolean; allrisk: boolean }> = {
+  brand: { label: "Brand & ontploffing", basis: true, uitgebreid: true, allrisk: true },
+  storm: { label: "Storm & hagel", basis: true, uitgebreid: true, allrisk: true },
+  water: { label: "Waterschade", basis: false, uitgebreid: true, allrisk: true },
+  lekkage: { label: "Lekkage leidingen", basis: false, uitgebreid: true, allrisk: true },
+  glas: { label: "Glasbreuk", basis: false, uitgebreid: true, allrisk: true },
+  allrisk: { label: "Onverwachte schade", basis: false, uitgebreid: false, allrisk: true },
+};
+
+const COVERAGE_AANSPRAKELIJKHEID: Record<string, { label: string; always: boolean }> = {
+  persoon: { label: "Letselschade", always: true },
+  zaak: { label: "Zaakschade", always: true },
+  gezin: { label: "Gezinsleden meeverzekerd", always: false },
+  sport: { label: "Sportactiviteiten", always: true },
+  huisdier: { label: "Huisdieren", always: true },
+};
+
+const COVERAGE_REIS: Record<string, { label: string; basis: boolean; uitgebreid: boolean }> = {
+  medisch: { label: "Medische kosten", basis: true, uitgebreid: true },
+  bagage: { label: "Bagage & diefstal", basis: true, uitgebreid: true },
+  annulering: { label: "Annulering", basis: false, uitgebreid: true },
+  pechhulp: { label: "Pechhulp buitenland", basis: false, uitgebreid: true },
+  reisrechts: { label: "Rechtsbijstand", basis: false, uitgebreid: true },
+};
+
+function getCoverageItems(productType: ProductType, dekking: string, gezin?: string) {
+  const d = dekking.toLowerCase();
+  const isAllRisk = d.includes("all risk") || d.includes("allrisk");
+  const isUitgebreid = d.includes("uitgebreid") || d.includes("extra") || isAllRisk;
+
+  if (productType === "inboedel") {
+    return Object.values(COVERAGE_INBOEDEL).map((c) => ({
+      label: c.label,
+      covered: isAllRisk ? c.allrisk : isUitgebreid ? c.uitgebreid : c.basis,
+    }));
+  }
+  if (productType === "opstal") {
+    return Object.values(COVERAGE_OPSTAL).map((c) => ({
+      label: c.label,
+      covered: isAllRisk ? c.allrisk : isUitgebreid ? c.uitgebreid : c.basis,
+    }));
+  }
+  if (productType === "aansprakelijkheid") {
+    const heeftGezin = gezin?.toLowerCase().includes("gezin") || gezin?.toLowerCase().includes("partner");
+    return Object.values(COVERAGE_AANSPRAKELIJKHEID).map((c) => ({
+      label: c.label,
+      covered: c.label === "Gezinsleden meeverzekerd" ? !!heeftGezin : c.always,
+    }));
+  }
+  // reis
+  return Object.values(COVERAGE_REIS).map((c) => ({
+    label: c.label,
+    covered: isUitgebreid ? c.uitgebreid : c.basis,
+  }));
+}
 
 export default function AnalyseDemoPage() {
   return (
@@ -62,6 +128,7 @@ function AnalyseDemoContent() {
   const [sortMode, setSortMode] = useState<SortMode>("besparing");
   const [expandedCard, setExpandedCard] = useState<string | null>(null);
   const [overstapModal, setOverstapModal] = useState<(Alternative & { besparingJaar: number }) | null>(null);
+  const [eigenRisicoFilter, setEigenRisicoFilter] = useState<string>("alle");
 
   const [polisData, setPolisData] = useState<PolisData>(() => getDemoPolisData(productType));
 
@@ -83,20 +150,31 @@ function AnalyseDemoContent() {
   const huidigeMaand = polisData.maandpremie;
   const huidigeJaar = polisData.jaarpremie;
 
-  const sortedAlts = [...alternatives]
+  const filteredAndSorted = [...alternatives]
     .map((alt) => ({
       ...alt,
       besparingMaand: +(huidigeMaand - alt.premie).toFixed(2),
       besparingJaar: +((huidigeMaand - alt.premie) * 12).toFixed(0),
     }))
+    .filter((alt) => {
+      if (eigenRisicoFilter === "alle") return true;
+      const er = alt.eigenRisico.replace(/[^0-9]/g, "");
+      if (eigenRisicoFilter === "0") return er === "0";
+      if (eigenRisicoFilter === "150") return parseInt(er) <= 150;
+      return true;
+    })
     .sort((a, b) => {
       if (sortMode === "premie") return a.premie - b.premie;
       if (sortMode === "beoordeling") return b.beoordeling - a.beoordeling || a.premie - b.premie;
       return b.besparingJaar - a.besparingJaar;
     });
 
-  const besteSaving = sortedAlts[0];
+  const besteSaving = filteredAndSorted[0];
   const heeftBesparing = besteSaving && besteSaving.besparingJaar > 0;
+
+  // Check if there are different eigen risico values for the filter
+  const eigenRisicoValues = [...new Set(alternatives.map((a) => a.eigenRisico))];
+  const showERFilter = eigenRisicoValues.length > 1;
 
   useEffect(() => {
     const anon = anonymize(polisData);
@@ -145,7 +223,7 @@ function AnalyseDemoContent() {
       oppervlakte: polisData.oppervlakte,
       postcode: polisData.postcode.slice(0, 4) + "**",
       woonplaats: polisData.woonplaats,
-      maxBesparing: besteSaving.besparingJaar,
+      maxBesparing: besteSaving?.besparingJaar || 0,
       monitoringActive: true,
     };
     const existing = JSON.parse(localStorage.getItem("bw-polissen") || "[]");
@@ -217,10 +295,18 @@ function AnalyseDemoContent() {
             </h2>
             <p className="text-[15px] text-bw-text-mid max-w-[480px] mx-auto">
               Je betaalt <strong className="text-bw-green">&euro; {huidigeMaand.toFixed(2)}/mnd</strong> bij {polisData.verzekeraar}.
-              Geen van de {sortedAlts.length} vergeleken verzekeraars is goedkoper.
+              Geen van de {filteredAndSorted.length} vergeleken verzekeraars is goedkoper.
             </p>
           </>
         )}
+      </div>
+
+      {/* ── TRUST BAR ── */}
+      <div className="flex items-center justify-center gap-4 sm:gap-6 mb-6 py-3 px-4 bg-[#F8FAFC] rounded-xl border border-[#E2E8F0] flex-wrap">
+        <TrustItem icon={<ShieldCheckSVG />} label="Onafhankelijk" />
+        <TrustItem icon={<UsersSVG />} label={`${filteredAndSorted.length} verzekeraars`} />
+        <TrustItem icon={<LockIcon className="w-3.5 h-3.5" />} label="Privacygarantie" />
+        <TrustItem icon={<ThumbsUpSVG />} label="Gratis & vrijblijvend" />
       </div>
 
       {/* ── PROFIEL SAMENVATTING ── */}
@@ -239,20 +325,20 @@ function AnalyseDemoContent() {
           <div>
             <div className={`text-xs font-bold uppercase tracking-[0.5px] ${
               heeftBesparing ? "text-bw-red" : "text-bw-green-strong"
-            }`}>Huidige polis{!heeftBesparing && " · Beste prijs"}</div>
+            }`}>Huidige polis{!heeftBesparing && " \u{00B7} Beste prijs"}</div>
             <div className={`text-[15px] font-bold ${
               heeftBesparing ? "text-[#991B1B]" : "text-[#166534]"
-            }`}>{polisData.verzekeraar} — {polisData.type}</div>
+            }`}>{polisData.verzekeraar} \u{2014} {polisData.type}</div>
           </div>
         </div>
         <div className="text-right">
           <div className={`text-xl font-bold ${heeftBesparing ? "text-bw-red" : "text-bw-green"}`}>&euro; {huidigeMaand.toFixed(2)}<span className="text-xs font-semibold">/mnd</span></div>
-          <div className={`text-[11px] ${heeftBesparing ? "text-[#B91C1C]" : "text-[#166534]"}`}>&euro; {huidigeJaar.toFixed(2)}/jaar · {polisData.dekking}</div>
+          <div className={`text-[11px] ${heeftBesparing ? "text-[#B91C1C]" : "text-[#166534]"}`}>&euro; {huidigeJaar.toFixed(2)}/jaar &middot; {polisData.dekking}</div>
         </div>
       </div>
 
-      {/* ── SORT CONTROLS ── */}
-      <div className="flex items-center gap-2 mb-4 flex-wrap">
+      {/* ── SORT + FILTER CONTROLS ── */}
+      <div className="flex items-center gap-2 mb-2 flex-wrap">
         <span className="text-[12px] font-semibold text-bw-text-mid">Sorteer:</span>
         {([
           { key: "besparing" as SortMode, label: "Hoogste besparing" },
@@ -271,35 +357,71 @@ function AnalyseDemoContent() {
             {opt.label}
           </button>
         ))}
-        <span className="ml-auto text-[11px] text-bw-text-light">
-          {sortedAlts.length} verzekeraars vergeleken
-        </span>
       </div>
+      {showERFilter && (
+        <div className="flex items-center gap-2 mb-4 flex-wrap">
+          <span className="text-[12px] font-semibold text-bw-text-mid">Eigen risico:</span>
+          {([
+            { key: "alle", label: "Alle" },
+            { key: "0", label: "\u{20AC} 0" },
+            { key: "150", label: "\u{2264} \u{20AC} 150" },
+          ]).map((opt) => (
+            <button
+              key={opt.key}
+              onClick={() => setEigenRisicoFilter(opt.key)}
+              className={`px-3 py-1.5 rounded-lg text-[12px] font-semibold border transition-all cursor-pointer ${
+                eigenRisicoFilter === opt.key
+                  ? "bg-bw-deep text-white border-bw-deep"
+                  : "bg-white text-bw-text-mid border-bw-border hover:border-bw-deep"
+              }`}
+            >
+              {opt.label}
+            </button>
+          ))}
+          <span className="ml-auto text-[11px] text-bw-text-light">
+            {filteredAndSorted.length} resultaten
+          </span>
+        </div>
+      )}
+      {!showERFilter && (
+        <div className="flex items-center mb-4">
+          <span className="ml-auto text-[11px] text-bw-text-light">
+            {filteredAndSorted.length} verzekeraars vergeleken
+          </span>
+        </div>
+      )}
 
       {/* ── ALTERNATIEVEN ── */}
       <div className="flex flex-col gap-3">
-        {sortedAlts.map((alt, i) => {
+        {filteredAndSorted.map((alt, i) => {
           const isExpanded = expandedCard === alt.id;
           const isTop = i === 0 && heeftBesparing;
           const usp = VERZEKERAAR_USP[alt.id] || "";
+          const coverageItems = getCoverageItems(productType, alt.dekking, polisData.gezin);
 
           return (
             <div
               key={alt.id}
               className={`bg-white rounded-2xl overflow-hidden transition-all ${
-                isTop ? "border-2 border-bw-green shadow-[0_4px_20px_rgba(22,163,74,0.08)]" : "border border-bw-border hover:shadow-[0_4px_16px_rgba(0,0,0,0.06)]"
+                isTop ? "border-2 border-bw-green shadow-[0_4px_24px_rgba(22,163,74,0.10)]" : "border border-bw-border hover:shadow-[0_4px_16px_rgba(0,0,0,0.06)]"
               }`}
             >
               {/* Top badge */}
               {isTop && (
-                <div className="bg-bw-green px-5 py-1.5 flex items-center justify-center gap-2">
-                  <span className="text-[13px] font-bold text-white">Aanbeveling — Bespaar &euro; {alt.besparingJaar}/jaar</span>
+                <div className="bg-gradient-to-r from-[#16A34A] to-[#15803D] px-5 py-2 flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-2">
+                    <svg className="w-4 h-4 text-white" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" /></svg>
+                    <span className="text-[13px] font-bold text-white">Beste keuze</span>
+                  </div>
+                  <span className="text-[13px] font-bold text-white bg-white/20 px-2.5 py-0.5 rounded-md">
+                    Bespaar &euro; {alt.besparingJaar}/jaar
+                  </span>
                 </div>
               )}
 
               <div className="flex items-stretch">
                 {/* Kleur accent bar */}
-                <div className="w-1.5 shrink-0 rounded-l-2xl" style={{ backgroundColor: alt.kleur || "#94A3B8" }} />
+                <div className="w-1.5 shrink-0" style={{ backgroundColor: alt.kleur || "#94A3B8" }} />
 
                 <div className="flex-1 px-4 sm:px-5 py-4">
                   {/* Row 1: Naam + badges + ranking */}
@@ -357,12 +479,39 @@ function AnalyseDemoContent() {
                     </div>
                   </div>
 
-                  {/* Row 2: Details chips */}
-                  <div className="flex items-center gap-3 flex-wrap mb-3 text-[12px]">
-                    <ProductChips alt={alt} productType={productType} />
+                  {/* Row 2: Coverage checkmarks */}
+                  <div className="flex flex-wrap gap-x-4 gap-y-1 mb-3">
+                    {coverageItems.map((item) => (
+                      <span key={item.label} className="inline-flex items-center gap-1 text-[12px]">
+                        {item.covered ? (
+                          <svg className="w-3.5 h-3.5 text-bw-green shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>
+                        ) : (
+                          <svg className="w-3.5 h-3.5 text-[#D1D5DB] shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M18 6L6 18M6 6l12 12" /></svg>
+                        )}
+                        <span className={item.covered ? "text-bw-deep" : "text-[#9CA3AF]"}>{item.label}</span>
+                      </span>
+                    ))}
                   </div>
 
-                  {/* Row 3: Price (mobile) + CTA */}
+                  {/* Row 3: Details chips */}
+                  <div className="flex items-center gap-3 flex-wrap mb-3 text-[12px]">
+                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-[#F8FAFC] rounded-md border border-[#E2E8F0]">
+                      <span className="text-bw-text-light">Dekking:</span>
+                      <span className="font-semibold text-bw-deep">{alt.dekking}</span>
+                    </span>
+                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-[#F8FAFC] rounded-md border border-[#E2E8F0]">
+                      <span className="text-bw-text-light">Eigen risico:</span>
+                      <span className="font-semibold text-bw-deep">{alt.eigenRisico}</span>
+                    </span>
+                    {productType === "reis" && alt.dekking.toLowerCase().includes("doorlopend") && (
+                      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-[#F8FAFC] rounded-md border border-[#E2E8F0]">
+                        <span className="text-bw-text-light">Type:</span>
+                        <span className="font-semibold text-bw-deep">Doorlopend</span>
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Row 4: Price (mobile) + CTA */}
                   <div className="flex items-center gap-3 flex-wrap">
                     {/* Mobile price */}
                     <div className="sm:hidden">
@@ -382,7 +531,7 @@ function AnalyseDemoContent() {
                         onClick={() => setExpandedCard(isExpanded ? null : alt.id)}
                         className="inline-flex items-center gap-1 px-3 py-2 rounded-lg text-[12px] font-semibold text-bw-text-mid bg-bw-bg border border-bw-border cursor-pointer hover:bg-[#E2E8F0] transition-colors"
                       >
-                        {isExpanded ? "Minder" : "Meer info"}
+                        {isExpanded ? "Minder" : "Bekijk dekking"}
                         <svg className={`w-3 h-3 transition-transform ${isExpanded ? "rotate-180" : ""}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                           <path d="M6 9l6 6 6-6" />
                         </svg>
@@ -391,13 +540,13 @@ function AnalyseDemoContent() {
                       {/* CTA */}
                       <button
                         onClick={() => setOverstapModal({ ...alt })}
-                        className={`inline-flex items-center gap-2 px-5 py-2 rounded-xl text-[13px] font-bold text-white cursor-pointer border-none transition-all hover:-translate-y-px ${
+                        className={`inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-[13px] font-bold text-white cursor-pointer border-none transition-all hover:-translate-y-px ${
                           isTop
                             ? "bg-bw-green hover:bg-bw-green-strong hover:shadow-[0_4px_16px_rgba(22,163,74,0.3)]"
                             : "bg-bw-deep hover:bg-bw-navy hover:shadow-[0_4px_16px_rgba(15,33,55,0.2)]"
                         }`}
                       >
-                        Bekijk bij {alt.naam} <ArrowRightIcon className="w-3 h-3" />
+                        Bereken premie <ArrowRightIcon className="w-3 h-3" />
                       </button>
                     </div>
                   </div>
@@ -405,23 +554,61 @@ function AnalyseDemoContent() {
                   {/* Expanded details */}
                   {isExpanded && (
                     <div className="mt-4 pt-4 border-t border-bw-border">
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                        {/* Left: Coverage details */}
                         <div>
-                          <div className="text-[11px] font-bold text-bw-text-mid uppercase tracking-[0.5px] mb-2">Dekking</div>
-                          <div className="space-y-1.5 text-[13px]">
-                            <DetailRow label="Type" value={alt.dekking} />
+                          <div className="text-[11px] font-bold text-bw-text-mid uppercase tracking-[0.5px] mb-3">Dekking details</div>
+                          <div className="space-y-2">
+                            {coverageItems.map((item) => (
+                              <div key={item.label} className="flex items-center justify-between py-1.5 border-b border-[#F1F5F9]">
+                                <span className="text-[13px] text-bw-text-mid">{item.label}</span>
+                                {item.covered ? (
+                                  <span className="inline-flex items-center gap-1 text-[12px] font-semibold text-bw-green-strong">
+                                    <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>
+                                    Gedekt
+                                  </span>
+                                ) : (
+                                  <span className="inline-flex items-center gap-1 text-[12px] font-medium text-[#9CA3AF]">
+                                    <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M18 6L6 18M6 6l12 12" /></svg>
+                                    Niet gedekt
+                                  </span>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                          <div className="mt-3 space-y-1.5 text-[13px]">
+                            <DetailRow label="Type dekking" value={alt.dekking} />
                             <DetailRow label="Eigen risico" value={alt.eigenRisico} />
                             <ProductDetails alt={alt} productType={productType} polisData={polisData} />
                           </div>
                         </div>
+
+                        {/* Right: About + pricing */}
                         <div>
-                          <div className="text-[11px] font-bold text-bw-text-mid uppercase tracking-[0.5px] mb-2">Over {alt.naam}</div>
-                          <div className="space-y-1.5 text-[13px]">
-                            <div className="flex items-center gap-1.5 mb-2">
-                              {[1, 2, 3, 4, 5].map((s) => <StarIcon key={s} filled={s <= alt.beoordeling} className="w-4 h-4" />)}
-                              <span className="font-semibold text-bw-deep ml-1">{alt.beoordelingBron}</span>
+                          <div className="text-[11px] font-bold text-bw-text-mid uppercase tracking-[0.5px] mb-3">Over {alt.naam}</div>
+                          <div className="flex items-center gap-1.5 mb-3">
+                            {[1, 2, 3, 4, 5].map((s) => <StarIcon key={s} filled={s <= alt.beoordeling} className="w-4 h-4" />)}
+                            <span className="font-semibold text-bw-deep ml-1">{alt.beoordelingBron}</span>
+                          </div>
+                          {usp && <p className="text-[13px] text-bw-text-mid leading-relaxed mb-3">{usp}</p>}
+
+                          {/* Price comparison */}
+                          <div className="bg-[#F8FAFC] rounded-lg p-3 space-y-2 mt-3">
+                            <div className="text-[11px] font-bold text-bw-text-mid uppercase tracking-[0.5px]">Prijsvergelijking</div>
+                            <div className="flex justify-between text-[13px]">
+                              <span className="text-bw-text-mid">Huidig ({polisData.verzekeraar})</span>
+                              <span className="font-semibold text-bw-red">&euro; {huidigeMaand.toFixed(2)}/mnd</span>
                             </div>
-                            {usp && <p className="text-bw-text-mid leading-relaxed">{usp}</p>}
+                            <div className="flex justify-between text-[13px]">
+                              <span className="text-bw-text-mid">{alt.naam}</span>
+                              <span className="font-semibold text-bw-green">&euro; {alt.premie.toFixed(2)}/mnd</span>
+                            </div>
+                            {alt.besparingJaar > 0 && (
+                              <div className="flex justify-between text-[13px] pt-2 border-t border-[#E2E8F0]">
+                                <span className="font-semibold text-bw-deep">Besparing per jaar</span>
+                                <span className="font-bold text-bw-green">&euro; {alt.besparingJaar}</span>
+                              </div>
+                            )}
                           </div>
                         </div>
                       </div>
@@ -433,6 +620,15 @@ function AnalyseDemoContent() {
           );
         })}
       </div>
+
+      {filteredAndSorted.length === 0 && (
+        <div className="text-center py-10 text-bw-text-mid">
+          <p className="text-[15px]">Geen resultaten met deze filters.</p>
+          <button onClick={() => setEigenRisicoFilter("alle")} className="mt-2 text-bw-blue font-semibold text-[13px] cursor-pointer bg-transparent border-none">
+            Filters resetten
+          </button>
+        </div>
+      )}
 
       {/* ── SAVE + MONITORING ── */}
       <div className="mt-6 flex gap-3 flex-wrap">
@@ -462,7 +658,7 @@ function AnalyseDemoContent() {
         <LockIcon />
         <span className="text-xs text-bw-green-dark">
           <strong>Geen persoonsgegevens opgeslagen.</strong> PDF is verwijderd. Alleen geanonimiseerde data.{" "}
-          <Link href="/privacy" className="underline">Privacy →</Link>
+          <Link href="/privacy" className="underline">Privacy \u{2192}</Link>
         </span>
       </div>
 
@@ -480,13 +676,13 @@ function AnalyseDemoContent() {
           "text-[#C2410C]"
         }`}>
           {dataSource === "live" ? (
-            <><strong>Live premies</strong> — Echte premies opgehaald bij {alternatives.length} verzekeraars.</>
+            <><strong>Live premies</strong> \u{2014} Echte premies opgehaald bij {alternatives.length} verzekeraars.</>
           ) : dataSource === "calculated" ? (
-            <><strong>Berekende premies</strong> — Op basis van markttarieven berekend voor {alternatives.length} verzekeraars.</>
+            <><strong>Berekende premies</strong> \u{2014} Op basis van markttarieven berekend voor {alternatives.length} verzekeraars.</>
           ) : dataSource === "upload" ? (
-            <><strong>Upload analyse</strong> — Premies berekend op basis van je eigen polisgegevens.</>
+            <><strong>Upload analyse</strong> \u{2014} Premies berekend op basis van je eigen polisgegevens.</>
           ) : (
-            <><strong>Demo premies</strong> — Voorbeelddata. Live scraping niet beschikbaar.</>
+            <><strong>Demo premies</strong> \u{2014} Voorbeelddata. Live scraping niet beschikbaar.</>
           )}
         </span>
       </div>
@@ -504,10 +700,50 @@ function AnalyseDemoContent() {
           alt={overstapModal}
           polisData={polisData}
           productType={productType}
+          huidigeMaand={huidigeMaand}
           onClose={() => setOverstapModal(null)}
         />
       )}
     </div>
+  );
+}
+
+/* ─── TRUST BAR ITEM ─── */
+function TrustItem({ icon, label }: { icon: React.ReactNode; label: string }) {
+  return (
+    <div className="flex items-center gap-1.5 text-[12px] font-medium text-bw-text-mid">
+      <span className="text-bw-green-strong">{icon}</span>
+      {label}
+    </div>
+  );
+}
+
+/* ─── TRUST BAR SVG ICONS ─── */
+function ShieldCheckSVG() {
+  return (
+    <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+      <polyline points="9 12 11 14 15 10" />
+    </svg>
+  );
+}
+
+function UsersSVG() {
+  return (
+    <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2" />
+      <circle cx="9" cy="7" r="4" />
+      <path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75" />
+    </svg>
+  );
+}
+
+function ThumbsUpSVG() {
+  return (
+    <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M14 9V5a3 3 0 00-3-3l-4 9v11h11.28a2 2 0 002-1.7l1.38-9a2 2 0 00-2-2.3H14z" />
+      <path d="M7 22H4a2 2 0 01-2-2v-7a2 2 0 012-2h3" />
+    </svg>
   );
 }
 
@@ -519,7 +755,7 @@ function ProfileSummary({ polisData, productType }: { polisData: PolisData; prod
     const f = (label: string, val: string | undefined | null) => ({
       label,
       value: val || "",
-      filled: !!val && val !== "0" && val !== "€ 0",
+      filled: !!val && val !== "0" && val !== "\u{20AC} 0",
     });
 
     if (productType === "inboedel" || productType === "opstal") {
@@ -555,7 +791,7 @@ function ProfileSummary({ polisData, productType }: { polisData: PolisData; prod
     <div className="mb-6 bg-white rounded-xl border border-bw-border px-4 py-3">
       <div className="flex items-center justify-between mb-2">
         <div className="text-[12px] font-bold text-bw-text-mid uppercase tracking-[0.5px]">
-          Jouw profiel
+          Jouw profiel \u{2014} {filledCount}/{fields.length} ingevuld
         </div>
         <Link href="/upload" className="text-[11px] font-semibold text-bw-blue hover:underline">
           Wijzig gegevens
@@ -586,30 +822,6 @@ function ProfileSummary({ polisData, productType }: { polisData: PolisData; prod
         </p>
       )}
     </div>
-  );
-}
-
-/* ─── PRODUCT-SPECIFIC CHIPS ─── */
-function ProductChips({ alt, productType }: { alt: Alternative; productType: ProductType }) {
-  const chips: { label: string; value: string }[] = [
-    { label: "Dekking", value: alt.dekking },
-    { label: "Eigen risico", value: alt.eigenRisico },
-  ];
-
-  if (productType === "reis") {
-    if (alt.dekking.toLowerCase().includes("doorlopend")) chips.push({ label: "Type", value: "Doorlopend" });
-    else if (alt.dekking.toLowerCase().includes("kortlopend")) chips.push({ label: "Type", value: "Kortlopend" });
-  }
-
-  return (
-    <>
-      {chips.map((chip) => (
-        <span key={chip.label} className="inline-flex items-center gap-1 text-bw-text-mid">
-          <span className="font-medium text-bw-text-light">{chip.label}:</span>
-          <span className="font-semibold text-bw-deep">{chip.value}</span>
-        </span>
-      ))}
-    </>
   );
 }
 
@@ -653,10 +865,11 @@ function DetailRow({ label, value }: { label: string; value: string }) {
 }
 
 /* ─── OVERSTAP MODAL ─── */
-function OverstapModal({ alt, polisData, productType, onClose }: {
+function OverstapModal({ alt, polisData, productType, huidigeMaand, onClose }: {
   alt: Alternative & { besparingJaar: number };
   polisData: PolisData;
   productType: ProductType;
+  huidigeMaand: number;
   onClose: () => void;
 }) {
   const handleGoDoor = () => {
@@ -664,7 +877,6 @@ function OverstapModal({ alt, polisData, productType, onClose }: {
     onClose();
   };
 
-  // Gather relevant profile fields to show as "take these with you" tips
   const tipFields: { label: string; value: string }[] = [];
   if (polisData.postcode) tipFields.push({ label: "Postcode", value: polisData.postcode });
   if (polisData.huisnummer) tipFields.push({ label: "Huisnummer", value: polisData.huisnummer });
@@ -677,6 +889,13 @@ function OverstapModal({ alt, polisData, productType, onClose }: {
     tipFields.push({ label: "Oppervlakte", value: polisData.oppervlakte });
   }
 
+  const steps = [
+    { label: "Bereken premie", desc: `Bereken je exacte premie bij ${alt.naam}` },
+    { label: "Sluit online af", desc: `Kies dekking en rond de aanvraag af` },
+    { label: "Opzegging geregeld", desc: `${alt.naam} zegt je huidige verzekering op` },
+    { label: "Nieuwe polis actief", desc: "Je nieuwe polis gaat direct in" },
+  ];
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={onClose}>
       {/* Backdrop */}
@@ -684,7 +903,7 @@ function OverstapModal({ alt, polisData, productType, onClose }: {
 
       {/* Modal */}
       <div
-        className="relative bg-white rounded-2xl shadow-[0_24px_48px_rgba(0,0,0,0.15)] max-w-[480px] w-full overflow-hidden animate-fadeUp"
+        className="relative bg-white rounded-2xl shadow-[0_24px_48px_rgba(0,0,0,0.15)] max-w-[520px] w-full overflow-hidden overflow-y-auto max-h-[90vh] animate-fadeUp"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
@@ -697,7 +916,7 @@ function OverstapModal({ alt, polisData, productType, onClose }: {
               {alt.naam.slice(0, 2).toUpperCase()}
             </div>
             <div>
-              <h3 className="text-[18px] font-bold text-bw-deep">{alt.naam}</h3>
+              <h3 className="text-[18px] font-bold text-bw-deep">Overstappen naar {alt.naam}</h3>
               <p className="text-[13px] text-bw-text-mid">{PRODUCT_LABELS[productType]}</p>
             </div>
           </div>
@@ -709,30 +928,57 @@ function OverstapModal({ alt, polisData, productType, onClose }: {
         <div className="px-6 pb-6">
           {/* Savings banner */}
           {alt.besparingJaar > 0 && (
-            <div className="bg-bw-green-bg rounded-xl px-4 py-3 mb-4 flex items-center gap-3">
-              <div className="w-10 h-10 rounded-lg bg-bw-green flex items-center justify-center text-white text-lg font-bold shrink-0">
-                &euro;
+            <div className="bg-gradient-to-r from-[#F0FDF4] to-[#DCFCE7] rounded-xl px-4 py-4 mb-5 border border-[#BBF7D0]">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-[13px] font-semibold text-[#166534]">Jouw besparing</span>
+                <span className="text-[22px] font-bold text-bw-green">&euro; {alt.besparingJaar}/jaar</span>
               </div>
-              <div>
-                <div className="text-[15px] font-bold text-bw-green-strong">
-                  &euro; {alt.besparingJaar}/jaar besparing
-                </div>
-                <div className="text-[12px] text-[#166534]">
-                  Van &euro; {polisData.maandpremie.toFixed(2)}/mnd naar &euro; {alt.premie.toFixed(2)}/mnd
-                </div>
+              {/* Savings bar */}
+              <div className="h-2 bg-[#BBF7D0] rounded-full overflow-hidden">
+                <div
+                  className="h-full bg-bw-green rounded-full transition-all"
+                  style={{ width: `${Math.min(100, (alt.besparingJaar / (huidigeMaand * 12)) * 100)}%` }}
+                />
+              </div>
+              <div className="flex justify-between mt-1.5 text-[11px] text-[#166534]">
+                <span>&euro; {alt.premie.toFixed(2)}/mnd bij {alt.naam}</span>
+                <span>&euro; {huidigeMaand.toFixed(2)}/mnd nu</span>
               </div>
             </div>
           )}
 
+          {/* Overstap steps */}
+          <div className="mb-5">
+            <div className="text-[12px] font-bold text-bw-text-mid uppercase tracking-[0.5px] mb-3">
+              Hoe werkt overstappen?
+            </div>
+            <div className="space-y-0">
+              {steps.map((step, i) => (
+                <div key={i} className="flex gap-3">
+                  <div className="flex flex-col items-center">
+                    <div className="w-7 h-7 rounded-full bg-bw-green text-white flex items-center justify-center text-[11px] font-bold shrink-0">
+                      {i + 1}
+                    </div>
+                    {i < steps.length - 1 && <div className="w-px h-6 bg-[#D1FAE5]" />}
+                  </div>
+                  <div className="pb-3">
+                    <div className="text-[13px] font-semibold text-bw-deep">{step.label}</div>
+                    <div className="text-[12px] text-bw-text-mid">{step.desc}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
           {/* Profile fields to take along */}
           {tipFields.length > 0 && (
-            <div className="mb-4">
+            <div className="mb-5">
               <div className="text-[12px] font-bold text-bw-text-mid uppercase tracking-[0.5px] mb-2">
                 Neem deze gegevens mee
               </div>
-              <div className="bg-bw-bg rounded-lg p-3 space-y-1.5">
+              <div className="bg-[#F8FAFC] rounded-lg p-3 grid grid-cols-2 gap-x-4 gap-y-1.5">
                 {tipFields.map((f) => (
-                  <div key={f.label} className="flex justify-between text-[13px]">
+                  <div key={f.label} className="flex justify-between text-[12px]">
                     <span className="text-bw-text-mid">{f.label}</span>
                     <span className="font-semibold text-bw-deep">{f.value}</span>
                   </div>
@@ -741,23 +987,32 @@ function OverstapModal({ alt, polisData, productType, onClose }: {
             </div>
           )}
 
-          {/* Info text */}
-          <p className="text-[13px] text-bw-text-mid leading-relaxed mb-5">
-            Je gaat naar de website van {alt.naam} om een offerte aan te vragen.
-            Na afsluiting regelt {alt.naam} de opzegging bij je huidige verzekeraar.
-            Je hebt altijd 14 dagen bedenktijd.
-          </p>
+          {/* Trust elements */}
+          <div className="flex items-center gap-4 mb-5 py-2.5 px-3 bg-[#F8FAFC] rounded-lg border border-[#E2E8F0] text-[11px] text-bw-text-mid flex-wrap">
+            <span className="inline-flex items-center gap-1">
+              <svg className="w-3.5 h-3.5 text-bw-green" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" /><polyline points="9 12 11 14 15 10" /></svg>
+              14 dagen bedenktijd
+            </span>
+            <span className="inline-flex items-center gap-1">
+              <svg className="w-3.5 h-3.5 text-bw-green" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><polyline points="20 6 9 17 4 12" /></svg>
+              Geen dubbele dekking
+            </span>
+            <span className="inline-flex items-center gap-1">
+              <svg className="w-3.5 h-3.5 text-bw-green" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="12" cy="12" r="10" /><path d="M12 6v6l4 2" /></svg>
+              Direct online
+            </span>
+          </div>
 
           {/* CTA */}
           <button
             onClick={handleGoDoor}
             className="w-full inline-flex items-center justify-center gap-2 py-3.5 rounded-xl text-[15px] font-bold bg-bw-green text-white border-none cursor-pointer hover:bg-bw-green-strong hover:shadow-[0_4px_16px_rgba(22,163,74,0.3)] transition-all"
           >
-            Ga door naar {alt.naam} <ArrowRightIcon className="w-4 h-4" />
+            Bereken premie bij {alt.naam} <ArrowRightIcon className="w-4 h-4" />
           </button>
 
           <p className="text-[11px] text-bw-text-light text-center mt-3">
-            Dezelfde prijs als rechtstreeks — wij ontvangen een vergoeding van de verzekeraar.
+            Dezelfde prijs als rechtstreeks \u{2014} wij ontvangen een vergoeding van de verzekeraar.
           </p>
         </div>
       </div>
