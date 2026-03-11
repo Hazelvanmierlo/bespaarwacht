@@ -4,116 +4,221 @@ import {
   createPage,
   acceptCookies,
   closeBrowser,
-  parseDutchPrice,
-  clickFirstVisible,
-  fillField,
+  createLogger,
+  waitForStep,
+  extractPrice,
   type LiveScraperInput,
   type LiveScraperResult,
 } from "../utils";
 
-export async function scrapeAsrInboedel(input: LiveScraperInput): Promise<LiveScraperResult> {
+/**
+ * ASR Inboedelverzekering "Ik kies zelf" — live scraper.
+ *
+ * Navigates the Angular funnel at asr.nl, fills in the quote form,
+ * and extracts the monthly premium from the results page.
+ */
+export async function scrapeAsrInboedel(
+  input: LiveScraperInput,
+): Promise<LiveScraperResult> {
   const start = Date.now();
+  const logger = createLogger("ASR-inboedel");
   let browser: Browser | null = null;
 
   try {
     browser = await launchBrowser();
     const page = await createPage(browser);
+    logger.log("Browser gestart");
 
-    await page.goto("https://www.asr.nl/verzekeringen/inboedelverzekering", {
-      waitUntil: "domcontentloaded",
-      timeout: 15000,
-    });
-    await page.waitForTimeout(3000);
+    // ── Navigate directly to the funnel (skip landing page CTA) ─────────
+    await page.goto(
+      "https://www.asr.nl/verzekeringen/inboedelverzekering/afsluiten",
+      { waitUntil: "domcontentloaded", timeout: 20_000 },
+    );
+    logger.log("Pagina geladen", "afsluiten-funnel");
+
     await acceptCookies(page);
+    logger.log("Cookies geaccepteerd");
 
-    // Click "Bereken" CTA — use clickFirstVisible to skip invisible nav links
-    const ctaClicked = await clickFirstVisible(page,
-      'a:has-text("Bereken direct je premie"), a:has-text("Bereken je premie"), a:has-text("Bereken uw premie"), a:has-text("Premie berekenen"), button:has-text("Bereken je premie"), button:has-text("Bereken uw premie")',
-      { timeout: 3000, label: "CTA bereken" }
-    );
-    if (ctaClicked) await page.waitForTimeout(3000);
+    // Wait for the form to be ready (Angular web-component hydration)
+    const formReady = await waitForStep(page, {
+      text: "Gezinssamenstelling",
+      timeout: 10_000,
+    });
+    if (!formReady) {
+      logger.fail("Formulier", "Gezinssamenstelling niet gevonden");
+      await closeBrowser(browser);
+      return {
+        status: "error",
+        error: "Formulier niet geladen (Gezinssamenstelling niet gevonden)",
+        duration_ms: Date.now() - start,
+        stepLog: logger.getSteps(),
+      };
+    }
+    logger.log("Formulier geladen");
 
-    // Postcode
-    await fillField(page,
-      'input[name*="postcode"], input[id*="postcode"], input[placeholder*="postcode"]',
-      ["Postcode"],
-      input.postcode
-    );
-    await page.waitForTimeout(300);
+    // ── 1. Gezinssamenstelling ───────────────────────────────────────────
+    const gezinMap: Record<string, string> = {
+      alleenstaand: "Alleenstaande zonder kinderen",
+      "alleenstaand-kinderen": "Alleenstaande met kinderen",
+      gezin: "Echtpaar/samenwonend zonder kinderen",
+      "gezin-kinderen": "Echtpaar/samenwonend met kinderen",
+    };
+    const gezinLabel = gezinMap[input.gezin] ?? "Alleenstaande zonder kinderen";
 
-    // Huisnummer
-    await fillField(page,
-      'input[name*="huisnummer"], input[id*="huisnummer"], input[name*="houseNumber"], input[placeholder*="Nr"]',
-      ["Huisnummer"],
-      input.huisnummer
-    );
-    await page.waitForTimeout(2000);
+    const gezinCombo = page.getByRole("combobox", {
+      name: "Gezinssamenstelling",
+    });
+    await gezinCombo.click();
+    await page.getByRole("option", { name: gezinLabel }).click();
+    logger.log("Gezinssamenstelling", gezinLabel);
 
-    // Geboortedatum
+    // ── 2. Geboortedatum ─────────────────────────────────────────────────
+    const geboortedatumInput = page.getByRole("textbox", {
+      name: "Geboortedatum",
+    });
+    await geboortedatumInput.click();
+    await geboortedatumInput.pressSequentially(input.geboortedatum, {
+      delay: 30,
+    });
+    logger.log("Geboortedatum", input.geboortedatum);
+
+    // ── 3. Postcode ──────────────────────────────────────────────────────
+    const postcodeInput = page.getByRole("textbox", { name: "Postcode" });
+    await postcodeInput.click();
+    await postcodeInput.pressSequentially(input.postcode, { delay: 30 });
+    logger.log("Postcode", input.postcode);
+
+    // ── 4. Huisnummer (spinbutton, not textbox) ──────────────────────────
+    const huisnummerInput = page.getByRole("spinbutton", {
+      name: "Huisnummer",
+    });
+    await huisnummerInput.click();
+    await huisnummerInput.pressSequentially(input.huisnummer, { delay: 30 });
+    logger.log("Huisnummer", input.huisnummer);
+
+    // ── 5. Koop- of huurwoning ───────────────────────────────────────────
+    if (input.eigenaar) {
+      await page.getByRole("radio", { name: "Koopwoning" }).click();
+      logger.log("Woningtype", "Koopwoning");
+    } else {
+      await page.getByRole("radio", { name: "Huurwoning" }).click();
+      logger.log("Woningtype", "Huurwoning");
+    }
+
+    // Wait for address resolution (the "Adres" heading appears)
+    const adresResolved = await waitForStep(page, {
+      text: "Adres",
+      timeout: 8_000,
+    });
+    if (adresResolved) {
+      logger.log("Adres opgehaald");
+    } else {
+      logger.fail("Adres", "Adres niet opgehaald binnen timeout");
+    }
+
+    // ── 6. Particulier gebruik → Ja ──────────────────────────────────────
+    // The radio group "Gebruik je de woning particulier?" has Ja/Nee.
+    // We need to target the specific radio group, not the one in oppervlakte section.
     try {
-      await fillField(page,
-        'input[name*="geboortedatum"], input[id*="geboortedatum"], input[placeholder*="DD-MM"]',
-        ["Geboortedatum"],
-        input.geboortedatum ?? "15-06-1985"
-      );
-      await page.waitForTimeout(500);
-    } catch { /* optional */ }
+      const particulierGroup = page.getByRole("radiogroup", {
+        name: /particulier/i,
+      });
+      await particulierGroup.getByRole("radio", { name: "Ja" }).click();
+      logger.log("Particulier gebruik", "Ja");
+    } catch {
+      logger.fail("Particulier gebruik", "Radio niet gevonden");
+    }
 
-    // Eigenaar/Huurder
+    // ── 7. Soort muren → Steen ───────────────────────────────────────────
     try {
-      if (input.eigenaar !== false) {
-        const eigenaarRadio = page.locator('input[value*="eigenaar"], input[value*="Eigenaar"], label:has-text("Eigenaar") input[type="radio"]').first();
-        if (await eigenaarRadio.isVisible({ timeout: 2000 })) {
-          await eigenaarRadio.click();
-          await page.waitForTimeout(500);
-        }
-      } else {
-        const huurderRadio = page.locator('input[value*="huurder"], input[value*="Huurder"], label:has-text("Huurder") input[type="radio"]').first();
-        if (await huurderRadio.isVisible({ timeout: 2000 })) {
-          await huurderRadio.click();
-          await page.waitForTimeout(500);
-        }
-      }
-    } catch { /* continue */ }
+      await page.getByRole("radio", { name: "Steen" }).click();
+      logger.log("Soort muren", "Steen");
+    } catch {
+      logger.fail("Soort muren", "Radio niet gevonden");
+    }
 
-    // Submit
-    const submitClicked = await clickFirstVisible(page,
-      'button:has-text("Bereken"), button:has-text("Volgende"), button[type="submit"]',
-      { timeout: 3000, label: "Submit bereken" }
-    );
-    if (submitClicked) await page.waitForTimeout(8000);
+    // ── 8. Soort dak → Schuin dak met pannen of mastiek ──────────────────
+    try {
+      const dakCombo = page.getByRole("combobox", { name: "Soort dak" });
+      await dakCombo.click();
+      await page
+        .getByRole("option", { name: "Schuin dak met pannen of mastiek" })
+        .click();
+      logger.log("Soort dak", "Schuin dak met pannen of mastiek");
+    } catch {
+      logger.fail("Soort dak", "Combobox niet gevonden");
+    }
 
-    await page.waitForTimeout(3000);
+    // ── 9. Submit → Bekijk je premie ─────────────────────────────────────
+    const submitBtn = page.getByRole("button", {
+      name: /Verder naar.*Bekijk je premie/i,
+    });
+    await submitBtn.click();
+    logger.log("Submit", "Verder naar: Bekijk je premie");
 
-    const allText = await page.locator("body").innerText();
-    const premie = extractPremie(allText);
+    // Wait for the results page with premium info
+    const premieVisible = await waitForStep(page, {
+      text: "p/mnd",
+      timeout: 10_000,
+    });
+    if (!premieVisible) {
+      // Fallback: wait for receipt section
+      await waitForStep(page, {
+        text: "Je betaalt per maand",
+        timeout: 5_000,
+      });
+    }
+    logger.log("Resultatenpagina geladen");
+
+    // ── 10. Extract premium ──────────────────────────────────────────────
+    const premie = await extractPrice(page, {
+      sectionLabel: "Je betaalt per maand",
+      minPrice: 2,
+      maxPrice: 100,
+    });
+
+    // Also try to extract eigen risico from the receipt
+    let eigenRisico = "€ 500"; // default on ASR
+    try {
+      const receiptText = await page
+        .locator('article[aria-label="Receipt details"]')
+        .innerText();
+      const erMatch = receiptText.match(/Eigen risico[\s\S]*?(€\s*\d+)/);
+      if (erMatch) eigenRisico = erMatch[1].replace(/\s/g, " ");
+    } catch {
+      // keep default
+    }
 
     await closeBrowser(browser);
 
     if (premie) {
-      return { status: "success", premie, dekking: "Inboedel", eigenRisico: "€ 0", duration_ms: Date.now() - start };
+      logger.log("Premie gevonden", `€ ${premie.toFixed(2)} p/m`);
+      return {
+        status: "success",
+        premie,
+        dekking: "Inboedel Basis",
+        eigenRisico,
+        duration_ms: Date.now() - start,
+        stepLog: logger.getSteps(),
+      };
     }
-    return { status: "error", error: "Premie niet gevonden op pagina.", duration_ms: Date.now() - start };
-  } catch (err) {
-    await closeBrowser(browser);
-    return { status: "error", error: (err as Error).message, duration_ms: Date.now() - start };
-  }
-}
 
-function extractPremie(text: string): number | undefined {
-  const patterns = [
-    /(?:per maand|p\/m|\/mnd)\s*€?\s*(\d{1,3})\s*[,.]\s*(\d{2})/i,
-    /€\s*(\d{1,3})\s*[,.]\s*(\d{2})\s*(?:per maand|p\/m|\/mnd)/i,
-    /(?:Maandpremie|Uw premie)[^\n]*?€?\s*(\d{1,3})\s*[,.]\s*(\d{2})/i,
-  ];
-  for (const pattern of patterns) {
-    const match = text.match(pattern);
-    if (match) {
-      const price = parseFloat(`${match[1]}.${match[2]}`);
-      if (price > 2 && price < 100) return price;
-    }
+    logger.fail("Premie", "Niet gevonden op pagina");
+    return {
+      status: "error",
+      error: "Premie niet gevonden op pagina.",
+      duration_ms: Date.now() - start,
+      stepLog: logger.getSteps(),
+    };
+  } catch (err) {
+    const msg = (err as Error).message;
+    logger.fail("Onverwachte fout", msg);
+    await closeBrowser(browser);
+    return {
+      status: "error",
+      error: msg,
+      duration_ms: Date.now() - start,
+      stepLog: logger.getSteps(),
+    };
   }
-  const section = text.match(/[Pp]remie[\s\S]{0,200}/);
-  if (section) return parseDutchPrice(section[0]);
-  return undefined;
 }
