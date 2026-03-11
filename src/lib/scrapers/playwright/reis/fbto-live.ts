@@ -5,6 +5,8 @@ import {
   acceptCookies,
   closeBrowser,
   parseDutchPrice,
+  clickFirstVisible,
+  fillField,
   type LiveScraperInput,
   type LiveScraperResult,
 } from "../utils";
@@ -24,22 +26,36 @@ export async function scrapeFbtoReis(input: LiveScraperInput): Promise<LiveScrap
     await page.waitForTimeout(3000);
     await acceptCookies(page);
 
-    try {
-      const ctaBtn = page.locator('a:has-text("Bereken"), button:has-text("Bereken")').first();
-      if (await ctaBtn.isVisible({ timeout: 3000 })) {
-        await ctaBtn.click();
-        await page.waitForTimeout(3000);
-      }
-    } catch { /* already on calculator */ }
+    // Click "Bereken" CTA (JS click bypasses overlapping sidebar)
+    const ctaClicked = await clickFirstVisible(page,
+      'a:has-text("Bereken direct je premie"), a:has-text("Bereken je premie"), a:has-text("Bereken uw premie"), a:has-text("Premie berekenen"), button:has-text("Bereken je premie"), button:has-text("Bereken uw premie")',
+      { timeout: 3000, label: "CTA bereken" }
+    );
+    if (ctaClicked) await page.waitForTimeout(3000);
 
-    // Geboortedatum
+    // FBTO wizard: click "Ok, laten we beginnen!" then "Nee" if present
     try {
-      const gebInput = page.locator('input[name*="geboortedatum"], input[id*="geboortedatum"], input[placeholder*="DD-MM"]').first();
-      if (await gebInput.isVisible({ timeout: 2000 })) {
-        await gebInput.fill(input.geboortedatum ?? "15-06-1985");
-        await gebInput.press("Tab");
-        await page.waitForTimeout(500);
+      const startBtn = page.locator('button:has-text("Ok, laten we beginnen"), button:has-text("laten we beginnen")').first();
+      if (await startBtn.isVisible({ timeout: 2000 })) {
+        await startBtn.click();
+        await page.waitForTimeout(2000);
       }
+      await clickFirstVisible(page,
+        'button:has-text("Nee"), a:has-text("Nee")',
+        { timeout: 2000, label: "Nee (bestaande klant)" }
+      );
+      await page.waitForTimeout(2000);
+    } catch { /* continue */ }
+
+    // Geboortedatum (useKeyboard for Angular validation, date-of-birth is FBTO's field name)
+    try {
+      await fillField(page,
+        'input[name="date-of-birth"], input[name*="geboortedatum"], input[id*="geboortedatum"], input[placeholder*="DD-MM"]',
+        ["Geboortedatum"],
+        input.geboortedatum ?? "15-06-1985",
+        { useKeyboard: true }
+      );
+      await page.waitForTimeout(500);
     } catch { /* optional */ }
 
     // Gezin
@@ -56,13 +72,11 @@ export async function scrapeFbtoReis(input: LiveScraperInput): Promise<LiveScrap
     } catch { /* continue */ }
 
     // Submit
-    try {
-      const submitBtn = page.locator('button:has-text("Bereken"), button:has-text("Volgende"), button[type="submit"]').first();
-      if (await submitBtn.isVisible({ timeout: 3000 })) {
-        await submitBtn.click();
-        await page.waitForTimeout(6000);
-      }
-    } catch { /* auto-calc */ }
+    const submitClicked = await clickFirstVisible(page,
+      'button:has-text("Bereken"), button:has-text("Volgende"), button[type="submit"]',
+      { timeout: 3000, label: "Submit bereken" }
+    );
+    if (submitClicked) await page.waitForTimeout(6000);
 
     await page.waitForTimeout(3000);
 

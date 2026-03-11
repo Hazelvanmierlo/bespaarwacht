@@ -5,6 +5,8 @@ import {
   acceptCookies,
   closeBrowser,
   parseDutchPrice,
+  clickFirstVisible,
+  fillField,
   type LiveScraperInput,
   type LiveScraperResult,
 } from "../utils";
@@ -24,23 +26,36 @@ export async function scrapeCentraalBeheerAvp(input: LiveScraperInput): Promise<
     await page.waitForTimeout(3000);
     await acceptCookies(page);
 
-    // Click "Bereken" CTA
-    try {
-      const ctaBtn = page.locator('a:has-text("Bereken"), button:has-text("Bereken")').first();
-      if (await ctaBtn.isVisible({ timeout: 3000 })) {
-        await ctaBtn.click();
-        await page.waitForTimeout(3000);
-      }
-    } catch { /* already on calculator */ }
+    // Click "Bereken" CTA (JS click bypasses overlapping elements)
+    const ctaClicked = await clickFirstVisible(page,
+      'a:has-text("Bereken direct je premie"), a:has-text("Bereken je premie"), a:has-text("Bereken uw premie"), a:has-text("Premie berekenen"), button:has-text("Bereken je premie"), button:has-text("Bereken uw premie")',
+      { timeout: 3000, label: "CTA bereken" }
+    );
+    if (ctaClicked) await page.waitForTimeout(3000);
 
-    // Geboortedatum
+    // Bypass login if present
     try {
-      const gebInput = page.locator('input[name*="geboortedatum"], input[id*="geboortedatum"], input[placeholder*="DD-MM"]').first();
-      if (await gebInput.isVisible({ timeout: 2000 })) {
-        await gebInput.fill(input.geboortedatum ?? "15-06-1985");
-        await gebInput.press("Tab");
+      const neeLabel = page.locator('label:has-text("Nee, doorgaan zonder inloggen")').first();
+      if (await neeLabel.isVisible({ timeout: 2000 })) {
+        await neeLabel.click();
         await page.waitForTimeout(500);
+        const volgendeBtn = page.locator('a:has-text("Volgende"), button:has-text("Volgende")').first();
+        if (await volgendeBtn.isVisible({ timeout: 2000 })) {
+          await volgendeBtn.evaluate((node) => (node as HTMLElement).click());
+          await page.waitForTimeout(3000);
+        }
       }
+    } catch { /* may not have login step */ }
+
+    // Geboortedatum (useKeyboard for SPA validation)
+    try {
+      await fillField(page,
+        'input[name*="geboortedatum"], input[id*="geboortedatum"], input[placeholder*="DD-MM"], input[name="date-of-birth"]',
+        ["Geboortedatum"],
+        input.geboortedatum ?? "15-06-1985",
+        { useKeyboard: true }
+      );
+      await page.waitForTimeout(500);
     } catch { /* optional */ }
 
     // Gezin
@@ -56,13 +71,11 @@ export async function scrapeCentraalBeheerAvp(input: LiveScraperInput): Promise<
     } catch { /* continue */ }
 
     // Submit
-    try {
-      const submitBtn = page.locator('button:has-text("Bereken"), button:has-text("Volgende"), button[type="submit"]').first();
-      if (await submitBtn.isVisible({ timeout: 3000 })) {
-        await submitBtn.click();
-        await page.waitForTimeout(6000);
-      }
-    } catch { /* auto-calc */ }
+    const submitClicked = await clickFirstVisible(page,
+      'button:has-text("Bereken"), button:has-text("Volgende"), button[type="submit"]',
+      { timeout: 3000, label: "Submit bereken" }
+    );
+    if (submitClicked) await page.waitForTimeout(6000);
 
     await page.waitForTimeout(3000);
 

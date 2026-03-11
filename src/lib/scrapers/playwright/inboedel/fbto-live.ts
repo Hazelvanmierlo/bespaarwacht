@@ -5,6 +5,7 @@ import {
   acceptCookies,
   closeBrowser,
   parseDutchPrice,
+  clickFirstVisible,
   type LiveScraperInput,
   type LiveScraperResult,
 } from "../utils";
@@ -17,73 +18,113 @@ export async function scrapeFbtoInboedel(input: LiveScraperInput): Promise<LiveS
     browser = await launchBrowser();
     const page = await createPage(browser);
 
-    await page.goto("https://www.fbto.nl/woonverzekering/inboedelverzekering", {
+    // ── Navigate to wizard ──
+    await page.goto("https://www.fbto.nl/woonverzekering/premie-berekenen/start-inboedelverzekering", {
       waitUntil: "domcontentloaded",
       timeout: 15000,
     });
     await page.waitForTimeout(3000);
     await acceptCookies(page);
 
-    // Click "Bereken" CTA
+    // ── Wizard start: "Ok, laten we beginnen!" → "Nee" ──
     try {
-      const ctaBtn = page.locator('a:has-text("Bereken"), button:has-text("Bereken")').first();
-      if (await ctaBtn.isVisible({ timeout: 3000 })) {
-        await ctaBtn.click();
-        await page.waitForTimeout(3000);
+      const startBtn = page.locator('button:has-text("Ok, laten we beginnen")').first();
+      if (await startBtn.isVisible({ timeout: 3000 })) {
+        await startBtn.click({ force: true });
+        await page.waitForTimeout(2000);
       }
-    } catch { /* may already be on calculator */ }
-
-    // Postcode
-    const postcodeInput = page.locator('input[name*="postcode"], input[id*="postcode"], input[placeholder*="postcode"]').first();
-    await postcodeInput.fill(input.postcode);
-    await page.waitForTimeout(300);
-
-    // Huisnummer
-    const huisnummerInput = page.locator('input[name*="huisnummer"], input[id*="huisnummer"], input[name*="houseNumber"], input[placeholder*="Nr"]').first();
-    await huisnummerInput.fill(input.huisnummer);
-    await huisnummerInput.press("Tab");
-    await page.waitForTimeout(2000);
-
-    // Geboortedatum
+    } catch { /* continue */ }
     try {
-      const gebInput = page.locator('input[name*="geboortedatum"], input[id*="geboortedatum"], input[placeholder*="DD-MM"]').first();
-      if (await gebInput.isVisible({ timeout: 2000 })) {
-        await gebInput.fill(input.geboortedatum ?? "15-06-1985");
-        await gebInput.press("Tab");
-        await page.waitForTimeout(500);
-      }
-    } catch { /* optional */ }
-
-    // Eigenaar/Huurder
-    try {
-      if (input.eigenaar !== false) {
-        const eigenaarRadio = page.locator('input[value*="eigenaar"], input[value*="Eigenaar"], label:has-text("Eigenaar") input[type="radio"]').first();
-        if (await eigenaarRadio.isVisible({ timeout: 2000 })) {
-          await eigenaarRadio.click();
-          await page.waitForTimeout(500);
-        }
-      } else {
-        const huurderRadio = page.locator('input[value*="huurder"], input[value*="Huurder"], label:has-text("Huurder") input[type="radio"]').first();
-        if (await huurderRadio.isVisible({ timeout: 2000 })) {
-          await huurderRadio.click();
-          await page.waitForTimeout(500);
-        }
+      const neeBtn = page.locator('button:has-text("Nee")').first();
+      if (await neeBtn.isVisible({ timeout: 3000 })) {
+        await neeBtn.click({ force: true });
+        await page.waitForTimeout(2000);
       }
     } catch { /* continue */ }
 
-    // Submit
-    try {
-      const submitBtn = page.locator('button:has-text("Bereken"), button:has-text("Volgende"), button[type="submit"]').first();
-      if (await submitBtn.isVisible({ timeout: 3000 })) {
-        await submitBtn.click();
-        await page.waitForTimeout(8000);
-      }
-    } catch { /* auto-calc */ }
+    // ── Address: use pressSequentially + Tab to trigger Angular API ──
+    const pcField = page.locator('input[name="verzekerd-adres-postcode"], input[name*="postcode"]').first();
+    if (await pcField.isVisible({ timeout: 3000 })) {
+      await pcField.click();
+      await pcField.pressSequentially(input.postcode, { delay: 60 });
+      await page.keyboard.press("Tab");
+      await page.waitForTimeout(500);
+    }
 
+    const hnField = page.locator('input[name="verzekerd-adres-huisnummer"], input[name*="huisnummer"]').first();
+    if (await hnField.isVisible({ timeout: 2000 })) {
+      await hnField.click();
+      await hnField.pressSequentially(input.huisnummer, { delay: 60 });
+      await page.keyboard.press("Tab");
+      await page.waitForTimeout(3000);
+    }
+
+    // Click "Ga verder" to submit address
+    await clickFirstVisible(page,
+      'button:has-text("Ga verder")',
+      { timeout: 3000, label: "Ga verder (address)" }
+    );
     await page.waitForTimeout(3000);
 
+    // ── Navigate through wizard steps ──
+    for (let step = 0; step < 12; step++) {
+      const bodyText = await page.locator("body").innerText();
+
+      // Check for premium
+      const premie = extractFbtoPremie(bodyText);
+      if (premie) {
+        await closeBrowser(browser);
+        return {
+          status: "success",
+          premie,
+          dekking: "Inboedel",
+          eigenRisico: "€ 0",
+          duration_ms: Date.now() - start,
+        };
+      }
+
+      // Check for error
+      if (bodyText.includes("niet online verzekeren") || bodyText.includes("Internal Server Error")) {
+        break;
+      }
+
+      // Fill geboortedatum if on that page (field name is "date-of-birth")
+      try {
+        const gbField = page.locator('input[name="date-of-birth"], input[placeholder*="DD-MM"], input[name*="geboortedatum"]').first();
+        if (await gbField.isVisible({ timeout: 500 })) {
+          await gbField.click();
+          await gbField.pressSequentially(input.geboortedatum ?? "15-06-1985", { delay: 30 });
+          await page.keyboard.press("Tab");
+          await page.waitForTimeout(500);
+        }
+      } catch { /* not on this page */ }
+
+      // Click next: Ga verder, Nee, choice buttons, etc.
+      let clicked = false;
+      for (const sel of [
+        'button:has-text("Ga verder")',
+        'button:has-text("Nee")',
+        'button:has-text("Gehuurd")',        // gekocht-of-gehuurd
+        'button:has-text("1 persoon")',      // aantal-personen
+        'button:has-text("Volgende")',
+        'button:has-text("Bereken")',
+      ]) {
+        try {
+          const btn = page.locator(sel).first();
+          if (await btn.isVisible({ timeout: 1500 })) {
+            await btn.click({ force: true });
+            clicked = true;
+            await page.waitForTimeout(3000);
+            break;
+          }
+        } catch { /* try next */ }
+      }
+      if (!clicked) break;
+    }
+
+    await page.waitForTimeout(2000);
     const allText = await page.locator("body").innerText();
-    const premie = extractPremie(allText);
+    const premie = extractFbtoPremie(allText);
 
     await closeBrowser(browser);
 
@@ -97,11 +138,27 @@ export async function scrapeFbtoInboedel(input: LiveScraperInput): Promise<LiveS
   }
 }
 
-function extractPremie(text: string): number | undefined {
+function extractFbtoPremie(text: string): number | undefined {
+  // FBTO shows prices like "€ 4,61" on the inboedelverzekering page
+  // The first non-zero price after "Kies de verzekering" is the base premium
+  const section = text.match(/inboedelverzekering[\s\S]{0,500}/i);
+  if (section) {
+    const prices = section[0].match(/€\s*(\d{1,3})\s*[,.]\s*(\d{2})/g);
+    if (prices) {
+      for (const p of prices) {
+        const match = p.match(/€\s*(\d{1,3})\s*[,.]\s*(\d{2})/);
+        if (match) {
+          const price = parseFloat(`${match[1]}.${match[2]}`);
+          if (price > 1 && price < 100) return price;
+        }
+      }
+    }
+  }
+
+  // Fallback: standard patterns
   const patterns = [
     /(?:per maand|p\/m|\/mnd)\s*€?\s*(\d{1,3})\s*[,.]\s*(\d{2})/i,
     /€\s*(\d{1,3})\s*[,.]\s*(\d{2})\s*(?:per maand|p\/m|\/mnd)/i,
-    /(?:Maandpremie|Uw premie)[^\n]*?€?\s*(\d{1,3})\s*[,.]\s*(\d{2})/i,
   ];
   for (const pattern of patterns) {
     const match = text.match(pattern);
@@ -110,7 +167,8 @@ function extractPremie(text: string): number | undefined {
       if (price > 2 && price < 100) return price;
     }
   }
-  const section = text.match(/[Pp]remie[\s\S]{0,200}/);
-  if (section) return parseDutchPrice(section[0]);
+
+  const premieSection = text.match(/[Pp]remie[\s\S]{0,200}/);
+  if (premieSection) return parseDutchPrice(premieSection[0]);
   return undefined;
 }

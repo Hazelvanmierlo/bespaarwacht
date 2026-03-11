@@ -60,7 +60,10 @@ export class LiveInboedelScraper extends BaseScraper {
             duration_ms: Date.now() - start, source: "live",
           };
         }
-      } catch { /* fallback */ }
+        console.warn(`[scraper:${this.slug}] Live returned status="${result.status}" premie=${result.premie ?? "none"}, falling back to calculated`);
+      } catch (err) {
+        console.warn(`[scraper:${this.slug}] Live scrape failed, falling back to calculated:`, (err as Error).message);
+      }
     }
 
     const premie = calculateInboedelPremium(this.basePremie, i);
@@ -118,7 +121,10 @@ export class LiveOpstalScraper extends BaseScraper {
             duration_ms: Date.now() - start, source: "live",
           };
         }
-      } catch { /* fallback */ }
+        console.warn(`[scraper:${this.slug}] Live returned status="${result.status}" premie=${result.premie ?? "none"}, falling back to calculated`);
+      } catch (err) {
+        console.warn(`[scraper:${this.slug}] Live scrape failed, falling back to calculated:`, (err as Error).message);
+      }
     }
 
     const premie = calculateOpstalPremium(this.basePremie, i);
@@ -177,7 +183,10 @@ export class LiveAansprakelijkheidScraper extends BaseScraper {
             duration_ms: Date.now() - start, source: "live",
           };
         }
-      } catch { /* fallback */ }
+        console.warn(`[scraper:${this.slug}] Live returned status="${result.status}" premie=${result.premie ?? "none"}, falling back to calculated`);
+      } catch (err) {
+        console.warn(`[scraper:${this.slug}] Live scrape failed, falling back to calculated:`, (err as Error).message);
+      }
     }
 
     const premie = calculateAansprakelijkheidPremium(this.basePremie, i);
@@ -236,7 +245,10 @@ export class LiveReisScraper extends BaseScraper {
             duration_ms: Date.now() - start, source: "live",
           };
         }
-      } catch { /* fallback */ }
+        console.warn(`[scraper:${this.slug}] Live returned status="${result.status}" premie=${result.premie ?? "none"}, falling back to calculated`);
+      } catch (err) {
+        console.warn(`[scraper:${this.slug}] Live scrape failed, falling back to calculated:`, (err as Error).message);
+      }
     }
 
     const premie = calculateReisPremium(this.basePremie, i);

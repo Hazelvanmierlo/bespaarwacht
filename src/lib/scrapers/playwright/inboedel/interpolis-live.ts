@@ -5,6 +5,8 @@ import {
   acceptCookies,
   closeBrowser,
   parseDutchPrice,
+  clickFirstVisible,
+  fillField,
   type LiveScraperInput,
   type LiveScraperResult,
 } from "../utils";
@@ -17,7 +19,8 @@ export async function scrapeInterpolisInboedel(input: LiveScraperInput): Promise
     browser = await launchBrowser();
     const page = await createPage(browser);
 
-    await page.goto("https://www.interpolis.nl/woonverzekering/inboedelverzekering", {
+    // Interpolis redirects to Rabobank for premium calculation
+    await page.goto("https://www.interpolis.nl/verzekeren/inboedelverzekering", {
       waitUntil: "domcontentloaded",
       timeout: 15000,
     });
@@ -25,33 +28,36 @@ export async function scrapeInterpolisInboedel(input: LiveScraperInput): Promise
     await acceptCookies(page);
 
     // Click "Bereken" CTA
-    try {
-      const ctaBtn = page.locator('a:has-text("Bereken"), button:has-text("Bereken")').first();
-      if (await ctaBtn.isVisible({ timeout: 3000 })) {
-        await ctaBtn.click();
-        await page.waitForTimeout(3000);
-      }
-    } catch { /* may already be on calculator */ }
+    const ctaClicked = await clickFirstVisible(page,
+      'a:has-text("Bereken direct je premie"), a:has-text("Bereken je premie"), a:has-text("Bereken uw premie"), a:has-text("Premie berekenen"), button:has-text("Bereken je premie"), button:has-text("Bereken uw premie")',
+      { timeout: 3000, label: "CTA bereken" }
+    );
+    if (ctaClicked) await page.waitForTimeout(3000);
 
     // Postcode
-    const postcodeInput = page.locator('input[name*="postcode"], input[id*="postcode"], input[placeholder*="postcode"]').first();
-    await postcodeInput.fill(input.postcode);
+    await fillField(page,
+      'input[name*="postcode"], input[id*="postcode"], input[placeholder*="postcode"]',
+      ["Postcode"],
+      input.postcode
+    );
     await page.waitForTimeout(300);
 
     // Huisnummer
-    const huisnummerInput = page.locator('input[name*="huisnummer"], input[id*="huisnummer"], input[name*="houseNumber"], input[placeholder*="Nr"]').first();
-    await huisnummerInput.fill(input.huisnummer);
-    await huisnummerInput.press("Tab");
+    await fillField(page,
+      'input[name*="huisnummer"], input[id*="huisnummer"], input[name*="houseNumber"], input[placeholder*="Nr"]',
+      ["Huisnummer"],
+      input.huisnummer
+    );
     await page.waitForTimeout(2000);
 
     // Geboortedatum
     try {
-      const gebInput = page.locator('input[name*="geboortedatum"], input[id*="geboortedatum"], input[placeholder*="DD-MM"]').first();
-      if (await gebInput.isVisible({ timeout: 2000 })) {
-        await gebInput.fill(input.geboortedatum ?? "15-06-1985");
-        await gebInput.press("Tab");
-        await page.waitForTimeout(500);
-      }
+      await fillField(page,
+        'input[name*="geboortedatum"], input[id*="geboortedatum"], input[placeholder*="DD-MM"]',
+        ["Geboortedatum"],
+        input.geboortedatum ?? "15-06-1985"
+      );
+      await page.waitForTimeout(500);
     } catch { /* optional */ }
 
     // Eigenaar/Huurder
@@ -72,13 +78,11 @@ export async function scrapeInterpolisInboedel(input: LiveScraperInput): Promise
     } catch { /* continue */ }
 
     // Submit
-    try {
-      const submitBtn = page.locator('button:has-text("Bereken"), button:has-text("Volgende"), button[type="submit"]').first();
-      if (await submitBtn.isVisible({ timeout: 3000 })) {
-        await submitBtn.click();
-        await page.waitForTimeout(8000);
-      }
-    } catch { /* auto-calc */ }
+    const submitClicked = await clickFirstVisible(page,
+      'button:has-text("Bereken"), button:has-text("Volgende"), button[type="submit"]',
+      { timeout: 3000, label: "Submit bereken" }
+    );
+    if (submitClicked) await page.waitForTimeout(8000);
 
     await page.waitForTimeout(3000);
 

@@ -56,19 +56,19 @@ export async function createPage(browser: Browser): Promise<Page> {
 export async function acceptCookies(page: Page): Promise<void> {
   try {
     const selectors = [
+      '#onetrust-accept-btn-handler',
       'button[title="Akkoord"]',
-      'button[data-element="all-button"]',
       'button:has-text("Alles accepteren")',
       'button:has-text("Alle cookies accepteren")',
       'button:has-text("Accepteer alle cookies")',
       'button:has-text("Akkoord")',
-      '#onetrust-accept-btn-handler',
+      'button[data-element="all-button"]',
       '.cookie-accept-all',
     ];
     for (const selector of selectors) {
       try {
         const btn = page.locator(selector).first();
-        if (await btn.isVisible({ timeout: 2000 })) {
+        if (await btn.isVisible({ timeout: 1500 })) {
           await btn.click();
           await page.waitForTimeout(1000);
           return;
@@ -80,6 +80,120 @@ export async function acceptCookies(page: Page): Promise<void> {
   } catch {
     // No cookie banner found, continue
   }
+}
+
+/**
+ * Click the first VISIBLE element matching a locator.
+ *
+ * Unlike `.first()` which returns the first in DOM order (potentially an
+ * invisible nav link), this iterates all matches and clicks the first
+ * one that is actually visible on screen.
+ */
+export async function clickFirstVisible(
+  page: Page,
+  selector: string,
+  options?: { timeout?: number; label?: string }
+): Promise<boolean> {
+  const timeout = options?.timeout ?? 3000;
+  const label = options?.label ?? selector.substring(0, 60);
+
+  try {
+    const locator = page.locator(selector);
+    const count = await locator.count();
+
+    if (count === 0) {
+      scrapeWarn("clickFirstVisible", `no elements for "${label}"`);
+      return false;
+    }
+
+    for (let i = 0; i < count; i++) {
+      const el = locator.nth(i);
+      try {
+        if (await el.isVisible({ timeout: Math.min(timeout, 1500) })) {
+          // <a> tags: JS click follows href (bypasses overlay elements)
+          // <button> tags: Playwright force-click (triggers SPA event handlers)
+          const tagName = await el.evaluate((node) => node.tagName.toLowerCase());
+          if (tagName === "a") {
+            await el.evaluate((node) => (node as HTMLElement).click());
+          } else {
+            await el.click({ force: true });
+          }
+          return true;
+        }
+      } catch {
+        // Element not visible or stale, try next
+      }
+    }
+
+    scrapeWarn("clickFirstVisible", `${count} elements but none visible for "${label}"`);
+    return false;
+  } catch (err) {
+    scrapeWarn("clickFirstVisible", `failed for "${label}": ${(err as Error).message}`);
+    return false;
+  }
+}
+
+/** Tagged warning for scraper diagnostics */
+export function scrapeWarn(name: string, message: string): void {
+  console.warn(`[scraper:${name}] ${message}`);
+}
+
+/**
+ * Find and fill an input field by trying attribute selectors first, then label text.
+ * Returns true if the field was found and filled.
+ */
+export async function fillField(
+  page: Page,
+  attrSelectors: string,
+  labelTexts: string[],
+  value: string,
+  options?: { timeout?: number; useKeyboard?: boolean }
+): Promise<boolean> {
+  const timeout = options?.timeout ?? 3000;
+  const useKeyboard = options?.useKeyboard ?? false;
+
+  async function doFill(el: any) {
+    if (useKeyboard) {
+      // pressSequentially triggers proper keyboard events for React/Angular SPAs
+      await el.click();
+      await el.pressSequentially(value, { delay: 30 });
+    } else {
+      await el.fill(value);
+    }
+  }
+
+  // Try attribute-based selectors first (fastest)
+  try {
+    const attrInput = page.locator(attrSelectors).first();
+    if (await attrInput.isVisible({ timeout })) {
+      await doFill(attrInput);
+      return true;
+    }
+  } catch { /* try label fallback */ }
+
+  // Try label-based lookup (works when inputs have no name/placeholder)
+  for (const label of labelTexts) {
+    try {
+      const labelInput = page.getByLabel(label, { exact: false });
+      if (await labelInput.isVisible({ timeout: 1500 })) {
+        await doFill(labelInput);
+        return true;
+      }
+    } catch { /* try next */ }
+  }
+
+  // Try placeholder-based lookup (case-insensitive, works for CB etc.)
+  for (const label of labelTexts) {
+    try {
+      const placeholderInput = page.getByPlaceholder(label, { exact: false });
+      if (await placeholderInput.isVisible({ timeout: 1500 })) {
+        await doFill(placeholderInput);
+        return true;
+      }
+    } catch { /* try next */ }
+  }
+
+  return false;
 }
 
 /** Parse Dutch price string "12,50" or "12.50" to number 12.50 */
