@@ -1,16 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { handleIncomingMessage } from '@/lib/whatsapp/conversation';
+import { markAsRead } from '@/lib/whatsapp/client';
 import crypto from 'crypto';
 
+// ── Twilio signature validatie ──
 function validateTwilioSignature(req: NextRequest, body: string): boolean {
   const authToken = process.env.TWILIO_AUTH_TOKEN;
   const signature = req.headers.get('x-twilio-signature');
   if (!authToken || !signature) return false;
 
-  // Build the full URL (Twilio uses the webhook URL for validation)
   const url = req.url;
-
-  // Parse params and sort them alphabetically
   const params = new URLSearchParams(body);
   const sortedKeys = [...params.keys()].sort();
   let dataString = url;
@@ -26,58 +25,145 @@ function validateTwilioSignature(req: NextRequest, body: string): boolean {
   return computed === signature;
 }
 
-export async function GET() {
+// ── GET: Health check + Meta webhook verificatie ──
+export async function GET(req: NextRequest) {
+  // Meta webhook verificatie
+  const mode = req.nextUrl.searchParams.get('hub.mode');
+  const token = req.nextUrl.searchParams.get('hub.verify_token');
+  const challenge = req.nextUrl.searchParams.get('hub.challenge');
+
+  if (mode === 'subscribe' && token === process.env.WEBHOOK_VERIFY_TOKEN) {
+    return new NextResponse(challenge, { status: 200 });
+  }
+
   return NextResponse.json({ status: 'ok', service: 'DeVerzekeringsAgent WhatsApp' });
 }
 
+// ── POST: Inkomende berichten (Twilio of Meta) ──
 export async function POST(req: NextRequest) {
   try {
-    const body = await req.text();
+    const contentType = req.headers.get('content-type') || '';
 
-    // Validate Twilio signature (skip if no auth token configured)
-    const hasTwilioAuth = !!process.env.TWILIO_AUTH_TOKEN;
-    if (hasTwilioAuth) {
-      const isValid = validateTwilioSignature(req, body);
-      if (!isValid) {
-        console.warn('Twilio signature mismatch (may be URL mismatch on Vercel), allowing request');
-      }
+    if (contentType.includes('application/json')) {
+      return handleMetaWebhook(req);
+    } else {
+      return handleTwilioWebhook(req);
     }
-
-    const params = new URLSearchParams(body);
-    const fromRaw = params.get('From') || '';         // whatsapp:+31626800726
-    const messageBody = params.get('Body') || '';
-    const numMedia = parseInt(params.get('NumMedia') || '0', 10);
-
-    // Strip "whatsapp:+" prefix to get plain phone number
-    const from = fromRaw.replace('whatsapp:+', '');
-    if (!from) return NextResponse.json({ status: 'no sender' });
-
-    // Build a message object compatible with the conversation handler
-    let messageType = 'text';
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const message: any = {
-      text: { body: messageBody },
-    };
-
-    if (numMedia > 0) {
-      const mediaUrl = params.get('MediaUrl0') || '';
-      const mediaContentType = params.get('MediaContentType0') || '';
-
-      if (mediaContentType === 'application/pdf') {
-        messageType = 'document';
-        message.document = { url: mediaUrl, mime_type: mediaContentType };
-      } else if (mediaContentType.startsWith('image/')) {
-        messageType = 'image';
-        message.image = { url: mediaUrl, mime_type: mediaContentType };
-      }
-    }
-
-    // Await the handler — serverless functions terminate after response
-    await handleIncomingMessage(from, message, messageType);
-
-    return NextResponse.json({ status: 'ok' });
   } catch (error) {
     console.error('Webhook error:', error);
     return NextResponse.json({ status: 'error' }, { status: 500 });
   }
+}
+
+// ── Twilio webhook handler ──
+async function handleTwilioWebhook(req: NextRequest) {
+  const body = await req.text();
+
+  const hasTwilioAuth = !!process.env.TWILIO_AUTH_TOKEN;
+  if (hasTwilioAuth) {
+    const isValid = validateTwilioSignature(req, body);
+    if (!isValid) {
+      console.warn('Twilio signature mismatch (may be URL mismatch on Vercel), allowing request');
+    }
+  }
+
+  const params = new URLSearchParams(body);
+  const fromRaw = params.get('From') || '';         // whatsapp:+31626800726
+  const messageBody = params.get('Body') || '';
+  const numMedia = parseInt(params.get('NumMedia') || '0', 10);
+
+  const from = fromRaw.replace('whatsapp:+', '');
+  if (!from) return NextResponse.json({ status: 'no sender' });
+
+  let messageType = 'text';
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const message: any = {
+    text: { body: messageBody },
+  };
+
+  if (numMedia > 0) {
+    const mediaUrl = params.get('MediaUrl0') || '';
+    const mediaContentType = params.get('MediaContentType0') || '';
+
+    if (mediaContentType === 'application/pdf') {
+      messageType = 'document';
+      message.document = { url: mediaUrl, mime_type: mediaContentType };
+    } else if (mediaContentType.startsWith('image/')) {
+      messageType = 'image';
+      message.image = { url: mediaUrl, mime_type: mediaContentType };
+    }
+  }
+
+  await handleIncomingMessage(from, message, messageType);
+  return NextResponse.json({ status: 'ok' });
+}
+
+// ── Meta Cloud API webhook handler ──
+async function handleMetaWebhook(req: NextRequest) {
+  const body = await req.json();
+
+  // Meta stuurt diverse events; we verwerken alleen berichten
+  if (body.object !== 'whatsapp_business_account') {
+    return NextResponse.json({ status: 'ignored' });
+  }
+
+  const entry = body.entry?.[0];
+  const changes = entry?.changes?.[0];
+  const value = changes?.value;
+
+  if (!value?.messages?.length) {
+    // Status update of ander niet-bericht event
+    return NextResponse.json({ status: 'ok' });
+  }
+
+  const msg = value.messages[0];
+  const from = msg.from; // bv. "31612345678"
+  const msgId = msg.id;
+
+  // Markeer als gelezen (blauwe vinkjes)
+  markAsRead(msgId).catch(() => {});
+
+  let messageType = 'text';
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const message: any = {
+    text: { body: '' },
+  };
+
+  switch (msg.type) {
+    case 'text':
+      message.text.body = msg.text.body;
+      break;
+
+    case 'interactive':
+      // Button reply → zet title in text.body zodat conversation handler het herkent
+      if (msg.interactive?.type === 'button_reply') {
+        message.text.body = msg.interactive.button_reply.title;
+      } else if (msg.interactive?.type === 'list_reply') {
+        message.text.body = msg.interactive.list_reply.title;
+      }
+      break;
+
+    case 'document':
+      messageType = 'document';
+      message.document = {
+        url: msg.document.id, // Media ID (downloadMedia in client.ts handelt dit af)
+        mime_type: msg.document.mime_type,
+      };
+      break;
+
+    case 'image':
+      messageType = 'image';
+      message.image = {
+        url: msg.image.id, // Media ID
+        mime_type: msg.image.mime_type || 'image/jpeg',
+      };
+      break;
+
+    default:
+      message.text.body = '';
+      break;
+  }
+
+  await handleIncomingMessage(from, message, messageType);
+  return NextResponse.json({ status: 'ok' });
 }
