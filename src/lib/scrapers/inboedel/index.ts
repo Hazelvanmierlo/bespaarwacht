@@ -25,7 +25,9 @@ function buildScrapers(): BaseScraper[] {
     const { scrapeAsrInboedel } = require("../playwright/inboedel/asr-live");
     const { scrapeCentraalBeheer } = require("../playwright/centraal-beheer-live");
     const { scrapeFbtoInboedel } = require("../playwright/inboedel/fbto-live");
-    const { scrapeInterpolisInboedel } = require("../playwright/inboedel/interpolis-live");
+    // Interpolis live scraper disabled: interpolis.nl has no on-site premium calculator.
+    // The "Bereken je premie" CTA redirects to rabobank.nl, making live scraping infeasible.
+    // Interpolis still works via the calculated scraper (InterpolisScraper).
     const { scrapeInShared } = require("../playwright/inshared-live");
     const { scrapeOhra } = require("../playwright/ohra-live");
 
@@ -34,8 +36,9 @@ function buildScrapers(): BaseScraper[] {
       new LiveInboedelScraper("centraal-beheer", "Centraal Beheer", 11.85, "€ 0", scrapeCentraalBeheer),
       new LiveInboedelScraper("fbto", "FBTO", 12.10, "€ 0", scrapeFbtoInboedel),
       new LiveInboedelScraper("inshared", "InShared", 9.50, "€ 0", scrapeInShared),
-      new LiveInboedelScraper("interpolis", "Interpolis", 13.40, "€ 0", scrapeInterpolisInboedel),
       new LiveInboedelScraper("ohra", "OHRA", 10.20, "€ 0", scrapeOhra),
+      // Interpolis uses calculated scraper only (see comment above)
+      new InterpolisScraper(),
     ];
   } catch (err) {
     console.warn("[DVA] Playwright niet beschikbaar, fallback naar berekende premies:", (err as Error).message);
