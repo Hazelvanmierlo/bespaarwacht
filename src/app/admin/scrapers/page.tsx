@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { RefreshCw } from "@/components/icons";
 
 export default function ScrapersPage() {
   const [running, setRunning] = useState(false);
@@ -41,7 +42,7 @@ export default function ScrapersPage() {
               Scraping...
             </>
           ) : (
-            <>🔄 Alle scrapers starten</>
+            <><RefreshCw className="w-4 h-4" /> Alle scrapers starten</>
           )}
         </button>
       </div>

@@ -4,7 +4,8 @@ import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
 import { signOut } from "next-auth/react";
 import Link from "next/link";
-import { UploadIcon, ShieldIcon, ShieldDownIcon, ArrowRightIcon, CheckIcon, LockIcon, TrashIcon, PulseDot } from "@/components/icons";
+import { UploadIcon, ShieldIcon, ShieldDownIcon, ArrowRightIcon, CheckIcon, LockIcon, TrashIcon, PulseDot, Home, Building2, ShieldCheck, Plane, Car, HeartPulse, Zap, ClipboardList, RefreshCw, FileText, Settings } from "@/components/icons";
+import type { ReactNode } from "react";
 
 // ── Types ──
 interface ServerAnalysis {
@@ -30,13 +31,13 @@ interface EnergieLead {
   created_at: string;
 }
 
-const PRODUCT_ICONS: Record<string, string> = {
-  inboedel: "🏠",
-  opstal: "🏗️",
-  aansprakelijkheid: "🛡️",
-  reis: "✈️",
-  auto: "🚗",
-  zorg: "🏥",
+const PRODUCT_ICONS: Record<string, ReactNode> = {
+  inboedel: <Home className="w-6 h-6" />,
+  opstal: <Building2 className="w-6 h-6" />,
+  aansprakelijkheid: <ShieldCheck className="w-6 h-6" />,
+  reis: <Plane className="w-6 h-6" />,
+  auto: <Car className="w-6 h-6" />,
+  zorg: <HeartPulse className="w-6 h-6" />,
 };
 
 const PRODUCT_LABELS: Record<string, string> = {
@@ -121,19 +122,19 @@ export default function AccountPage() {
               href="/upload?type=energie"
               className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-[13px] font-semibold bg-bw-green text-white no-underline hover:bg-bw-green/90 transition-colors"
             >
-              ⚡ Energie
+              <Zap className="w-3.5 h-3.5" /> Energie
             </Link>
             <Link
               href="/account/opzeggen"
               className="hidden sm:inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-[13px] font-medium text-bw-text-mid border border-bw-border bg-white no-underline hover:bg-bw-bg transition-colors"
             >
-              📄 Opzeggen
+              <FileText className="w-3.5 h-3.5" /> Opzeggen
             </Link>
             <Link
               href="/account/profiel"
               className="hidden sm:inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-[13px] font-medium text-bw-text-mid border border-bw-border bg-white no-underline hover:bg-bw-bg transition-colors"
             >
-              ⚙ Instellingen
+              <Settings className="w-3.5 h-3.5" /> Instellingen
             </Link>
             <button
               onClick={() => signOut({ callbackUrl: "/" })}
@@ -190,9 +191,9 @@ export default function AccountPage() {
         {/* ── Tab navigation ── */}
         <div className="flex gap-1 mb-6 border-b border-bw-border">
           {([
-            { key: "overzicht" as Tab, label: "Mijn polissen", icon: "📋" },
-            { key: "energie" as Tab, label: "Energie", icon: "⚡" },
-            { key: "overstappen" as Tab, label: "Overstappen", icon: "🔄" },
+            { key: "overzicht" as Tab, label: "Mijn polissen", icon: <ClipboardList className="w-4 h-4" /> },
+            { key: "energie" as Tab, label: "Energie", icon: <Zap className="w-4 h-4" /> },
+            { key: "overstappen" as Tab, label: "Overstappen", icon: <RefreshCw className="w-4 h-4" /> },
           ]).map((tab) => (
             <button
               key={tab.key}
@@ -228,7 +229,7 @@ export default function AccountPage() {
 
             {analyses.length === 0 ? (
               <div className="text-center py-16 px-6 bg-white rounded-2xl border border-bw-border">
-                <div className="text-5xl mb-4">📋</div>
+                <div className="mb-4 flex justify-center"><ClipboardList className="w-10 h-10 text-bw-text-light" /></div>
                 <h3 className="text-lg font-bold text-bw-deep mb-2">Nog geen polissen opgeslagen</h3>
                 <p className="text-sm text-bw-text-mid mb-6 max-w-md mx-auto">
                   Upload je eerste polis of energierekening. Wij vergelijken alle aanbieders en bewaken de markt zodat jij nooit meer te veel betaalt.
@@ -244,7 +245,7 @@ export default function AccountPage() {
                     href="/upload?type=energie"
                     className="inline-flex items-center gap-1.5 px-6 py-3 rounded-xl text-sm font-bold bg-bw-green text-white no-underline hover:bg-bw-green/90 transition-colors"
                   >
-                    ⚡ Energie vergelijken
+                    <Zap className="w-3.5 h-3.5" /> Energie vergelijken
                   </Link>
                 </div>
               </div>
@@ -253,7 +254,7 @@ export default function AccountPage() {
                 {analyses.map((a) => {
                   const besparing = Number(a.max_besparing) || 0;
                   const hasBesparing = besparing > 0;
-                  const icon = PRODUCT_ICONS[a.product_type] || "📄";
+                  const icon = PRODUCT_ICONS[a.product_type] || <FileText className="w-6 h-6" />;
                   const label = PRODUCT_LABELS[a.product_type] || a.product_type;
 
                   return (
@@ -267,7 +268,7 @@ export default function AccountPage() {
                         {/* Header */}
                         <div className="flex items-start justify-between gap-4 mb-4">
                           <div className="flex items-center gap-3">
-                            <div className="w-12 h-12 rounded-xl bg-bw-bg flex items-center justify-center text-2xl shrink-0">
+                            <div className="w-12 h-12 rounded-xl bg-bw-bg flex items-center justify-center shrink-0">
                               {icon}
                             </div>
                             <div>
@@ -363,7 +364,7 @@ export default function AccountPage() {
         {activeTab === "energie" && (
           <div>
             <div className="text-center py-16 px-6 bg-white rounded-2xl border border-bw-border">
-              <div className="text-5xl mb-4">⚡</div>
+              <div className="mb-4 flex justify-center"><Zap className="w-10 h-10 text-bw-green" /></div>
               <h3 className="text-lg font-bold text-bw-deep mb-2">Energievergelijking</h3>
               <p className="text-sm text-bw-text-mid mb-6 max-w-md mx-auto">
                 Upload je jaaroverzicht of energierekening en wij vergelijken 18 leveranciers. We bewaken de tarieven zodat je altijd het scherpste contract hebt.
@@ -372,7 +373,7 @@ export default function AccountPage() {
                 href="/upload?type=energie"
                 className="inline-flex items-center gap-1.5 px-6 py-3 rounded-xl text-sm font-bold bg-bw-green text-white no-underline hover:bg-bw-green/90 transition-colors"
               >
-                ⚡ Energie vergelijken <ArrowRightIcon className="w-3.5 h-3.5" />
+                <Zap className="w-3.5 h-3.5" /> Energie vergelijken <ArrowRightIcon className="w-3.5 h-3.5" />
               </Link>
             </div>
           </div>
@@ -383,7 +384,7 @@ export default function AccountPage() {
           <div>
             {energieLeads.length === 0 ? (
               <div className="text-center py-16 px-6 bg-white rounded-2xl border border-bw-border">
-                <div className="text-5xl mb-4">🔄</div>
+                <div className="mb-4 flex justify-center"><RefreshCw className="w-10 h-10 text-bw-text-light" /></div>
                 <h3 className="text-lg font-bold text-bw-deep mb-2">Geen overstappen</h3>
                 <p className="text-sm text-bw-text-mid mb-6 max-w-md mx-auto">
                   Als je via ons overstapt naar een betere deal, zie je hier de voortgang.

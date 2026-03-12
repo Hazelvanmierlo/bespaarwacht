@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { CircleCheckBig, AlertTriangle } from "@/components/icons";
 import type { BerekeningResultaat } from "@/lib/energie/leveranciers";
 import CountUp from "./CountUp";
 
@@ -39,6 +40,14 @@ export default function Vergelijking({ resultaten, huidigeLeverancier, affiliate
       return aVal - bVal;
     });
 
+  // Find current supplier cost for savings calculation
+  const huidigResult = huidigeLeverancier
+    ? resultaten.find((r) => r.leverancier.naam.toLowerCase().includes(huidigeLeverancier.toLowerCase()))
+    : null;
+  const huidigKosten = huidigResult
+    ? (showDoorlopend ? huidigResult.totaalDoorlopend : huidigResult.totaalJaar)
+    : null;
+
   const goedkoopste = gefilterd.length > 0
     ? (showDoorlopend ? gefilterd[0].totaalDoorlopend : gefilterd[0].totaalJaar)
     : 0;
@@ -51,7 +60,6 @@ export default function Vergelijking({ resultaten, huidigeLeverancier, affiliate
             <h3 className="font-heading text-lg font-bold text-bw-deep">Vergelijking leveranciers</h3>
             <p className="text-xs text-bw-text-mid">Jaarkosten incl. energiebelasting, ODE en BTW</p>
           </div>
-          {/* Year-1 / Doorlopend toggle */}
           {heeftKorting && (
             <div className="flex items-center gap-1 bg-bw-bg rounded-lg p-0.5">
               <button
@@ -92,106 +100,114 @@ export default function Vergelijking({ resultaten, huidigeLeverancier, affiliate
         ))}
       </div>
 
-      {/* Table */}
-      <div className="overflow-x-auto">
-        <table className="w-full border-collapse text-[13px]">
-          <thead>
-            <tr className="bg-bw-bg">
-              <th className="px-5 py-3 text-left font-semibold text-bw-text-mid border-b border-bw-border">Leverancier</th>
-              <th className="px-3 py-3 text-right font-semibold text-bw-text-mid border-b border-bw-border">Stroom</th>
-              {heeftGas && <th className="px-3 py-3 text-right font-semibold text-bw-text-mid border-b border-bw-border">Gas</th>}
-              <th className="px-3 py-3 text-right font-semibold text-bw-text-mid border-b border-bw-border">Vastrecht</th>
-              {!showDoorlopend && heeftKorting && (
-                <th className="px-3 py-3 text-right font-semibold text-bw-text-mid border-b border-bw-border">Bonus</th>
-              )}
-              <th className="px-5 py-3 text-right font-bold text-bw-deep border-b border-bw-border">
-                {showDoorlopend ? "Totaal/jr" : "Jaar 1"}
-              </th>
-              <th className="px-3 py-3 text-center font-semibold text-bw-text-mid border-b border-bw-border"></th>
-            </tr>
-          </thead>
-          <tbody>
-            {gefilterd.map((r, i) => {
-              const isHuidig = huidigeLeverancier != null &&
-                r.leverancier.naam.toLowerCase().includes(huidigeLeverancier.toLowerCase());
-              const totaal = showDoorlopend ? r.totaalDoorlopend : r.totaalJaar;
-              const isGoedkoopst = totaal === goedkoopste && i === 0;
-              const leverancierNaam = r.leverancier.naam.split(" — ")[0]; // base name for affiliate lookup
+      {/* Results as cards (mobile-friendly) */}
+      <div className="px-4 sm:px-5 py-3 space-y-2">
+        {gefilterd.map((r, i) => {
+          const isHuidig = huidigeLeverancier != null &&
+            r.leverancier.naam.toLowerCase().includes(huidigeLeverancier.toLowerCase());
+          const totaal = showDoorlopend ? r.totaalDoorlopend : r.totaalJaar;
+          const isGoedkoopst = totaal === goedkoopste && i === 0;
+          const leverancierNaam = r.leverancier.naam.split(" — ")[0];
+          const hasAffiliate = !isHuidig && (affiliateUrls?.[leverancierNaam] || r.leverancier.affiliateUrl);
+          const affiliateHref = affiliateUrls?.[leverancierNaam] || r.leverancier.affiliateUrl!;
 
-              return (
-                <tr
-                  key={r.leverancier.naam}
-                  className={`transition-colors ${
-                    isGoedkoopst
-                      ? "bg-bw-green-bg"
-                      : isHuidig
-                        ? "bg-bw-blue-light"
-                        : "hover:bg-bw-bg"
-                  }`}
-                >
-                  <td className={`px-5 py-3 border-b border-bw-border ${isGoedkoopst ? "border-l-[3px] border-l-bw-green" : isHuidig ? "border-l-[3px] border-l-bw-blue" : ""}`}>
-                    <div className="flex items-center gap-2">
-                      <span className="font-semibold text-bw-deep">{r.leverancier.naam}</span>
-                      {r.leverancier.groen && (
-                        <span className="text-[10px] font-bold bg-bw-green-bg text-bw-green-strong px-1.5 py-0.5 rounded">Groen</span>
-                      )}
-                      {isHuidig && (
-                        <span className="text-[10px] font-bold bg-bw-blue-light text-bw-blue px-1.5 py-0.5 rounded">Huidig</span>
-                      )}
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span className="text-[11px] text-bw-text-light capitalize">{r.leverancier.type}</span>
-                      {r.leverancier.rating > 0 && (
-                        <span className="text-[10px] text-bw-text-light">★ {r.leverancier.rating}</span>
-                      )}
-                    </div>
-                  </td>
-                  <td className="px-3 py-3 text-right border-b border-bw-border text-bw-text">
-                    €{r.kostenElektriciteit}
-                  </td>
-                  {heeftGas && (
-                    <td className="px-3 py-3 text-right border-b border-bw-border text-bw-text">
-                      {r.kostenGas != null ? `€${r.kostenGas}` : "—"}
-                    </td>
-                  )}
-                  <td className="px-3 py-3 text-right border-b border-bw-border text-bw-text">
-                    €{r.vastrecht}
-                  </td>
-                  {!showDoorlopend && heeftKorting && (
-                    <td className="px-3 py-3 text-right border-b border-bw-border">
-                      {r.korting > 0 ? (
-                        <span className="text-bw-green font-semibold">-€{r.korting}</span>
-                      ) : (
-                        <span className="text-bw-text-light">—</span>
-                      )}
-                    </td>
-                  )}
-                  <td className={`px-5 py-3 text-right border-b border-bw-border font-bold ${isGoedkoopst ? "text-bw-green-strong" : "text-bw-deep"}`}>
+          // Calculate savings vs current supplier
+          const besparing = huidigKosten ? huidigKosten - totaal : null;
+
+          return (
+            <div
+              key={r.leverancier.naam}
+              className={`rounded-xl border p-4 transition-all ${
+                isGoedkoopst
+                  ? "border-bw-green bg-[#F0FDF4] shadow-[0_0_0_1px_rgba(22,163,74,0.2)]"
+                  : isHuidig
+                    ? "border-bw-blue bg-bw-blue-light/30"
+                    : "border-bw-border bg-white hover:border-[#94A3B8]"
+              }`}
+            >
+              {/* Top label for best/current */}
+              {isGoedkoopst && !isHuidig && (
+                <div className="flex items-center gap-1.5 mb-2">
+                  <CircleCheckBig className="w-4 h-4 text-bw-green" />
+                  <span className="text-[11px] font-bold text-bw-green uppercase tracking-[0.5px]">Goedkoopste optie</span>
+                </div>
+              )}
+              {isHuidig && (
+                <div className="flex items-center gap-1.5 mb-2">
+                  <AlertTriangle className="w-4 h-4 text-bw-blue" />
+                  <span className="text-[11px] font-bold text-bw-blue uppercase tracking-[0.5px]">Je huidige leverancier</span>
+                </div>
+              )}
+
+              {/* Main row */}
+              <div className="flex items-center justify-between gap-3">
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="font-bold text-[14px] text-bw-deep">{r.leverancier.naam}</span>
+                    {r.leverancier.groen && (
+                      <span className="text-[10px] font-bold bg-bw-green-bg text-bw-green-strong px-1.5 py-0.5 rounded">Groen</span>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-2 mt-0.5">
+                    <span className="text-[11px] text-bw-text-light capitalize">{r.leverancier.type}</span>
+                    {r.leverancier.rating > 0 && (
+                      <span className="text-[10px] text-bw-text-light">★ {r.leverancier.rating}</span>
+                    )}
+                  </div>
+                </div>
+
+                <div className="text-right shrink-0">
+                  <div className={`text-[18px] font-bold ${isGoedkoopst ? "text-bw-green-strong" : "text-bw-deep"}`}>
                     {i === 0 ? (
                       <CountUp end={totaal} prefix="€" className="font-bold" />
                     ) : (
                       `€${totaal}`
                     )}
-                  </td>
-                  <td className="px-3 py-3 border-b border-bw-border text-center">
-                    {!isHuidig && (affiliateUrls?.[leverancierNaam] || r.leverancier.affiliateUrl) ? (
-                      <a
-                        href={affiliateUrls?.[leverancierNaam] || r.leverancier.affiliateUrl!}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline-block px-3 py-1.5 bg-bw-green text-white rounded-lg text-xs font-semibold no-underline hover:bg-bw-green/90 transition-colors"
-                      >
-                        Overstappen
-                      </a>
-                    ) : !isHuidig ? (
-                      <span className="text-xs text-bw-text-light">-</span>
-                    ) : null}
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
+                  </div>
+                  <div className="text-[11px] text-bw-text-light">per jaar</div>
+                </div>
+              </div>
+
+              {/* Cost breakdown */}
+              <div className="flex items-center gap-3 mt-2 text-[11px] text-bw-text-mid">
+                <span>Stroom €{r.kostenElektriciteit}</span>
+                {heeftGas && r.kostenGas != null && <span>Gas €{r.kostenGas}</span>}
+                <span>Vastrecht €{r.vastrecht}</span>
+                {!showDoorlopend && r.korting > 0 && (
+                  <span className="text-bw-green font-semibold">Bonus -€{r.korting}</span>
+                )}
+              </div>
+
+              {/* Savings badge + CTA */}
+              {(!isHuidig || (isHuidig && besparing !== null && besparing < 0)) && (
+                <div className="flex items-center justify-between mt-3 pt-3 border-t border-bw-border/50">
+                  {besparing !== null && besparing > 0 ? (
+                    <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-bw-green-bg text-bw-green-strong text-[12px] font-bold">
+                      Je bespaart €{Math.round(besparing)}/jaar
+                    </span>
+                  ) : besparing !== null && besparing < 0 && isHuidig ? (
+                    <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-[#FEF2F2] text-[#DC2626] text-[12px] font-bold">
+                      €{Math.round(Math.abs(besparing))}/jaar duurder dan goedkoopste
+                    </span>
+                  ) : (
+                    <span />
+                  )}
+
+                  {hasAffiliate && (
+                    <a
+                      href={affiliateHref}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1.5 px-4 py-2 bg-bw-green text-white rounded-lg text-[13px] font-bold no-underline hover:bg-bw-green-strong hover:shadow-[0_2px_8px_rgba(22,163,74,0.25)] transition-all"
+                    >
+                      Overstappen
+                    </a>
+                  )}
+                </div>
+              )}
+            </div>
+          );
+        })}
       </div>
 
       {gefilterd.length === 0 && (

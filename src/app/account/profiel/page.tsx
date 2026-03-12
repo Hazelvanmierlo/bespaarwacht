@@ -3,7 +3,8 @@
 import { useState, useEffect, useCallback } from "react";
 import { useSession, signOut } from "next-auth/react";
 import Link from "next/link";
-import { ShieldDownIcon, ArrowRightIcon, CheckIcon, LockIcon } from "@/components/icons";
+import { ShieldDownIcon, ArrowRightIcon, CheckIcon, LockIcon, User, KeyRound, Bell, Trash2, AlertTriangle, Info } from "@/components/icons";
+import type { ReactNode } from "react";
 
 interface UserProfile {
   id: string;
@@ -39,7 +40,7 @@ function AlertBanner({
       {type === "success" ? (
         <CheckIcon className="w-4 h-4 mt-0.5 shrink-0" />
       ) : (
-        <span className="shrink-0">⚠</span>
+        <AlertTriangle className="w-4 h-4 mt-0.5 shrink-0" />
       )}
       {message}
     </div>
@@ -223,11 +224,11 @@ export default function ProfielPage() {
     );
   }
 
-  const navItems: { key: Section; label: string; icon: string }[] = [
-    { key: "profiel", label: "Persoonsgegevens", icon: "👤" },
-    { key: "wachtwoord", label: "Wachtwoord", icon: "🔑" },
-    { key: "notificaties", label: "Notificaties", icon: "🔔" },
-    { key: "account", label: "Account verwijderen", icon: "🗑️" },
+  const navItems: { key: Section; label: string; icon: ReactNode }[] = [
+    { key: "profiel", label: "Persoonsgegevens", icon: <User className="w-4 h-4" /> },
+    { key: "wachtwoord", label: "Wachtwoord", icon: <KeyRound className="w-4 h-4" /> },
+    { key: "notificaties", label: "Notificaties", icon: <Bell className="w-4 h-4" /> },
+    { key: "account", label: "Account verwijderen", icon: <Trash2 className="w-4 h-4" /> },
   ];
 
   return (
@@ -495,7 +496,7 @@ export default function ProfielPage() {
                 </div>
 
                 <div className="mt-5 flex items-start gap-2 px-4 py-3 rounded-lg bg-bw-bg border border-bw-border text-[12px] text-bw-text-mid">
-                  <span>ℹ️</span>
+                  <Info className="w-4 h-4 shrink-0 mt-0.5 text-bw-text-mid" />
                   <span>
                     Voorkeuren worden opgeslagen in je account. Koppelingen worden in een volgende update volledig geactiveerd.
                   </span>

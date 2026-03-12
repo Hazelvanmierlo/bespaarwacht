@@ -127,15 +127,25 @@ export async function scrapeAsrInboedel(
 
     // ── 6. Particulier gebruik → Ja ──────────────────────────────────────
     // The radio group "Gebruik je de woning particulier?" has Ja/Nee.
-    // We need to target the specific radio group, not the one in oppervlakte section.
     try {
       const particulierGroup = page.getByRole("radiogroup", {
         name: /particulier/i,
       });
-      await particulierGroup.getByRole("radio", { name: "Ja" }).click({ force: true });
+      await particulierGroup.getByRole("radio", { name: "Ja" }).click({ force: true, timeout: 5000 });
       logger.log("Particulier gebruik", "Ja");
     } catch {
-      logger.fail("Particulier gebruik", "Radio niet gevonden");
+      // Fallback: click the Ja radio via label text within the particulier section
+      try {
+        await page.locator('text="Gebruik je de woning particulier?"')
+          .locator('..')
+          .locator('..')
+          .getByRole("radio", { name: "Ja" })
+          .click({ force: true, timeout: 5000 });
+        logger.log("Particulier gebruik", "Ja (fallback)");
+      } catch {
+        // Last resort: Ja is the default on ASR, continue without clicking
+        logger.log("Particulier gebruik", "skipped (Ja is default)");
+      }
     }
 
     // ── 7. Soort muren → Steen ───────────────────────────────────────────

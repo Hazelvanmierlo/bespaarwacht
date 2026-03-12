@@ -64,27 +64,52 @@ export async function POST(req: NextRequest) {
 
   // Higher timeout when live scrapers are enabled (Playwright needs more time)
   const LIVE_SCRAPERS_ENABLED = process.env.ENABLE_LIVE_SCRAPERS === "true";
-  const TIMEOUT_MS = LIVE_SCRAPERS_ENABLED ? 60000 : 8000;
+  const TIMEOUT_MS = LIVE_SCRAPERS_ENABLED ? 150000 : 8000;
 
-  const results = await Promise.all(
-    productScrapers.map(async (scraper): Promise<ScraperResult> => {
+  // Run scrapers sequentially when live (Playwright browsers are resource-heavy),
+  // parallel when calculated (fast, no browser)
+  const results: ScraperResult[] = [];
+  if (LIVE_SCRAPERS_ENABLED) {
+    for (const scraper of productScrapers) {
       try {
-        return await Promise.race([
+        const result = await Promise.race([
           scraper.run(input),
           new Promise<ScraperResult>((_, reject) =>
             setTimeout(() => reject(new Error(`Timeout na ${TIMEOUT_MS / 1000}s`)), TIMEOUT_MS)
           ),
         ]);
+        results.push(result);
       } catch {
-        return {
+        results.push({
           slug: scraper.slug,
           status: "timeout",
           duration_ms: TIMEOUT_MS,
           error: `Timeout na ${TIMEOUT_MS / 1000}s`,
-        };
+        });
       }
-    })
-  );
+    }
+  } else {
+    const parallel = await Promise.all(
+      productScrapers.map(async (scraper): Promise<ScraperResult> => {
+        try {
+          return await Promise.race([
+            scraper.run(input),
+            new Promise<ScraperResult>((_, reject) =>
+              setTimeout(() => reject(new Error(`Timeout na ${TIMEOUT_MS / 1000}s`)), TIMEOUT_MS)
+            ),
+          ]);
+        } catch {
+          return {
+            slug: scraper.slug,
+            status: "timeout",
+            duration_ms: TIMEOUT_MS,
+            error: `Timeout na ${TIMEOUT_MS / 1000}s`,
+          };
+        }
+      })
+    );
+    results.push(...parallel);
+  }
 
   // Convert successful results to Alternative[] with metadata
   const alternatives: Alternative[] = results

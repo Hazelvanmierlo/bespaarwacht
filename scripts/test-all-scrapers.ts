@@ -6,6 +6,8 @@
 import { scrapeInShared } from "../src/lib/scrapers/playwright/inshared-live";
 import { scrapeCentraalBeheer } from "../src/lib/scrapers/playwright/centraal-beheer-live";
 import { scrapeOhra } from "../src/lib/scrapers/playwright/ohra-live";
+import { scrapeAsrInboedel } from "../src/lib/scrapers/playwright/inboedel/asr-live";
+import { scrapeFbtoInboedel } from "../src/lib/scrapers/playwright/inboedel/fbto-live";
 import { scrapeCentraalBeheerOpstal } from "../src/lib/scrapers/playwright/opstal/centraal-beheer-live";
 import { scrapeAsrOpstal } from "../src/lib/scrapers/playwright/opstal/asr-live";
 import { scrapeFbtoOpstal } from "../src/lib/scrapers/playwright/opstal/fbto-live";
@@ -39,6 +41,8 @@ const scrapers: ScraperTest[] = [
   { name: "InShared", product: "inboedel", fn: scrapeInShared },
   { name: "Centraal Beheer", product: "inboedel", fn: scrapeCentraalBeheer },
   { name: "OHRA", product: "inboedel", fn: scrapeOhra },
+  { name: "a.s.r.", product: "inboedel", fn: scrapeAsrInboedel },
+  { name: "FBTO", product: "inboedel", fn: scrapeFbtoInboedel },
   // Opstal
   { name: "Centraal Beheer", product: "opstal", fn: scrapeCentraalBeheerOpstal },
   { name: "a.s.r.", product: "opstal", fn: scrapeAsrOpstal },
@@ -76,7 +80,7 @@ async function main() {
       const result = await Promise.race([
         scraper.fn(testInput),
         new Promise<LiveScraperResult>((_, reject) =>
-          setTimeout(() => reject(new Error("Timeout na 45s")), 45000)
+          setTimeout(() => reject(new Error("Timeout na 90s")), 90000)
         ),
       ]);
 

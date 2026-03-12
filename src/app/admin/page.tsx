@@ -1,5 +1,7 @@
 import { getSupabaseAdmin } from "@/lib/supabase-server";
 import Link from "next/link";
+import { RefreshCw, DollarSign, Users, CircleCheckBig, AlertTriangle, Zap, LinkIcon } from "@/components/icons";
+import type { ReactNode } from "react";
 
 interface LeadRow {
   id: string;
@@ -110,33 +112,33 @@ const SCRAPER_COLORS: Record<string, string> = {
 export default async function AdminDashboard() {
   const stats = await getStats();
 
-  const cards = [
+  const cards: { label: string; value: string | number; sub: string; icon: ReactNode; color: string }[] = [
     {
       label: "Overstappen",
       value: stats.leadsTotal,
       sub: `${stats.leadsAfgerond} afgerond`,
-      icon: "🔄",
+      icon: <RefreshCw className="w-6 h-6" />,
       color: "bg-bw-green-bg text-bw-green",
     },
     {
       label: "Totaal bespaard",
       value: `€${stats.totalBesparing.toLocaleString("nl-NL")}`,
       sub: "voor klanten",
-      icon: "💰",
+      icon: <DollarSign className="w-6 h-6" />,
       color: "bg-bw-green-bg text-bw-green",
     },
     {
       label: "Gebruikers",
       value: stats.usersCount,
       sub: `${stats.analysesCount} analyses`,
-      icon: "👥",
+      icon: <Users className="w-6 h-6" />,
       color: "bg-bw-blue-light text-bw-blue",
     },
     {
       label: "Scrapers",
       value: `${stats.scraperSuccess}/${stats.scraperSuccess + stats.scraperErrors}`,
       sub: `${stats.leveranciersActief} leveranciers OK`,
-      icon: stats.scraperErrors === 0 ? "✅" : "⚠️",
+      icon: stats.scraperErrors === 0 ? <CircleCheckBig className="w-6 h-6" /> : <AlertTriangle className="w-6 h-6" />,
       color: stats.scraperErrors === 0 ? "bg-bw-green-bg text-bw-green" : "bg-bw-orange-bg text-bw-orange",
     },
   ];
@@ -164,7 +166,7 @@ export default async function AdminDashboard() {
             className="bg-white rounded-xl border border-bw-border p-5 flex items-center gap-4"
           >
             <div
-              className={`w-12 h-12 rounded-xl flex items-center justify-center text-xl ${card.color}`}
+              className={`w-12 h-12 rounded-xl flex items-center justify-center ${card.color}`}
             >
               {card.icon}
             </div>
@@ -303,25 +305,25 @@ export default async function AdminDashboard() {
           href="/admin/energy-monitor"
           className="px-4 py-2.5 rounded-lg text-sm font-semibold bg-white text-bw-deep border border-bw-border hover:bg-bw-bg transition-colors no-underline"
         >
-          ⚡ Energie Monitor
+          <Zap className="w-4 h-4 inline" /> Energie Monitor
         </Link>
         <Link
           href="/admin/gebruikers"
-          className="px-4 py-2.5 rounded-lg text-sm font-semibold bg-white text-bw-deep border border-bw-border hover:bg-bw-bg transition-colors no-underline"
+          className="px-4 py-2.5 rounded-lg text-sm font-semibold bg-white text-bw-deep border border-bw-border hover:bg-bw-bg transition-colors no-underline inline-flex items-center gap-1.5"
         >
-          👥 Gebruikers
+          <Users className="w-4 h-4" /> Gebruikers
         </Link>
         <Link
           href="/admin/scrapers"
-          className="px-4 py-2.5 rounded-lg text-sm font-semibold bg-white text-bw-deep border border-bw-border hover:bg-bw-bg transition-colors no-underline"
+          className="px-4 py-2.5 rounded-lg text-sm font-semibold bg-white text-bw-deep border border-bw-border hover:bg-bw-bg transition-colors no-underline inline-flex items-center gap-1.5"
         >
-          🔄 Verzekering Scrapers
+          <RefreshCw className="w-4 h-4" /> Verzekering Scrapers
         </Link>
         <Link
           href="/admin/daisycon"
-          className="px-4 py-2.5 rounded-lg text-sm font-semibold bg-white text-bw-deep border border-bw-border hover:bg-bw-bg transition-colors no-underline"
+          className="px-4 py-2.5 rounded-lg text-sm font-semibold bg-white text-bw-deep border border-bw-border hover:bg-bw-bg transition-colors no-underline inline-flex items-center gap-1.5"
         >
-          🔗 Daisycon
+          <LinkIcon className="w-4 h-4" /> Daisycon
         </Link>
       </div>
     </div>

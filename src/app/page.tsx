@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowRightIcon, CheckIcon, PulseDot, ShieldDownIcon } from "@/components/icons";
+import { ArrowRightIcon, CheckIcon, PulseDot, ShieldDownIcon, Search, BarChart3, CircleCheckBig, ShieldCheck, HeartPulse, Car, Home, Plane, Zap, Flame, Sun } from "@/components/icons";
 
 const trustItems = [
   "Gratis voor consumenten",
@@ -10,25 +10,25 @@ const trustItems = [
 ];
 
 const steps = [
-  { num: "01", icon: "🔍", title: "Upload", desc: "Upload je polis of energierekening. Of vul je gegevens in via WhatsApp." },
-  { num: "02", icon: "📊", title: "Vergelijk", desc: "Zie direct de beste opties, gesorteerd op prijs en kwaliteit. Helder op een rij." },
-  { num: "03", icon: "✅", title: "Stap over", desc: "Sluit direct af. Wij regelen de overstap en opzegging bij je oude aanbieder." },
-  { num: "04", icon: "🛡️", title: "24/7 bewaking", desc: "Wij monitoren de markt non-stop. Wordt het ergens beter? Je krijgt direct een alert." },
+  { num: "01", icon: <Search className="w-6 h-6 text-bw-blue" />, title: "Upload", desc: "Upload je polis of energierekening. Of vul je gegevens in via WhatsApp." },
+  { num: "02", icon: <BarChart3 className="w-6 h-6 text-bw-blue" />, title: "Vergelijk", desc: "Zie direct de beste opties, gesorteerd op prijs en kwaliteit. Helder op een rij." },
+  { num: "03", icon: <CircleCheckBig className="w-6 h-6 text-bw-blue" />, title: "Stap over", desc: "Sluit direct af. Wij regelen de overstap en opzegging bij je oude aanbieder." },
+  { num: "04", icon: <ShieldCheck className="w-6 h-6 text-bw-blue" />, title: "24/7 bewaking", desc: "Wij monitoren de markt non-stop. Wordt het ergens beter? Je krijgt direct een alert." },
 ];
 
 const insuranceCategories = [
-  { emoji: "🏥", title: "Zorgverzekering", desc: "Vergelijk alle Nederlandse zorgverzekeraars op premie, dekking en klanttevredenheid.", badge: "Bespaar gem. €180/jr", href: "/upload?type=verzekering" },
-  { emoji: "🚗", title: "Autoverzekering", desc: "WA, beperkt casco of allrisk. Vergelijk en stap direct over.", badge: "Bespaar gem. €290/jr", href: "/upload?type=verzekering" },
-  { emoji: "🏠", title: "Woonverzekering", desc: "Inboedel, opstal of combinatie. Bescherm je huis tegen de beste prijs.", badge: "Bespaar gem. €145/jr", href: "/upload?type=verzekering" },
-  { emoji: "✈️", title: "Reisverzekering", desc: "Doorlopend of per reis. Vergelijk op dekking en medische kosten.", badge: null, href: "/upload?type=verzekering" },
-  { emoji: "⚖️", title: "Rechtsbijstand", desc: "Juridische hulp wanneer je het nodig hebt.", badge: null, href: "/upload?type=verzekering" },
-  { emoji: "🤝", title: "Aansprakelijkheid", desc: "Onmisbaar voor elk huishouden. Al vanaf een paar euro per maand.", badge: null, href: "/upload?type=verzekering" },
+  { emoji: <HeartPulse className="w-6 h-6 text-bw-blue" />, title: "Zorgverzekering", desc: "Vergelijk alle Nederlandse zorgverzekeraars op premie, dekking en klanttevredenheid.", badge: "Bespaar gem. €180/jr", href: "/upload?type=verzekering" },
+  { emoji: <Car className="w-6 h-6 text-bw-blue" />, title: "Autoverzekering", desc: "WA, beperkt casco of allrisk. Vergelijk en stap direct over.", badge: "Bespaar gem. €290/jr", href: "/upload?type=verzekering" },
+  { emoji: <Home className="w-6 h-6 text-bw-blue" />, title: "Woonverzekering", desc: "Inboedel, opstal of combinatie. Bescherm je huis tegen de beste prijs.", badge: "Bespaar gem. €145/jr", href: "/upload?type=verzekering" },
+  { emoji: <Plane className="w-6 h-6 text-bw-blue" />, title: "Reisverzekering", desc: "Doorlopend of per reis. Vergelijk op dekking en medische kosten.", badge: null, href: "/upload?type=verzekering" },
+  { emoji: <ShieldCheck className="w-6 h-6 text-bw-blue" />, title: "Rechtsbijstand", desc: "Juridische hulp wanneer je het nodig hebt.", badge: null, href: "/upload?type=verzekering" },
+  { emoji: <ShieldCheck className="w-6 h-6 text-bw-blue" />, title: "Aansprakelijkheid", desc: "Onmisbaar voor elk huishouden. Al vanaf een paar euro per maand.", badge: null, href: "/upload?type=verzekering" },
 ];
 
 const energieCategories = [
-  { emoji: "⚡", title: "Stroom vergelijken", desc: "Vergelijk alle energieleveranciers. Vast, variabel of dynamisch — vind de laagste prijs.", badge: "Bespaar gem. €480/jr", href: "/upload?type=energie" },
-  { emoji: "🔥", title: "Gas vergelijken", desc: "Betaal je te veel voor gas? Upload je jaaroverzicht en ontdek je bespaarpotentieel.", badge: "Bespaar gem. €320/jr", href: "/upload?type=energie" },
-  { emoji: "☀️", title: "Stroom + teruglevering", desc: "Zonnepanelen? Vergelijk op teruglevertarief én leveringskosten.", badge: null, href: "/upload?type=energie" },
+  { emoji: <Zap className="w-6 h-6 text-bw-green" />, title: "Stroom vergelijken", desc: "Vergelijk alle energieleveranciers. Vast, variabel of dynamisch — vind de laagste prijs.", badge: "Bespaar gem. €480/jr", href: "/upload?type=energie" },
+  { emoji: <Flame className="w-6 h-6 text-bw-green" />, title: "Gas vergelijken", desc: "Betaal je te veel voor gas? Upload je jaaroverzicht en ontdek je bespaarpotentieel.", badge: "Bespaar gem. €320/jr", href: "/upload?type=energie" },
+  { emoji: <Sun className="w-6 h-6 text-bw-green" />, title: "Stroom + teruglevering", desc: "Zonnepanelen? Vergelijk op teruglevertarief én leveringskosten.", badge: null, href: "/upload?type=energie" },
 ];
 
 const reviews = [
@@ -47,10 +47,10 @@ const comparisonRows = [
 ];
 
 const scanPolissen = [
-  { emoji: "🏥", name: "Zorgverzekering", detail: "CZ → VGZ · betere dekking", saving: "↓ €14/mnd", hasSaving: true },
-  { emoji: "🚗", name: "Autoverzekering", detail: "Centraal Beheer → FBTO", saving: "↓ €11/mnd", hasSaving: true },
-  { emoji: "⚡", name: "Energiecontract", detail: "Vattenfall → Budget Energie", saving: "↓ €38/mnd", hasSaving: true },
-  { emoji: "🏠", name: "Woonverzekering", detail: "Interpolis · scherpe premie", saving: "✓ Goed", hasSaving: false },
+  { emoji: <HeartPulse className="w-5 h-5 text-bw-green" />, name: "Zorgverzekering", detail: "CZ → VGZ · betere dekking", saving: "↓ €14/mnd", hasSaving: true },
+  { emoji: <Car className="w-5 h-5 text-bw-green" />, name: "Autoverzekering", detail: "Centraal Beheer → FBTO", saving: "↓ €11/mnd", hasSaving: true },
+  { emoji: <Zap className="w-5 h-5 text-bw-green" />, name: "Energiecontract", detail: "Vattenfall → Budget Energie", saving: "↓ €38/mnd", hasSaving: true },
+  { emoji: <Home className="w-5 h-5 text-bw-blue" />, name: "Woonverzekering", detail: "Interpolis · scherpe premie", saving: "✓ Goed", hasSaving: false },
 ];
 
 export default function HomePage() {
@@ -133,7 +133,7 @@ export default function HomePage() {
                           : "bg-bw-bg/50 border-bw-border hover:border-bw-blue hover:shadow-[0_2px_8px_rgba(26,86,219,0.08)]"
                       }`}
                     >
-                      <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-lg shrink-0 ${pol.hasSaving ? "bg-bw-green-bg" : "bg-bw-blue-light"}`}>
+                      <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${pol.hasSaving ? "bg-bw-green-bg" : "bg-bw-blue-light"}`}>
                         {pol.emoji}
                       </div>
                       <div className="flex-1 min-w-0">
@@ -194,7 +194,7 @@ export default function HomePage() {
               className="relative p-6 bg-white rounded-2xl border border-bw-border card-elevated text-center group"
             >
               <div className="text-[11px] font-bold text-bw-blue/30 uppercase tracking-[2px] mb-3">{step.num}</div>
-              <div className="w-14 h-14 rounded-2xl bg-bw-blue-light flex items-center justify-center mx-auto mb-4 text-[26px] group-hover:scale-105 transition-transform">
+              <div className="w-14 h-14 rounded-2xl bg-bw-blue-light flex items-center justify-center mx-auto mb-4 group-hover:scale-105 transition-transform">
                 {step.icon}
               </div>
               <h3 className="text-[15px] font-bold text-bw-deep mb-2">{step.title}</h3>
@@ -223,7 +223,7 @@ export default function HomePage() {
               className="bg-white border border-bw-border rounded-2xl p-6 card-elevated cursor-pointer no-underline text-bw-text group"
             >
               <div className="flex items-center justify-between mb-3">
-                <div className="w-12 h-12 rounded-2xl bg-bw-blue-light flex items-center justify-center text-[24px] group-hover:scale-105 transition-transform">
+                <div className="w-12 h-12 rounded-2xl bg-bw-blue-light flex items-center justify-center group-hover:scale-105 transition-transform">
                   {cat.emoji}
                 </div>
                 {cat.badge && (
@@ -261,7 +261,7 @@ export default function HomePage() {
               className="bg-white border border-bw-border rounded-2xl p-6 card-elevated cursor-pointer no-underline text-bw-text group"
             >
               <div className="flex items-center justify-between mb-3">
-                <div className="w-12 h-12 rounded-2xl bg-bw-green-bg flex items-center justify-center text-[24px] group-hover:scale-105 transition-transform">
+                <div className="w-12 h-12 rounded-2xl bg-bw-green-bg flex items-center justify-center group-hover:scale-105 transition-transform">
                   {cat.emoji}
                 </div>
                 {cat.badge && (
@@ -321,32 +321,52 @@ export default function HomePage() {
 
           {/* Comparison table */}
           <div className="bg-white rounded-2xl shadow-[var(--shadow-bw-elevated)] overflow-hidden border border-bw-border/50">
-            <div className="bg-gradient-to-r from-bw-deep to-bw-navy px-4 sm:px-5 py-4">
-              <span className="text-white text-[13px] sm:text-[14px] font-semibold">Vergelijking: traditioneel vs. DeVerzekeringsAgent</span>
-            </div>
             <div className="overflow-x-auto">
             <table className="w-full border-collapse text-[12.5px] sm:text-[13.5px]">
               <thead>
-                <tr className="bg-bw-bg">
-                  <th className="px-5 py-3.5 text-left font-semibold border-b border-bw-border text-bw-text-mid text-[12px] uppercase tracking-[0.5px]"></th>
-                  <th className="px-4 py-3.5 text-center font-semibold text-bw-text-light border-b border-bw-border text-[12px] uppercase tracking-[0.5px]">Anderen</th>
-                  <th className="px-4 py-3.5 text-center font-bold text-bw-blue border-b border-bw-border text-[12px] uppercase tracking-[0.5px]">DVA</th>
+                <tr>
+                  <th className="px-4 sm:px-5 py-4 text-left font-semibold border-b border-bw-border text-bw-text-mid text-[12px] uppercase tracking-[0.5px]"></th>
+                  <th className="px-3 sm:px-4 py-4 text-center border-b border-bw-border w-[110px] sm:w-[130px]">
+                    <div className="text-[11px] font-semibold text-bw-text-light uppercase tracking-[0.5px]">Anderen</div>
+                    <div className="text-[9px] sm:text-[10px] text-bw-text-light font-normal mt-0.5 leading-tight">Independer, Pricewise, etc.</div>
+                  </th>
+                  <th className="px-3 sm:px-4 py-4 text-center border-b border-bw-border bg-[#F0FDF4] w-[110px] sm:w-[130px] relative">
+                    <div className="absolute top-0 left-0 right-0 h-1 bg-bw-green" />
+                    <div className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-bw-green-bg border border-bw-green/20 mb-1">
+                      <span className="text-[9px] sm:text-[10px] font-bold text-bw-green">AANBEVOLEN</span>
+                    </div>
+                    <div className="text-[11px] font-bold text-bw-deep">DeVerzekerings&shy;Agent</div>
+                  </th>
                 </tr>
               </thead>
               <tbody>
                 {comparisonRows.map((row) => (
-                  <tr key={row.label} className="hover:bg-bw-bg/50 transition-colors">
-                    <td className="px-5 py-3 border-b border-bw-border font-medium">{row.label}</td>
-                    <td className={`text-center border-b border-bw-border text-[15px] ${row.others ? "text-bw-green" : "text-bw-text-light"}`}>
-                      {row.others ? "✓" : "✗"}
+                  <tr key={row.label}>
+                    <td className="px-4 sm:px-5 py-3.5 border-b border-bw-border font-medium text-bw-deep">{row.label}</td>
+                    <td className="text-center border-b border-bw-border">
+                      {row.others ? (
+                        <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-bw-green-bg">
+                          <CircleCheckBig className="w-3.5 h-3.5 text-bw-green" />
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-[#FEF2F2]">
+                          <span className="text-[12px] font-bold text-[#DC2626]">✗</span>
+                        </span>
+                      )}
                     </td>
-                    <td className="text-center border-b border-bw-border text-bw-blue font-bold text-[15px]">✓</td>
+                    <td className="text-center border-b border-bw-border bg-[#F0FDF4]">
+                      <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-bw-green-bg">
+                        <CircleCheckBig className="w-3.5 h-3.5 text-bw-green" />
+                      </span>
+                    </td>
                   </tr>
                 ))}
-                <tr className="bg-bw-blue-light">
-                  <td className="px-5 py-3.5 font-bold text-bw-deep">Prijs voor jou</td>
-                  <td className="text-center font-semibold">Gratis</td>
-                  <td className="text-center font-bold text-bw-blue text-[15px]">Gratis</td>
+                <tr>
+                  <td className="px-4 sm:px-5 py-3.5 font-bold text-bw-deep">Prijs</td>
+                  <td className="text-center font-semibold text-bw-text-mid">Gratis</td>
+                  <td className="text-center bg-[#F0FDF4] py-3.5">
+                    <span className="inline-flex items-center gap-1 px-3.5 py-1.5 rounded-full bg-bw-green text-white text-[12px] font-bold shadow-[0_2px_6px_rgba(22,163,74,0.25)]">Gratis</span>
+                  </td>
                 </tr>
               </tbody>
             </table>

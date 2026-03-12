@@ -11,9 +11,26 @@ import {
   type LiveScraperResult,
 } from "./utils";
 
+/**
+ * DISABLED 2026-03-11: OHRA's calculator backend API is broken.
+ * Their /stappen/situatie endpoint returns 404 and address lookup fails
+ * for all postcodes. The form cannot submit without a resolved address.
+ * Uses calculated scraper (lib/scrapers/inboedel/ohra.ts) as fallback.
+ */
 export async function scrapeOhra(input: LiveScraperInput): Promise<LiveScraperResult> {
   const start = Date.now();
   const logger = createLogger("OHRA-inboedel");
+
+  // OHRA's live calculator is broken — their backend API returns 404/500
+  logger.fail("Disabled", "OHRA calculator backend API is offline (404 on /stappen/situatie)");
+  return {
+    status: "error",
+    error: "OHRA live scraper disabled: calculator backend API offline. Using calculated scraper.",
+    duration_ms: Date.now() - start,
+    stepLog: logger.getSteps(),
+  };
+
+  // Original implementation below — re-enable when OHRA fixes their API
   let browser: Browser | null = null;
 
   try {
@@ -144,6 +161,21 @@ export async function scrapeOhra(input: LiveScraperInput): Promise<LiveScraperRe
         }
       }
     } catch { /* ignore */ }
+
+    // ── Check for "extra informatie nodig" rejection ──
+    try {
+      const rejection = page.locator('text="extra informatie nodig"');
+      if (await rejection.isVisible({ timeout: 1000 })) {
+        logger.fail("Adres geweigerd", "OHRA vereist telefonisch contact voor dit adres");
+        await closeBrowser(browser);
+        return {
+          status: "error",
+          error: "OHRA vereist telefonisch contact voor dit adres (online berekening niet beschikbaar).",
+          duration_ms: Date.now() - start,
+          stepLog: logger.getSteps(),
+        };
+      }
+    } catch { /* not visible, continue */ }
 
     // ── Click "Bereken je premie" ──
     const submitButton = page.getByRole("button", { name: "Bereken je premie" });

@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useSession, signOut } from "next-auth/react";
 import Link from "next/link";
-import { ShieldDownIcon, CheckIcon, LockIcon } from "@/components/icons";
+import { ShieldDownIcon, CheckIcon, LockIcon, FileText, Copy, Download, ClipboardList, Zap, ShieldCheck, Lightbulb, AlertTriangle } from "@/components/icons";
 
 interface OpzegForm {
   naam: string;
@@ -311,7 +311,7 @@ export default function OpzeggenPage() {
 
                   {error && (
                     <div className="flex items-start gap-2 px-4 py-3 rounded-lg bg-red-50 border border-red-200 text-sm text-red-700">
-                      <span>⚠</span> {error}
+                      <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" /> {error}
                     </div>
                   )}
 
@@ -321,7 +321,7 @@ export default function OpzeggenPage() {
                       disabled={loading}
                       className="px-6 py-2.5 rounded-lg text-sm font-bold bg-bw-orange text-white cursor-pointer hover:bg-bw-orange-strong transition-colors disabled:opacity-60"
                     >
-                      {loading ? "Genereren..." : "📄 Opzegbrief genereren"}
+                      {loading ? "Genereren..." : <><FileText className="w-4 h-4" /> Opzegbrief genereren</>}
                     </button>
                   </div>
                 </form>
@@ -342,14 +342,15 @@ export default function OpzeggenPage() {
                         <CheckIcon className="w-3.5 h-3.5" /> Gekopieerd!
                       </>
                     ) : (
-                      "📋 Kopieer"
+                      <><Copy className="w-3.5 h-3.5" /> Kopieer</>
+
                     )}
                   </button>
                   <button
                     onClick={handleDownload}
                     className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-bold bg-bw-green text-white cursor-pointer hover:bg-bw-green/90 transition-colors"
                   >
-                    ⬇ Download .txt
+                    <Download className="w-3.5 h-3.5" /> Download .txt
                   </button>
                   <button
                     onClick={handleReset}
@@ -367,7 +368,7 @@ export default function OpzeggenPage() {
                 </div>
 
                 <div className="flex items-start gap-2 px-4 py-3 rounded-lg bg-bw-bg border border-bw-border text-[12px] text-bw-text-mid">
-                  <span>💡</span>
+                  <Lightbulb className="w-4 h-4 shrink-0 mt-0.5 text-bw-text-mid" />
                   <span>
                     Tip: Stuur de brief aangetekend op of via e-mail met leesbevestiging. Bewaar een kopie voor je eigen administratie.
                   </span>
@@ -379,7 +380,7 @@ export default function OpzeggenPage() {
           {/* Tips sidebar */}
           <div className="space-y-4">
             <div className="bg-white rounded-xl border border-bw-border p-5">
-              <h3 className="text-sm font-bold text-bw-deep mb-3">📋 Tips bij opzeggen</h3>
+              <h3 className="text-sm font-bold text-bw-deep mb-3 flex items-center gap-1.5"><ClipboardList className="w-4 h-4" /> Tips bij opzeggen</h3>
               <ul className="space-y-2.5 text-[13px] text-bw-text-mid">
                 {[
                   {
@@ -414,7 +415,7 @@ export default function OpzeggenPage() {
             </div>
 
             <div className="bg-white rounded-xl border border-bw-border p-5">
-              <h3 className="text-sm font-bold text-bw-deep mb-2">⚡ Nieuw contract nodig?</h3>
+              <h3 className="text-sm font-bold text-bw-deep mb-2 flex items-center gap-1.5"><Zap className="w-4 h-4" /> Nieuw contract nodig?</h3>
               <p className="text-[13px] text-bw-text-mid mb-3">
                 Vergelijk direct de beste energietarieven of verzekeringen en stap over zonder gedoe.
               </p>
@@ -423,13 +424,13 @@ export default function OpzeggenPage() {
                   href="/upload?type=energie"
                   className="flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-lg text-sm font-bold bg-bw-green text-white no-underline hover:bg-bw-green/90 transition-colors"
                 >
-                  ⚡ Energie vergelijken
+                  <Zap className="w-4 h-4" /> Energie vergelijken
                 </Link>
                 <Link
                   href="/upload?type=verzekering"
                   className="flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-lg text-sm font-bold bg-bw-orange text-white no-underline hover:bg-bw-orange-strong transition-colors"
                 >
-                  🛡️ Verzekering vergelijken
+                  <ShieldCheck className="w-4 h-4" /> Verzekering vergelijken
                 </Link>
               </div>
             </div>

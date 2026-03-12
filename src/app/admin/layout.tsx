@@ -1,15 +1,16 @@
 import { auth } from "@/auth";
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import { ShieldDownIcon } from "@/components/icons";
+import { ShieldDownIcon, LayoutDashboard, Zap, Building, RefreshCw, Users, LinkIcon } from "@/components/icons";
+import type { ReactNode } from "react";
 
-const navItems = [
-  { href: "/admin", label: "Dashboard", icon: "📊" },
-  { href: "/admin/energy-monitor", label: "Energie Monitor", icon: "⚡" },
-  { href: "/admin/verzekeraars", label: "Verzekeraars", icon: "🏢" },
-  { href: "/admin/scrapers", label: "Scrapers", icon: "🔄" },
-  { href: "/admin/gebruikers", label: "Gebruikers", icon: "👥" },
-  { href: "/admin/daisycon", label: "Daisycon", icon: "🔗" },
+const navItems: { href: string; label: string; icon: ReactNode }[] = [
+  { href: "/admin", label: "Dashboard", icon: <LayoutDashboard className="w-4 h-4" /> },
+  { href: "/admin/energy-monitor", label: "Energie Monitor", icon: <Zap className="w-4 h-4" /> },
+  { href: "/admin/verzekeraars", label: "Verzekeraars", icon: <Building className="w-4 h-4" /> },
+  { href: "/admin/scrapers", label: "Scrapers", icon: <RefreshCw className="w-4 h-4" /> },
+  { href: "/admin/gebruikers", label: "Gebruikers", icon: <Users className="w-4 h-4" /> },
+  { href: "/admin/daisycon", label: "Daisycon", icon: <LinkIcon className="w-4 h-4" /> },
 ];
 
 export default async function AdminLayout({
@@ -62,7 +63,7 @@ export default async function AdminLayout({
                 href={item.href}
                 className="flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-sm font-medium text-bw-text-mid no-underline hover:bg-bw-blue-light hover:text-bw-blue transition-all"
               >
-                <span className="text-base">{item.icon}</span>
+                <span>{item.icon}</span>
                 {item.label}
               </Link>
             ))}

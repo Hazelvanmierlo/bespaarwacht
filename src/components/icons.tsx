@@ -1,3 +1,5 @@
+// ═══ CUSTOM SVG ICONS (keep existing) ═══
+
 export function ShieldIcon({ className = "w-5 h-5" }: { className?: string }) {
   return (
     <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -98,3 +100,45 @@ export function PulseDot() {
     <span className="inline-block w-[7px] h-[7px] rounded-full bg-bw-blue animate-pulse-dot" />
   );
 }
+
+// ═══ LUCIDE RE-EXPORTS — consistent stroke icons replacing emoji ═══
+// Tree-shakeable: only icons we use get bundled
+
+export {
+  // Insurance product icons
+  Home,
+  Building2,
+  ShieldCheck,
+  Plane,
+  Car,
+  HeartPulse,
+  // Energy icons
+  Zap,
+  Flame,
+  Sun,
+  // UI / navigation icons
+  Search,
+  BarChart3,
+  CircleCheckBig,
+  RefreshCw,
+  ClipboardList,
+  FileText,
+  Download,
+  Copy,
+  Lightbulb,
+  Info,
+  AlertTriangle,
+  // Account / profile icons
+  User,
+  KeyRound,
+  Bell,
+  Trash2,
+  Settings,
+  // Admin icons
+  LayoutDashboard,
+  Building,
+  Users,
+  Link as LinkIcon,
+  DollarSign,
+  Mail,
+} from "lucide-react";

@@ -166,7 +166,23 @@ export async function scrapeFbtoInboedel(
       logger.fail("gekocht-of-gehuurd", "step not found");
     }
 
-    // ── Step 8: "Woon je op kamers?" → Nee (only when Gehuurd) ──
+    // ── Step 8a: "Heb je huurders in je huis?" → Nee (only when Gekocht) ──
+    const huurders = await waitForStep(page, {
+      text: "huurders",
+      timeout: 4000,
+    });
+    if (huurders) {
+      await clickFirstVisible(page, 'button:has-text("Nee")', {
+        timeout: 3000,
+        label: "Nee (huurders)",
+      });
+      await page.waitForTimeout(2000);
+      logger.log("huurders", "clicked 'Nee'");
+    } else {
+      logger.log("huurders", "step skipped (not visible)");
+    }
+
+    // ── Step 8b: "Woon je op kamers?" → Nee (only when Gehuurd) ──
     const kamerbewoner = await waitForStep(page, {
       text: "Woon je op kamers",
       timeout: 4000,
@@ -179,7 +195,7 @@ export async function scrapeFbtoInboedel(
       await page.waitForTimeout(2000);
       logger.log("kamerbewoner", "clicked 'Nee'");
     } else {
-      logger.log("kamerbewoner", "step skipped (not visible — eigenaar path)");
+      logger.log("kamerbewoner", "step skipped (not visible)");
     }
 
     // ── Step 9: Geboortedatum ──

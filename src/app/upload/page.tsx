@@ -2,7 +2,8 @@
 
 import { useRef, useState, useCallback, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { ArrowRightIcon, LockIcon } from "@/components/icons";
+import { ArrowRightIcon, LockIcon, Home, Building2, ShieldCheck, Plane, Zap, FileText, ClipboardList, CircleCheckBig } from "@/components/icons";
+import type { ReactNode } from "react";
 import type { ProductType } from "@/lib/scrapers/base";
 import type { PolisData } from "@/lib/types";
 
@@ -30,11 +31,11 @@ interface EnergieData {
   stroom_vorig_jaar_kwh: number | null;
 }
 
-const PRODUCTS: { type: ProductType; label: string; icon: string; description: string }[] = [
-  { type: "inboedel", label: "Inboedelverzekering", icon: "🏠", description: "OHRA — € 17,53/mnd" },
-  { type: "opstal", label: "Opstalverzekering", icon: "🏗️", description: "OHRA — € 19,00/mnd" },
-  { type: "aansprakelijkheid", label: "Aansprakelijkheid (AVP)", icon: "🛡️", description: "Centraal Beheer — € 4,40/mnd" },
-  { type: "reis", label: "Reisverzekering", icon: "✈️", description: "FBTO — € 10,00/mnd" },
+const PRODUCTS: { type: ProductType; label: string; icon: ReactNode; description: string }[] = [
+  { type: "inboedel", label: "Inboedelverzekering", icon: <Home className="w-5 h-5" />, description: "OHRA — € 17,53/mnd" },
+  { type: "opstal", label: "Opstalverzekering", icon: <Building2 className="w-5 h-5" />, description: "OHRA — € 19,00/mnd" },
+  { type: "aansprakelijkheid", label: "Aansprakelijkheid (AVP)", icon: <ShieldCheck className="w-5 h-5" />, description: "Centraal Beheer — € 4,40/mnd" },
+  { type: "reis", label: "Reisverzekering", icon: <Plane className="w-5 h-5" />, description: "FBTO — € 10,00/mnd" },
 ];
 
 const PRODUCT_LABELS: Record<ProductType, string> = {
@@ -204,93 +205,370 @@ function UploadContent() {
     if (file) handleFile(file);
   }, [handleFile]);
 
+  // Manual input picker visibility (verzekering only)
+  const [showManualPicker, setShowManualPicker] = useState(false);
+
   // Check if this is manual input (no file was uploaded)
   const isManualInput = energieData?.leverancier === "" && energieData?.kosten_maand === 0 && !parsedData;
   const isManualInputVerzekering = parsedData?.verzekeraar === "" && parsedData?.maandpremie === 0;
 
+  // Energie wizard step (0 = leverancier, 1 = verbruik, 2 = bevestig)
+  const [energieStep, setEnergieStep] = useState(0);
+
+  // Auto-advance to step 1 if data came from PDF (not manual)
+  const energieFromPdf = energieData && !isManualInput;
+
+  const ENERGIE_STEPS = [
+    { label: "Leverancier", description: "Je huidige contract" },
+    { label: "Verbruik", description: "Stroom & gas" },
+    { label: "Vergelijk", description: "Bekijk resultaat" },
+  ];
+
   // === ENERGIE CONFIRMATION VIEW ===
   if (energieData) {
-    return (
-      <div className="max-w-[680px] mx-auto px-4 sm:px-6 py-8 sm:py-16">
-        <div className="flex items-center gap-4 mb-2">
-          <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-bw-green-bg to-[#D1FAE5] flex items-center justify-center text-xl shadow-[0_2px_8px_rgba(22,163,74,0.1)]">⚡</div>
-          <div>
-            <h2 className="font-heading text-[26px] font-bold text-bw-deep">
-              {isManualInput ? "Vul je gegevens in" : "Klopt dit?"}
-            </h2>
-            <p className="text-[14px] text-bw-text-mid">
-              {isManualInput
-                ? "Vul je verbruik en huidige leverancier in voor een persoonlijke vergelijking."
-                : "We hebben deze gegevens uit je energierekening gehaald. Pas aan indien nodig."}
-            </p>
-          </div>
-        </div>
-
-        <div className="bg-white rounded-xl border border-bw-border overflow-hidden mt-6">
-          {/* Leverancier */}
-          <div className="px-4 py-3 bg-[#F8FAFC] border-b border-bw-border">
-            <span className="text-[11px] font-bold text-bw-text-mid uppercase tracking-[0.5px]">Contract</span>
-          </div>
-          <div className="px-4 py-3 space-y-3">
-            <EditRow label="Leverancier" value={energieData.leverancier || ""} onChange={(v) => updateEnergieField("leverancier", v)} />
-            <EditRow label="Contract" value={energieData.contract_type || ""} onChange={(v) => updateEnergieField("contract_type", v)}
-              options={["vast", "variabel", "dynamisch"]} />
-            <EditRow label="Einddatum" value={energieData.contract_einddatum || ""} onChange={(v) => updateEnergieField("contract_einddatum", v)} placeholder="YYYY-MM-DD" />
-            <EditRow label="Maandkosten" value={energieData.kosten_maand || 0} type="number" prefix="€" onChange={(v) => {
-              const num = parseFloat(v) || 0;
-              updateEnergieField("kosten_maand", num);
-              updateEnergieField("kosten_jaar", +(num * 12).toFixed(2));
-            }} />
+    // If data came from PDF upload, show all-in-one confirmation
+    if (energieFromPdf) {
+      return (
+        <div className="max-w-[540px] mx-auto px-4 sm:px-6 py-8 sm:py-16">
+          <div className="flex items-center gap-4 mb-6">
+            <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-bw-green-bg to-[#D1FAE5] flex items-center justify-center shadow-[0_2px_8px_rgba(22,163,74,0.1)]"><Zap className="w-5 h-5 text-bw-green" /></div>
+            <div>
+              <h2 className="font-heading text-[22px] sm:text-[26px] font-bold text-bw-deep">Klopt dit?</h2>
+              <p className="text-[13px] sm:text-[14px] text-bw-text-mid">Gegevens uit je energierekening. Pas aan indien nodig.</p>
+            </div>
           </div>
 
-          {/* Elektriciteit */}
-          <div className="px-4 py-3 bg-[#F8FAFC] border-t border-b border-bw-border">
-            <span className="text-[11px] font-bold text-bw-text-mid uppercase tracking-[0.5px]">Elektriciteit</span>
-          </div>
-          <div className="px-4 py-3 space-y-3">
-            <EditRow label="Totaal kWh/jaar" value={energieData.stroom_kwh_jaar || 0} type="number" onChange={(v) => updateEnergieField("stroom_kwh_jaar", parseFloat(v) || 0)} />
-            <EditRow label="Normaal kWh" value={energieData.stroom_normaal_kwh || 0} type="number" onChange={(v) => updateEnergieField("stroom_normaal_kwh", parseFloat(v) || 0)} />
-            {energieData.meter_type === "dubbel" && (
-              <EditRow label="Dal kWh" value={energieData.stroom_dal_kwh || 0} type="number" onChange={(v) => updateEnergieField("stroom_dal_kwh", parseFloat(v) || 0)} />
+          <div className="bg-white rounded-xl border border-bw-border overflow-hidden">
+            {/* Personal info (if extracted from PDF) */}
+            {(energieData.naam || energieData.adres) && (
+              <>
+                <div className="px-4 py-3 bg-[#F8FAFC] border-b border-bw-border">
+                  <span className="text-[11px] font-bold text-bw-text-mid uppercase tracking-[0.5px]">Persoonsgegevens</span>
+                </div>
+                <div className="px-4 py-3 space-y-3">
+                  {energieData.naam && <EditRow label="Naam" value={energieData.naam} onChange={(v) => updateEnergieField("naam", v)} />}
+                  {energieData.adres && <EditRow label="Adres" value={energieData.adres} onChange={(v) => updateEnergieField("adres", v)} />}
+                </div>
+              </>
             )}
-            <EditRow label="Teruglevering kWh" value={energieData.teruglevering_kwh ?? ""} type="number" onChange={(v) => updateEnergieField("teruglevering_kwh", v ? parseFloat(v) : null)} />
-            <EditRow label="Metertypes" value={energieData.meter_type || "enkel"} onChange={(v) => updateEnergieField("meter_type", v)} options={["enkel", "dubbel"]} />
+
+            {/* Contract */}
+            <div className="px-4 py-3 bg-[#F8FAFC] border-t border-b border-bw-border">
+              <span className="text-[11px] font-bold text-bw-text-mid uppercase tracking-[0.5px]">Contract</span>
+            </div>
+            <div className="px-4 py-3 space-y-3">
+              <EditRow label="Leverancier" value={energieData.leverancier || ""} onChange={(v) => updateEnergieField("leverancier", v)} />
+              <EditRow label="Contract" value={energieData.contract_type || ""} onChange={(v) => updateEnergieField("contract_type", v)} options={["vast", "variabel", "dynamisch"]} />
+              {energieData.contract_einddatum && (
+                <EditRow label="Einddatum" value={energieData.contract_einddatum} onChange={(v) => updateEnergieField("contract_einddatum", v)} />
+              )}
+              <EditRow label="Maandkosten" value={energieData.kosten_maand || 0} type="number" prefix="€" onChange={(v) => { const num = parseFloat(v) || 0; updateEnergieField("kosten_maand", num); updateEnergieField("kosten_jaar", +(num * 12).toFixed(2)); }} />
+            </div>
+
+            {/* Usage */}
+            <div className="px-4 py-3 bg-[#F8FAFC] border-t border-b border-bw-border">
+              <span className="text-[11px] font-bold text-bw-text-mid uppercase tracking-[0.5px]">Verbruik</span>
+            </div>
+            <div className="px-4 py-3 space-y-3">
+              <EditRow label="Stroom" value={energieData.stroom_kwh_jaar || 0} type="number" onChange={(v) => { const num = parseFloat(v) || 0; updateEnergieField("stroom_kwh_jaar", num); updateEnergieField("stroom_normaal_kwh", num); }} />
+              {energieData.stroom_dal_kwh != null && energieData.stroom_dal_kwh > 0 && (
+                <EditRow label="Stroom dal" value={energieData.stroom_dal_kwh} type="number" onChange={(v) => updateEnergieField("stroom_dal_kwh", parseFloat(v) || null)} />
+              )}
+              <EditRow label="Gas" value={energieData.gas_m3_jaar ?? ""} type="number" onChange={(v) => updateEnergieField("gas_m3_jaar", v ? parseFloat(v) : null)} />
+              {energieData.teruglevering_kwh != null && energieData.teruglevering_kwh > 0 && (
+                <EditRow label="Teruglevering" value={energieData.teruglevering_kwh} type="number" onChange={(v) => updateEnergieField("teruglevering_kwh", parseFloat(v) || null)} />
+              )}
+            </div>
+
+            {/* EAN numbers (read-only display) */}
+            {(energieData.ean_stroom || energieData.ean_gas) && (
+              <>
+                <div className="px-4 py-3 bg-[#F8FAFC] border-t border-b border-bw-border">
+                  <span className="text-[11px] font-bold text-bw-text-mid uppercase tracking-[0.5px]">Aansluitgegevens</span>
+                  <span className="text-[10px] text-bw-text-light ml-1">(handig bij overstappen)</span>
+                </div>
+                <div className="px-4 py-3 space-y-3">
+                  {energieData.ean_stroom && <EditRow label="EAN stroom" value={energieData.ean_stroom} />}
+                  {energieData.ean_gas && <EditRow label="EAN gas" value={energieData.ean_gas} />}
+                  {energieData.meter_type && <EditRow label="Meter" value={energieData.meter_type} />}
+                </div>
+              </>
+            )}
           </div>
 
-          {/* Gas */}
-          <div className="px-4 py-3 bg-[#F8FAFC] border-t border-b border-bw-border">
-            <span className="text-[11px] font-bold text-bw-text-mid uppercase tracking-[0.5px]">Gas</span>
+          <div className="mt-6 flex gap-3">
+            <button onClick={handleEnergieConfirmAndAnalyze} className="flex-1 inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-xl text-[15px] font-bold bg-bw-green text-white border-none cursor-pointer font-[inherit] hover:bg-bw-green-strong hover:shadow-[0_4px_16px_rgba(22,163,74,0.25)] transition-all">
+              Ja, vergelijk leveranciers <ArrowRightIcon className="w-4 h-4" />
+            </button>
+            <button onClick={handleReset} className="inline-flex items-center px-4 py-3.5 rounded-xl text-[13px] font-semibold bg-white text-bw-text-mid border border-bw-border cursor-pointer font-[inherit] hover:bg-bw-bg transition-colors">
+              Opnieuw
+            </button>
           </div>
-          <div className="px-4 py-3 space-y-3">
-            <EditRow label="Gas m³/jaar" value={energieData.gas_m3_jaar ?? ""} type="number" onChange={(v) => updateEnergieField("gas_m3_jaar", v ? parseFloat(v) : null)} />
+          <div className="mt-3 flex items-center gap-2 px-3 py-2 bg-[#F0FDF4] rounded-lg border border-[#BBF7D0]">
+            <LockIcon className="w-3.5 h-3.5 text-bw-green shrink-0" />
+            <span className="text-[11px] text-bw-green-dark"><strong>Je bestand is al verwijderd.</strong> Alleen deze gegevens worden gebruikt.</span>
+          </div>
+        </div>
+      );
+    }
+
+    // Manual input: step-by-step wizard
+    return (
+      <div className="max-w-[540px] mx-auto px-4 sm:px-6 py-8 sm:py-16">
+        {/* Progress bar */}
+        <div className="mb-8">
+          <div className="flex items-center justify-between mb-3">
+            {ENERGIE_STEPS.map((step, i) => (
+              <div key={step.label} className="flex items-center gap-2 flex-1">
+                <div className={`w-7 h-7 rounded-full text-[11px] font-bold flex items-center justify-center shrink-0 transition-all ${
+                  i < energieStep ? "bg-bw-green text-white" : i === energieStep ? "bg-bw-blue text-white shadow-[0_0_0_3px_rgba(26,86,219,0.15)]" : "bg-bw-bg text-bw-text-light"
+                }`}>
+                  {i < energieStep ? <CircleCheckBig className="w-4 h-4" /> : i + 1}
+                </div>
+                {i < ENERGIE_STEPS.length - 1 && (
+                  <div className={`flex-1 h-[2px] rounded-full transition-all ${i < energieStep ? "bg-bw-green" : "bg-bw-border"}`} />
+                )}
+              </div>
+            ))}
+          </div>
+          <div className="flex justify-between">
+            {ENERGIE_STEPS.map((step, i) => (
+              <div key={step.label} className={`text-center flex-1 ${i === energieStep ? "text-bw-deep" : "text-bw-text-light"}`}>
+                <div className={`text-[11px] sm:text-[12px] font-semibold ${i === energieStep ? "text-bw-deep" : ""}`}>{step.label}</div>
+              </div>
+            ))}
           </div>
         </div>
 
-        {/* Actions */}
-        <div className="mt-6 flex gap-3">
-          <button
-            onClick={handleEnergieConfirmAndAnalyze}
-            className="flex-1 inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-xl text-[15px] font-bold bg-bw-orange text-white border-none cursor-pointer font-[inherit] hover:bg-bw-orange-strong hover:shadow-[0_4px_16px_rgba(249,115,22,0.3)] transition-all"
-          >
-            Vergelijk leveranciers <ArrowRightIcon className="w-4 h-4" />
-          </button>
-          <button
-            onClick={handleReset}
-            className="inline-flex items-center px-4 py-3.5 rounded-xl text-[13px] font-semibold bg-white text-bw-text-mid border border-bw-border cursor-pointer font-[inherit] hover:bg-bw-bg transition-colors"
-          >
-            Opnieuw
-          </button>
-        </div>
+        {/* Step content */}
+        {energieStep === 0 && (
+          <div>
+            <h2 className="font-heading text-[22px] sm:text-[26px] font-bold text-bw-deep mb-1">Bij welke leverancier zit je?</h2>
+            <p className="text-[13px] sm:text-[14px] text-bw-text-mid mb-6">Vul je huidige energieleverancier en contractgegevens in.</p>
 
-        {/* Privacy note */}
-        <div className="mt-4 flex items-center gap-2 px-3 py-2 bg-[#F0FDF4] rounded-lg border border-[#BBF7D0]">
-          <LockIcon />
-          <span className="text-[11px] text-bw-green-dark">
-            {isManualInput
-              ? <><strong>Privacy gewaarborgd.</strong> Je gegevens worden alleen gebruikt voor deze vergelijking.</>
-              : <><strong>Je bestand is al verwijderd.</strong> Alleen deze gegevens worden gebruikt voor de vergelijking.</>}
-          </span>
-        </div>
+            <div className="space-y-4">
+              <div>
+                <label className="text-[13px] font-semibold text-bw-deep mb-1.5 block">Huidige leverancier</label>
+                <select
+                  value={energieData.leverancier || ""}
+                  onChange={(e) => updateEnergieField("leverancier", e.target.value)}
+                  className="w-full px-4 py-3 rounded-xl border border-bw-border text-[14px] text-bw-deep bg-white focus:outline-none focus:border-bw-green focus:ring-2 focus:ring-bw-green/20"
+                >
+                  <option value="">Selecteer je leverancier...</option>
+                  {["Budget Energie", "Eneco", "Essent", "Greenchoice", "Oxxio", "Vattenfall", "Vandebron", "Engie", "Nederlandse Energie Maatschappij", "Mega", "Frank Energie", "Tibber", "UnitedConsumers", "Coolblue Energie", "Pure Energie", "HEM", "NextEnergy", "Anders"].map((l) => (
+                    <option key={l} value={l}>{l}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="text-[13px] font-semibold text-bw-deep mb-1.5 block">Type contract</label>
+                <div className="grid grid-cols-3 gap-2">
+                  {(["vast", "variabel", "dynamisch"] as const).map((type) => (
+                    <button
+                      key={type}
+                      onClick={() => updateEnergieField("contract_type", type)}
+                      className={`px-3 py-2.5 rounded-xl border text-[13px] font-semibold cursor-pointer font-[inherit] transition-all ${
+                        energieData.contract_type === type
+                          ? "border-bw-green bg-bw-green-bg text-bw-green-strong shadow-[0_0_0_1px_#16A34A]"
+                          : "border-bw-border bg-white text-bw-deep hover:border-[#94A3B8]"
+                      }`}
+                    >
+                      {type.charAt(0).toUpperCase() + type.slice(1)}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <label className="text-[13px] font-semibold text-bw-deep mb-1.5 block">Wat betaal je per maand? <span className="font-normal text-bw-text-light">(schatting is ok)</span></label>
+                <div className="relative">
+                  <span className="absolute left-4 top-1/2 -translate-y-1/2 text-[14px] font-semibold text-bw-text-mid">€</span>
+                  <input
+                    type="number"
+                    value={energieData.kosten_maand || ""}
+                    onChange={(e) => { const num = parseFloat(e.target.value) || 0; updateEnergieField("kosten_maand", num); updateEnergieField("kosten_jaar", +(num * 12).toFixed(2)); }}
+                    placeholder="bijv. 180"
+                    className="w-full pl-9 pr-16 py-3 rounded-xl border border-bw-border text-[14px] text-bw-deep focus:outline-none focus:border-bw-green focus:ring-2 focus:ring-bw-green/20"
+                  />
+                  <span className="absolute right-4 top-1/2 -translate-y-1/2 text-[12px] text-bw-text-light">per maand</span>
+                </div>
+              </div>
+            </div>
+
+            <button
+              onClick={() => setEnergieStep(1)}
+              className="mt-6 w-full inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-xl text-[15px] font-bold bg-bw-blue text-white border-none cursor-pointer font-[inherit] hover:bg-[#1E40AF] transition-all"
+            >
+              Volgende: verbruik invullen <ArrowRightIcon className="w-4 h-4" />
+            </button>
+          </div>
+        )}
+
+        {energieStep === 1 && (
+          <div>
+            <h2 className="font-heading text-[22px] sm:text-[26px] font-bold text-bw-deep mb-1">Hoeveel verbruik je?</h2>
+            <p className="text-[13px] sm:text-[14px] text-bw-text-mid mb-6">Dit staat op je jaaroverzicht of energierekening. Weet je het niet precies? Een schatting is voldoende.</p>
+
+            <div className="space-y-4">
+              <div>
+                <label className="text-[13px] font-semibold text-bw-deep mb-1.5 block">Stroomverbruik per jaar</label>
+                <div className="relative">
+                  <input
+                    type="number"
+                    value={energieData.stroom_kwh_jaar || ""}
+                    onChange={(e) => { const num = parseFloat(e.target.value) || 0; updateEnergieField("stroom_kwh_jaar", num); updateEnergieField("stroom_normaal_kwh", num); }}
+                    placeholder="bijv. 2500"
+                    className="w-full px-4 pr-16 py-3 rounded-xl border border-bw-border text-[14px] text-bw-deep focus:outline-none focus:border-bw-green focus:ring-2 focus:ring-bw-green/20"
+                  />
+                  <span className="absolute right-4 top-1/2 -translate-y-1/2 text-[12px] text-bw-text-light">kWh/jaar</span>
+                </div>
+                <div className="mt-1.5 flex gap-2">
+                  {[1500, 2500, 4000, 6000].map((v) => (
+                    <button key={v} onClick={() => { updateEnergieField("stroom_kwh_jaar", v); updateEnergieField("stroom_normaal_kwh", v); }}
+                      className={`px-2.5 py-1 rounded-lg text-[11px] font-semibold cursor-pointer font-[inherit] transition-all ${
+                        energieData.stroom_kwh_jaar === v ? "bg-bw-blue text-white" : "bg-bw-bg text-bw-text-mid border border-bw-border hover:bg-[#E2E8F0]"
+                      }`}>
+                      {v.toLocaleString("nl-NL")}
+                    </button>
+                  ))}
+                </div>
+                <div className="text-[10px] text-bw-text-light mt-1">Gemiddeld: alleenstaand ~1.500 · huishouden ~2.500 · groot gezin ~4.000+</div>
+              </div>
+
+              <div>
+                <label className="text-[13px] font-semibold text-bw-deep mb-1.5 block">Gasverbruik per jaar <span className="font-normal text-bw-text-light">(geen gas? Laat leeg)</span></label>
+                <div className="relative">
+                  <input
+                    type="number"
+                    value={energieData.gas_m3_jaar ?? ""}
+                    onChange={(e) => updateEnergieField("gas_m3_jaar", e.target.value ? parseFloat(e.target.value) : null)}
+                    placeholder="bijv. 1200"
+                    className="w-full px-4 pr-16 py-3 rounded-xl border border-bw-border text-[14px] text-bw-deep focus:outline-none focus:border-bw-green focus:ring-2 focus:ring-bw-green/20"
+                  />
+                  <span className="absolute right-4 top-1/2 -translate-y-1/2 text-[12px] text-bw-text-light">m³/jaar</span>
+                </div>
+                <div className="mt-1.5 flex gap-2">
+                  {[800, 1200, 1800, 2500].map((v) => (
+                    <button key={v} onClick={() => updateEnergieField("gas_m3_jaar", v)}
+                      className={`px-2.5 py-1 rounded-lg text-[11px] font-semibold cursor-pointer font-[inherit] transition-all ${
+                        energieData.gas_m3_jaar === v ? "bg-bw-blue text-white" : "bg-bw-bg text-bw-text-mid border border-bw-border hover:bg-[#E2E8F0]"
+                      }`}>
+                      {v.toLocaleString("nl-NL")}
+                    </button>
+                  ))}
+                </div>
+                <div className="text-[10px] text-bw-text-light mt-1">Gemiddeld: appartement ~800 · tussenwoning ~1.200 · vrijstaand ~2.000+</div>
+              </div>
+
+              <div>
+                <label className="text-[13px] font-semibold text-bw-deep mb-1.5 block">Zonnepanelen? <span className="font-normal text-bw-text-light">(optioneel)</span></label>
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    onClick={() => updateEnergieField("teruglevering_kwh", null)}
+                    className={`px-3 py-2.5 rounded-xl border text-[13px] font-semibold cursor-pointer font-[inherit] transition-all ${
+                      !energieData.teruglevering_kwh ? "border-bw-green bg-bw-green-bg text-bw-green-strong shadow-[0_0_0_1px_#16A34A]" : "border-bw-border bg-white text-bw-deep hover:border-[#94A3B8]"
+                    }`}>
+                    Nee
+                  </button>
+                  <button
+                    onClick={() => updateEnergieField("teruglevering_kwh", energieData.teruglevering_kwh || 1500)}
+                    className={`px-3 py-2.5 rounded-xl border text-[13px] font-semibold cursor-pointer font-[inherit] transition-all ${
+                      energieData.teruglevering_kwh ? "border-bw-green bg-bw-green-bg text-bw-green-strong shadow-[0_0_0_1px_#16A34A]" : "border-bw-border bg-white text-bw-deep hover:border-[#94A3B8]"
+                    }`}>
+                    Ja
+                  </button>
+                </div>
+                {energieData.teruglevering_kwh && (
+                  <div className="mt-2 relative">
+                    <input
+                      type="number"
+                      value={energieData.teruglevering_kwh}
+                      onChange={(e) => updateEnergieField("teruglevering_kwh", parseFloat(e.target.value) || null)}
+                      placeholder="bijv. 1500"
+                      className="w-full px-4 pr-24 py-3 rounded-xl border border-bw-border text-[14px] text-bw-deep focus:outline-none focus:border-bw-green focus:ring-2 focus:ring-bw-green/20"
+                    />
+                    <span className="absolute right-4 top-1/2 -translate-y-1/2 text-[12px] text-bw-text-light">kWh teruglevering</span>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div className="mt-6 flex gap-3">
+              <button
+                onClick={() => setEnergieStep(0)}
+                className="inline-flex items-center px-4 py-3.5 rounded-xl text-[13px] font-semibold bg-white text-bw-text-mid border border-bw-border cursor-pointer font-[inherit] hover:bg-bw-bg transition-colors"
+              >
+                Terug
+              </button>
+              <button
+                onClick={() => setEnergieStep(2)}
+                className="flex-1 inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-xl text-[15px] font-bold bg-bw-blue text-white border-none cursor-pointer font-[inherit] hover:bg-[#1E40AF] transition-all"
+              >
+                Volgende: bekijk resultaat <ArrowRightIcon className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+        )}
+
+        {energieStep === 2 && (
+          <div>
+            <h2 className="font-heading text-[22px] sm:text-[26px] font-bold text-bw-deep mb-1">Alles klaar!</h2>
+            <p className="text-[13px] sm:text-[14px] text-bw-text-mid mb-6">Controleer je gegevens en vergelijk direct alle leveranciers.</p>
+
+            {/* Summary */}
+            <div className="bg-white rounded-xl border border-bw-border overflow-hidden mb-6">
+              <div className="divide-y divide-bw-border">
+                <div className="px-4 py-3 flex justify-between items-center">
+                  <span className="text-[13px] text-bw-text-mid">Leverancier</span>
+                  <span className="text-[13px] font-semibold text-bw-deep">{energieData.leverancier || "Niet ingevuld"}</span>
+                </div>
+                <div className="px-4 py-3 flex justify-between items-center">
+                  <span className="text-[13px] text-bw-text-mid">Contract</span>
+                  <span className="text-[13px] font-semibold text-bw-deep capitalize">{energieData.contract_type}</span>
+                </div>
+                <div className="px-4 py-3 flex justify-between items-center">
+                  <span className="text-[13px] text-bw-text-mid">Maandkosten</span>
+                  <span className="text-[13px] font-semibold text-bw-deep">€ {energieData.kosten_maand || 0}</span>
+                </div>
+                <div className="px-4 py-3 flex justify-between items-center">
+                  <span className="text-[13px] text-bw-text-mid">Stroom</span>
+                  <span className="text-[13px] font-semibold text-bw-deep">{energieData.stroom_kwh_jaar?.toLocaleString("nl-NL")} kWh/jaar</span>
+                </div>
+                <div className="px-4 py-3 flex justify-between items-center">
+                  <span className="text-[13px] text-bw-text-mid">Gas</span>
+                  <span className="text-[13px] font-semibold text-bw-deep">{energieData.gas_m3_jaar ? `${energieData.gas_m3_jaar.toLocaleString("nl-NL")} m³/jaar` : "Geen gas"}</span>
+                </div>
+                {energieData.teruglevering_kwh && (
+                  <div className="px-4 py-3 flex justify-between items-center">
+                    <span className="text-[13px] text-bw-text-mid">Zonnepanelen</span>
+                    <span className="text-[13px] font-semibold text-bw-deep">{energieData.teruglevering_kwh.toLocaleString("nl-NL")} kWh teruglevering</span>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div className="flex gap-3">
+              <button
+                onClick={() => setEnergieStep(1)}
+                className="inline-flex items-center px-4 py-3.5 rounded-xl text-[13px] font-semibold bg-white text-bw-text-mid border border-bw-border cursor-pointer font-[inherit] hover:bg-bw-bg transition-colors"
+              >
+                Terug
+              </button>
+              <button
+                onClick={handleEnergieConfirmAndAnalyze}
+                className="flex-1 inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-xl text-[15px] font-bold bg-bw-green text-white border-none cursor-pointer font-[inherit] hover:bg-bw-green-strong hover:shadow-[0_4px_16px_rgba(22,163,74,0.25)] transition-all"
+              >
+                Vergelijk alle leveranciers <ArrowRightIcon className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="mt-3 flex items-center gap-2 px-3 py-2 bg-[#F0FDF4] rounded-lg border border-[#BBF7D0]">
+              <LockIcon className="w-3.5 h-3.5 text-bw-green shrink-0" />
+              <span className="text-[11px] text-bw-green-dark"><strong>Privacy gewaarborgd.</strong> Je gegevens worden alleen gebruikt voor deze vergelijking.</span>
+            </div>
+          </div>
+        )}
       </div>
     );
   }
@@ -300,8 +578,8 @@ function UploadContent() {
     return (
       <div className="max-w-[680px] mx-auto px-4 sm:px-6 py-8 sm:py-16">
         <div className="flex items-center gap-4 mb-2">
-          <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-bw-blue-light to-[#DBEAFE] flex items-center justify-center text-xl shadow-[0_2px_8px_rgba(43,108,176,0.1)]">
-            {isManualInputVerzekering ? "📋" : "📄"}
+          <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-bw-blue-light to-[#DBEAFE] flex items-center justify-center shadow-[0_2px_8px_rgba(43,108,176,0.1)]">
+            {isManualInputVerzekering ? <ClipboardList className="w-5 h-5 text-bw-blue" /> : <FileText className="w-5 h-5 text-bw-blue" />}
           </div>
           <div>
             <h2 className="font-heading text-[26px] font-bold text-bw-deep">
@@ -376,7 +654,6 @@ function UploadContent() {
               </div>
               <div className="px-4 py-3 space-y-3">
                 <EditRow label="Huisnummer" value={parsedData.huisnummer} onChange={(v) => updateField("huisnummer", v)} />
-                <EditRow label="Geboortedatum" value={parsedData.geboortedatum} onChange={(v) => updateField("geboortedatum", v)} placeholder="dd-mm-jjjj" />
                 <EditRow label="Eigenaar/Huurder" value={parsedData.eigenaar || "Eigenaar"} onChange={(v) => updateField("eigenaar", v)} options={EIGENAAR_OPTIONS} />
               </div>
             </>
@@ -439,28 +716,53 @@ function UploadContent() {
 
   // === UPLOAD VIEW ===
   return (
-    <div className="max-w-[680px] mx-auto px-4 sm:px-6 py-8 sm:py-16">
-      {/* Header with icon */}
+    <div className="max-w-[580px] mx-auto px-4 sm:px-6 py-8 sm:py-16">
+      {/* Header */}
       <div className="text-center mb-6 sm:mb-8">
-        <div className="w-14 sm:w-16 h-14 sm:h-16 rounded-2xl bg-gradient-to-br from-bw-green-bg to-bw-blue-light flex items-center justify-center mx-auto mb-3 sm:mb-4 text-[24px] sm:text-[28px]">
-          {docCategory === "energie" ? "⚡" : "📄"}
-        </div>
-        <h2 className="font-heading text-[clamp(22px,3vw,32px)] font-bold text-bw-deep mb-2">
-          {docCategory === "energie" ? "Energierekening uploaden" : "Polis uploaden"}
+        <h2 className="font-heading text-[clamp(22px,3vw,30px)] font-bold text-bw-deep mb-2">
+          {docCategory === "energie" ? "Bespaar op je energierekening" : "Betaal je te veel voor je verzekering?"}
         </h2>
         <p className="text-[14px] sm:text-[15px] text-bw-text-mid max-w-[440px] mx-auto">
           {docCategory === "energie"
-            ? "Upload je jaaroverzicht of energierekening. Wij vergelijken alle leveranciers."
-            : "Upload je polisblad als PDF of foto. Wij vinden direct een betere deal."}
+            ? "Upload je energierekening en wij vergelijken direct alle leveranciers."
+            : "Upload je polisblad en wij vinden direct of het goedkoper kan."}
         </p>
+
+        {/* Progress bar steps */}
+        <div className="mt-5 mx-auto max-w-[440px] px-4">
+          {/* Bar track + dots */}
+          <div className="relative flex items-center justify-between mb-2">
+            <div className="absolute top-1/2 left-[8%] right-[8%] h-[3px] -translate-y-1/2 rounded-full bg-gradient-to-r from-bw-blue via-bw-blue to-bw-green" />
+            <div className="relative z-10 flex-1 flex justify-between">
+              <div className="w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-bw-blue text-white text-[10px] sm:text-[11px] font-bold flex items-center justify-center shadow-[0_0_0_3px_white,0_0_0_4px_rgba(26,86,219,0.15)]">1</div>
+              <div className="w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-bw-blue text-white text-[10px] sm:text-[11px] font-bold flex items-center justify-center shadow-[0_0_0_3px_white,0_0_0_4px_rgba(26,86,219,0.15)]">2</div>
+              <div className="w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-bw-green text-white text-[10px] sm:text-[11px] font-bold flex items-center justify-center shadow-[0_0_0_3px_white,0_0_0_4px_rgba(22,163,74,0.15)]">3</div>
+            </div>
+          </div>
+          {/* Labels */}
+          <div className="flex justify-between text-center">
+            <div className="flex-1">
+              <div className="text-[11px] sm:text-[12px] font-semibold text-bw-deep">Upload</div>
+              <div className="text-[9px] sm:text-[10px] text-bw-text-light hidden sm:block">PDF of foto</div>
+            </div>
+            <div className="flex-1">
+              <div className="text-[11px] sm:text-[12px] font-semibold text-bw-deep">Vergelijk</div>
+              <div className="text-[9px] sm:text-[10px] text-bw-text-light">{docCategory === "energie" ? "18+ aanbieders" : "12+ verzekeraars"}</div>
+            </div>
+            <div className="flex-1">
+              <div className="text-[11px] sm:text-[12px] font-semibold text-bw-deep">Bespaar</div>
+              <div className="text-[9px] sm:text-[10px] text-bw-green font-semibold">binnen 2 min</div>
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* Category toggle */}
       <div className="flex justify-center mb-6 sm:mb-8">
-        <div className="inline-flex rounded-xl bg-bw-bg p-1 border border-bw-border w-full sm:w-auto">
+        <div className="inline-flex rounded-xl bg-bw-bg p-1 border border-bw-border">
           <button
             onClick={() => setDocCategory("verzekering")}
-            className={`flex-1 sm:flex-none px-5 py-3 sm:py-2.5 text-[13px] font-semibold rounded-lg transition-all cursor-pointer border-none font-[inherit] ${
+            className={`px-5 py-2.5 text-[13px] font-semibold rounded-lg transition-all cursor-pointer border-none font-[inherit] ${
               docCategory === "verzekering"
                 ? "bg-white text-bw-deep shadow-[var(--shadow-bw-card)]"
                 : "bg-transparent text-bw-text-mid hover:text-bw-deep"
@@ -470,7 +772,7 @@ function UploadContent() {
           </button>
           <button
             onClick={() => setDocCategory("energie")}
-            className={`flex-1 sm:flex-none px-5 py-3 sm:py-2.5 text-[13px] font-semibold rounded-lg transition-all cursor-pointer border-none font-[inherit] ${
+            className={`px-5 py-2.5 text-[13px] font-semibold rounded-lg transition-all cursor-pointer border-none font-[inherit] ${
               docCategory === "energie"
                 ? "bg-white text-bw-deep shadow-[var(--shadow-bw-card)]"
                 : "bg-transparent text-bw-text-mid hover:text-bw-deep"
@@ -480,33 +782,6 @@ function UploadContent() {
           </button>
         </div>
       </div>
-
-      {/* Product type selector — only for verzekeringen */}
-      {docCategory === "verzekering" && (
-        <div className="mb-6">
-          <div className="text-[13px] font-semibold text-bw-deep mb-3">Welk type verzekering?</div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-            {PRODUCTS.map((p) => (
-              <button
-                key={p.type}
-                onClick={() => setSelectedProduct(p.type)}
-                className={`flex items-center gap-3 p-3.5 sm:p-3 rounded-xl border text-left cursor-pointer font-[inherit] transition-all min-h-[48px] ${
-                  selectedProduct === p.type
-                    ? "border-bw-green bg-bw-green-bg shadow-[0_0_0_1px_#16A34A]"
-                    : "border-bw-border bg-white hover:border-[#94A3B8]"
-                }`}
-              >
-                <span className="text-xl">{p.icon}</span>
-                <div>
-                  <div className={`text-[13px] font-semibold ${selectedProduct === p.type ? "text-bw-green-strong" : "text-bw-deep"}`}>
-                    {p.label}
-                  </div>
-                </div>
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
 
       {/* Drop zone */}
       <div
@@ -545,7 +820,6 @@ function UploadContent() {
                 <line x1="12" y1="3" x2="12" y2="15" />
               </svg>
             </div>
-            {/* Mobile: emphasize tap/camera. Desktop: emphasize drag */}
             <div className="text-[15px] sm:text-[16px] font-bold text-bw-deep mb-1">
               <span className="sm:hidden">Tik om een foto of PDF te kiezen</span>
               <span className="hidden sm:inline">Sleep je bestand hierheen</span>
@@ -554,14 +828,15 @@ function UploadContent() {
               <span className="sm:hidden">Maak een foto van je document of kies een bestand</span>
               <span className="hidden sm:inline">of <span className="text-bw-blue font-semibold underline underline-offset-2">klik om te selecteren</span></span>
             </div>
-            <div className="text-[11px] sm:text-[12px] text-bw-text-light mb-4 sm:mb-5">PDF, JPG, PNG — max 10MB</div>
-            <div className="flex justify-center gap-3 sm:gap-5 text-[11px] sm:text-[12px] text-bw-text-mid flex-wrap">
-              <span className="flex items-center gap-1.5"><span className="w-5 h-5 rounded-md bg-bw-bg flex items-center justify-center text-[10px] sm:text-[11px]">📄</span> PDF of foto</span>
-              <span className="flex items-center gap-1.5"><span className="w-5 h-5 rounded-md bg-bw-bg flex items-center justify-center text-[10px] sm:text-[11px]">🔒</span> Veilig</span>
-              <span className="flex items-center gap-1.5"><span className="w-5 h-5 rounded-md bg-bw-bg flex items-center justify-center text-[10px] sm:text-[11px]">⚡</span> 5 sec</span>
-            </div>
+            <div className="text-[11px] sm:text-[12px] text-bw-text-light">PDF, JPG, PNG — max 10MB</div>
           </>
         )}
+      </div>
+
+      {/* Inline trust signals */}
+      <div className="mt-3 flex justify-center gap-4 sm:gap-6 text-[11px] sm:text-[12px] text-bw-text-mid">
+        <span className="flex items-center gap-1.5"><LockIcon className="w-3.5 h-3.5 text-bw-green" /> Bestand wordt niet opgeslagen</span>
+        <span className="flex items-center gap-1.5"><Zap className="w-3.5 h-3.5 text-bw-text-mid" /> Klaar in 5 sec</span>
       </div>
 
       {/* Upload error */}
@@ -571,34 +846,18 @@ function UploadContent() {
         </div>
       )}
 
-      {/* Privacy guarantee */}
-      <div className="mt-6 p-5 bg-white rounded-2xl border border-bw-border shadow-[var(--shadow-bw-card)]">
-        <div className="flex items-start gap-3">
-          <div className="w-10 h-10 rounded-xl bg-bw-green-bg flex items-center justify-center shrink-0">
-            <LockIcon />
-          </div>
-          <div>
-            <div className="text-[14px] font-bold text-bw-deep mb-1">Wij slaan je bestand niet op</div>
-            <div className="text-[13px] text-bw-text-mid leading-relaxed">
-              Je bestand wordt alleen tijdelijk verwerkt om gegevens uit te lezen. Na analyse wordt het direct verwijderd. Conform AVG dataminimalisatie.
-            </div>
-          </div>
-        </div>
+      {/* Manual input divider */}
+      <div className="mt-8 flex items-center gap-3">
+        <div className="flex-1 h-px bg-bw-border" />
+        <span className="text-[12px] text-bw-text-light font-medium">of</span>
+        <div className="flex-1 h-px bg-bw-border" />
       </div>
 
-      {/* Manual input option */}
-      <div className="mt-8 p-5 bg-white rounded-xl border border-bw-border">
-        <div className="text-[13px] font-semibold text-bw-deep mb-2">
-          {docCategory === "energie" ? "⚡ Geen energierekening bij de hand?" : "📋 Geen polisblad bij de hand?"}
-        </div>
-        <p className="text-[13px] text-bw-text-mid mb-4">
-          {docCategory === "energie"
-            ? "Vul je verbruik en leverancier handmatig in. We vergelijken direct alle leveranciers."
-            : "Vul je verzekeringsgegevens handmatig in en ontdek of je goedkoper uit kunt."}
-        </p>
-        {docCategory === "energie" ? (
-          <button
-            onClick={() => {
+      {/* Manual input option — compact */}
+      {!showManualPicker ? (
+        <button
+          onClick={() => {
+            if (docCategory === "energie") {
               setEnergieData({
                 leverancier: "",
                 stroom_normaal_kwh: 2500,
@@ -620,13 +879,20 @@ function UploadContent() {
                 ean_gas: null,
                 stroom_vorig_jaar_kwh: null,
               });
-            }}
-            className="w-full inline-flex items-center justify-center gap-2 px-5 py-3.5 sm:py-3 rounded-xl text-[14px] font-semibold bg-bw-green-bg text-bw-green-strong border border-[rgba(22,163,74,0.2)] cursor-pointer font-[inherit] hover:bg-[#D1FAE5] transition-all min-h-[48px]"
-          >
-            Vul handmatig in <ArrowRightIcon className="w-3.5 h-3.5" />
-          </button>
-        ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            } else {
+              setShowManualPicker(true);
+            }
+          }}
+          className="mt-4 w-full flex items-center justify-center gap-2 px-4 py-3.5 rounded-xl text-[14px] font-semibold text-bw-text-mid bg-white border border-bw-border cursor-pointer font-[inherit] hover:bg-bw-bg hover:border-[#94A3B8] transition-all"
+        >
+          <ClipboardList className="w-4 h-4" />
+          {docCategory === "energie" ? "Vul handmatig in" : "Geen polisblad? Vul handmatig in"}
+          <span className="text-[11px] font-normal text-bw-text-light ml-1">— duurt 2 min</span>
+        </button>
+      ) : (
+        <div className="mt-4">
+          <div className="text-[13px] font-semibold text-bw-deep mb-3">Welke verzekering wil je vergelijken?</div>
+          <div className="grid grid-cols-2 gap-2">
             {PRODUCTS.map((p) => (
               <button
                 key={p.type}
@@ -654,19 +920,15 @@ function UploadContent() {
                   } as PolisData);
                   setDetectedProduct(p.type);
                 }}
-                className="flex items-center gap-3 px-4 py-3.5 sm:py-3 rounded-lg text-left bg-bw-bg border border-bw-border cursor-pointer font-[inherit] hover:bg-[#E2E8F0] hover:border-[#94A3B8] transition-all min-h-[48px]"
+                className="flex items-center gap-2.5 p-3 rounded-xl border border-bw-border bg-white text-left cursor-pointer font-[inherit] hover:border-[#94A3B8] hover:bg-bw-bg transition-all"
               >
-                <span className="text-lg">{p.icon}</span>
-                <div>
-                  <div className="text-[12px] font-semibold text-bw-deep">{p.label}</div>
-                  <div className="text-[11px] text-bw-text-light">Vul zelf in</div>
-                </div>
-                <ArrowRightIcon className="w-3 h-3 ml-auto text-bw-text-light" />
+                <span className="text-bw-blue">{p.icon}</span>
+                <span className="text-[13px] font-semibold text-bw-deep">{p.label}</span>
               </button>
             ))}
           </div>
-        )}
-      </div>
+        </div>
+      )}
     </div>
   );
 }

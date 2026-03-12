@@ -2,7 +2,7 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { getSupabaseAdmin } from "@/lib/supabase-server";
 import { auth } from "@/auth";
-import { CheckIcon, ArrowRightIcon } from "@/components/icons";
+import { CheckIcon, ArrowRightIcon, Home, Building2, ShieldCheck, Plane, FileText, Search } from "@/components/icons";
 
 const PRODUCT_LABELS: Record<string, string> = {
   inboedel: "Inboedelverzekering",
@@ -68,10 +68,10 @@ export default async function AnalysePage({
       {/* Header */}
       <div className="flex items-center gap-4 mb-6">
         <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-bw-blue-light to-[#DBEAFE] flex items-center justify-center text-xl">
-          {analysis.product_type === "inboedel" ? "🏠" :
-           analysis.product_type === "opstal" ? "🏗️" :
-           analysis.product_type === "aansprakelijkheid" ? "🛡️" :
-           analysis.product_type === "reis" ? "✈️" : "📄"}
+          {analysis.product_type === "inboedel" ? <Home className="w-5 h-5 text-bw-blue" /> :
+           analysis.product_type === "opstal" ? <Building2 className="w-5 h-5 text-bw-blue" /> :
+           analysis.product_type === "aansprakelijkheid" ? <ShieldCheck className="w-5 h-5 text-bw-blue" /> :
+           analysis.product_type === "reis" ? <Plane className="w-5 h-5 text-bw-blue" /> : <FileText className="w-5 h-5 text-bw-blue" />}
         </div>
         <div>
           <h1 className="font-heading text-[24px] font-bold text-bw-deep">{productLabel}</h1>
@@ -184,7 +184,7 @@ export default async function AnalysePage({
 function NotFound({ message }: { message: string }) {
   return (
     <div className="max-w-[520px] mx-auto px-6 py-20 text-center">
-      <div className="w-16 h-16 rounded-2xl bg-bw-bg flex items-center justify-center mx-auto mb-4 text-2xl">🔍</div>
+      <div className="w-16 h-16 rounded-2xl bg-bw-bg flex items-center justify-center mx-auto mb-4"><Search className="w-6 h-6 text-bw-text-mid" /></div>
       <h1 className="font-heading text-xl font-bold text-bw-deep mb-2">Niet gevonden</h1>
       <p className="text-sm text-bw-text-mid mb-6">{message}</p>
       <Link

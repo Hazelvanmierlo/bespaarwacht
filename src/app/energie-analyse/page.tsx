@@ -12,12 +12,9 @@ import { detecteerApparaten } from "@/lib/energie/apparaat-detectie";
 import { leveranciers, berekenJaarkosten } from "@/lib/energie/leveranciers";
 import { genereerTips } from "@/lib/energie/tips-generator";
 import UploadZone from "@/components/energie/UploadZone";
-import ExtractedData from "@/components/energie/ExtractedData";
-import ProfielDetectie from "@/components/energie/ProfielDetectie";
 import Vergelijking from "@/components/energie/Vergelijking";
-import AdviesPanel from "@/components/energie/AdviesPanel";
 import CountUp from "@/components/energie/CountUp";
-import { ArrowRightIcon, CheckIcon } from "@/components/icons";
+import { ArrowRightIcon, CheckIcon, FileText, Search, Lightbulb, Zap, LockIcon } from "@/components/icons";
 
 type Phase = "upload" | "results";
 
@@ -71,27 +68,6 @@ function EnergieAnalyseContent() {
     setPhase("results");
   }, []);
 
-  const handleDataUpdate = useCallback((updated: EnergieData) => {
-    setEnergieData(updated);
-    setApparaten(detecteerApparaten(updated));
-  }, []);
-
-  const handleToggle = useCallback(
-    (key: keyof ApparaatDetectie) => {
-      if (!apparaten) return;
-      setApparaten((prev) => {
-        if (!prev) return prev;
-        const current = prev[key];
-        const toggled =
-          current === "zeker" || current === "waarschijnlijk"
-            ? "onwaarschijnlijk" as const
-            : "zeker" as const;
-        return { ...prev, [key]: toggled };
-      });
-    },
-    [apparaten],
-  );
-
   /* ── Derived calculations ── */
   const vergelijking = useMemo(() => {
     if (!energieData) return [];
@@ -124,101 +100,148 @@ function EnergieAnalyseContent() {
 
   return (
     <>
-      {/* HERO */}
-      <section className="py-16 md:py-20 px-6 bg-white">
-        <div className="max-w-[1140px] mx-auto text-center">
-          <div className="inline-flex items-center gap-[5px] bg-bw-green-bg text-bw-green-strong px-[11px] py-1 rounded-md text-[12.5px] font-semibold mb-4">
-            ✓ 100% privé — verwerkt in je browser
-          </div>
-          <h1 className="font-heading text-[clamp(28px,3.2vw,42px)] leading-[1.15] font-bold text-bw-deep tracking-[-0.6px] mb-3 max-w-[700px] mx-auto">
-            Analyseer je energiekosten en vind de{" "}
-            <span className="text-bw-green">goedkoopste leverancier</span>
-          </h1>
-          <p className="text-[16px] leading-relaxed text-bw-text-mid max-w-[520px] mx-auto mb-8">
-            Upload je jaaroverzicht of energierekening. Wij vergelijken direct alle leveranciers en geven persoonlijk advies.
-          </p>
+      {/* HERO — only on upload phase */}
+      {phase === "upload" && (
+        <section className="py-16 md:py-20 px-6 bg-white">
+          <div className="max-w-[1140px] mx-auto text-center">
+            <div className="inline-flex items-center gap-[5px] bg-bw-green-bg text-bw-green-strong px-[11px] py-1 rounded-md text-[12.5px] font-semibold mb-4">
+              ✓ 100% privé — verwerkt in je browser
+            </div>
+            <h1 className="font-heading text-[clamp(28px,3.2vw,42px)] leading-[1.15] font-bold text-bw-deep tracking-[-0.6px] mb-3 max-w-[700px] mx-auto">
+              Analyseer je energiekosten en vind de{" "}
+              <span className="text-bw-green">goedkoopste leverancier</span>
+            </h1>
+            <p className="text-[16px] leading-relaxed text-bw-text-mid max-w-[520px] mx-auto mb-8">
+              Upload je jaaroverzicht of energierekening. Wij vergelijken direct alle leveranciers en geven persoonlijk advies.
+            </p>
 
-          {phase === "upload" && (
             <div className="max-w-[600px] mx-auto animate-fadeUp">
               <UploadZone onParsed={handleParsed} />
             </div>
-          )}
-        </div>
-      </section>
-
-      {/* RESULTS */}
-      {phase === "results" && energieData && apparaten && (
-        <section className="py-12 px-6 bg-bw-bg">
-          <div className="max-w-[1140px] mx-auto">
-            {/* Besparing banner */}
-            {maxBesparing > 0 && (
-              <div className="bg-bw-green-bg border border-[rgba(22,163,74,0.2)] rounded-2xl p-6 mb-8 flex items-center gap-6 flex-wrap animate-fadeUp">
-                <div className="w-14 h-14 rounded-xl bg-bw-green text-white flex items-center justify-center shrink-0">
-                  <svg className="w-7 h-7" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M12 2v20M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6" />
-                  </svg>
-                </div>
-                <div>
-                  <p className="text-sm text-bw-text-mid mb-0.5">Je kunt tot</p>
-                  <p className="font-heading text-3xl font-bold text-bw-green-strong">
-                    <CountUp end={maxBesparing} prefix="€" /> <span className="text-lg font-semibold text-bw-text-mid">/jaar besparen</span>
-                  </p>
-                </div>
-                <div className="ml-auto hidden sm:flex items-center gap-3 text-xs text-bw-text-mid">
-                  <div className="flex items-center gap-1">
-                    <div className="w-3.5 h-3.5 rounded-full bg-bw-green text-white flex items-center justify-center">
-                      <CheckIcon className="w-2 h-2" />
-                    </div>
-                    Gratis vergelijken
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <div className="w-3.5 h-3.5 rounded-full bg-bw-green text-white flex items-center justify-center">
-                      <CheckIcon className="w-2 h-2" />
-                    </div>
-                    Onafhankelijk advies
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* 2-column grid */}
-            <div className="grid grid-cols-1 lg:grid-cols-[1fr_340px] xl:grid-cols-[1fr_380px] gap-6">
-              {/* Left column */}
-              <div className="space-y-6">
-                <div className="animate-fadeUp" style={{ animationDelay: "0.1s" }}>
-                  <ExtractedData data={energieData} onUpdate={handleDataUpdate} />
-                </div>
-                <div className="animate-fadeUp" style={{ animationDelay: "0.2s" }}>
-                  <Vergelijking
-                    resultaten={vergelijking}
-                    huidigeLeverancier={energieData.leverancier}
-                    affiliateUrls={affiliateUrls}
-                  />
-                </div>
-              </div>
-
-              {/* Right column */}
-              <div className="space-y-6">
-                <div className="animate-fadeUp" style={{ animationDelay: "0.15s" }}>
-                  <ProfielDetectie apparaten={apparaten} onToggle={handleToggle} />
-                </div>
-                <div className="animate-fadeUp" style={{ animationDelay: "0.25s" }}>
-                  <AdviesPanel tips={tips} />
-                </div>
-              </div>
-            </div>
-
-            {/* Upload meer */}
-            <div className="mt-8 text-center animate-fadeUp" style={{ animationDelay: "0.3s" }}>
-              <button
-                onClick={() => setPhase("upload")}
-                className="inline-flex items-center gap-1.5 px-5 py-2.5 rounded-lg text-sm font-semibold bg-white text-bw-blue border border-bw-border hover:border-bw-blue hover:bg-bw-blue-light transition-all cursor-pointer"
-              >
-                Nieuw bestand uploaden <ArrowRightIcon className="w-3.5 h-3.5" />
-              </button>
-            </div>
           </div>
         </section>
+      )}
+
+      {/* RESULTS — same structure as /analyse/demo */}
+      {phase === "results" && energieData && apparaten && (
+        <div className="max-w-[860px] mx-auto px-4 sm:px-6 py-10 pb-20">
+
+          {/* ── HERO ── */}
+          <div className="text-center mb-6">
+            <div className="inline-flex items-center gap-1.5 bg-bw-green-bg text-bw-green-strong px-3 py-1 rounded-md text-[13px] font-bold mb-3">
+              <CheckIcon className="w-3.5 h-3.5" /> Analyse compleet
+            </div>
+            {maxBesparing > 0 ? (
+              <>
+                <h2 className="font-heading text-[clamp(28px,3.2vw,40px)] font-bold text-bw-deep mb-2">
+                  Bespaar <span className="text-bw-green"><CountUp end={maxBesparing} prefix="€" /></span> per jaar
+                </h2>
+                <p className="text-[15px] text-bw-text-mid max-w-[480px] mx-auto">
+                  {energieData.leverancier
+                    ? <>Je betaalt nu{energieData.kostenTotaalJaar ? <> <strong className="text-bw-red">&euro;{Math.round(energieData.kostenTotaalJaar)}/jaar</strong></> : null} bij {energieData.leverancier}. Er zijn goedkopere opties.</>
+                    : <>Er zijn leveranciers die <strong className="text-bw-green">&euro;{Math.round(maxBesparing / 12)}/maand goedkoper</strong> zijn voor jouw verbruik.</>
+                  }
+                </p>
+              </>
+            ) : (
+              <>
+                <h2 className="font-heading text-[clamp(28px,3.2vw,40px)] font-bold text-bw-deep mb-2">
+                  Je zit al <span className="text-bw-green">goed</span>!
+                </h2>
+                <p className="text-[15px] text-bw-text-mid max-w-[480px] mx-auto">
+                  {energieData.leverancier ? `${energieData.leverancier} is al de goedkoopste optie voor jouw verbruik.` : "Je huidige leverancier biedt de beste prijs."}
+                </p>
+              </>
+            )}
+          </div>
+
+          {/* ── TRUST BAR ── */}
+          <div className="flex items-center justify-center gap-4 sm:gap-6 mb-6 py-3 px-4 bg-[#F8FAFC] rounded-xl border border-[#E2E8F0] flex-wrap">
+            <span className="inline-flex items-center gap-1.5 text-[12px] text-bw-text-mid">
+              <svg className="w-3.5 h-3.5 text-bw-green" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" /><polyline points="9 12 11 14 15 10" /></svg>
+              Onafhankelijk
+            </span>
+            <span className="inline-flex items-center gap-1.5 text-[12px] text-bw-text-mid">
+              <Zap className="w-3.5 h-3.5 text-bw-green" />
+              {vergelijking.length} leveranciers
+            </span>
+            <span className="inline-flex items-center gap-1.5 text-[12px] text-bw-text-mid">
+              <LockIcon className="w-3.5 h-3.5 text-bw-green" />
+              Privacygarantie
+            </span>
+            <span className="inline-flex items-center gap-1.5 text-[12px] text-bw-text-mid">
+              <svg className="w-3.5 h-3.5 text-bw-green" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M14 9V5a3 3 0 00-6 0v4" /><rect x="2" y="9" width="20" height="13" rx="2" /><circle cx="12" cy="16" r="1" /></svg>
+              Gratis &amp; vrijblijvend
+            </span>
+          </div>
+
+          {/* ── HUIDIGE SITUATIE (compact inline like polis) ── */}
+          <div className={`rounded-xl px-5 py-3.5 mb-4 flex items-center justify-between flex-wrap gap-3 border ${
+            maxBesparing > 0
+              ? "bg-bw-red-bg border-[#FECACA]"
+              : "bg-[#F0FDF4] border-[#BBF7D0]"
+          }`}>
+            <div className="flex items-center gap-3">
+              <div className={`w-10 h-10 rounded-lg flex items-center justify-center shrink-0 ${
+                maxBesparing > 0 ? "bg-[#FECACA]" : "bg-[#BBF7D0]"
+              }`}>
+                <Zap className="w-5 h-5" />
+              </div>
+              <div>
+                <div className={`text-xs font-bold uppercase tracking-[0.5px] ${
+                  maxBesparing > 0 ? "text-bw-red" : "text-bw-green-strong"
+                }`}>Huidige leverancier{!maxBesparing && " \u00B7 Beste prijs"}</div>
+                <div className={`text-[15px] font-bold ${
+                  maxBesparing > 0 ? "text-[#991B1B]" : "text-[#166534]"
+                }`}>{energieData.leverancier || "Onbekend"} &mdash; {energieData.contractType || "Variabel"}</div>
+              </div>
+            </div>
+            <div className="text-right">
+              {energieData.kostenTotaalJaar ? (
+                <>
+                  <div className={`text-xl font-bold ${maxBesparing > 0 ? "text-bw-red" : "text-bw-green"}`}>
+                    &euro;{Math.round(energieData.kostenTotaalJaar / 12)}<span className="text-xs font-semibold">/mnd</span>
+                  </div>
+                  <div className={`text-[11px] ${maxBesparing > 0 ? "text-[#B91C1C]" : "text-[#166534]"}`}>
+                    &euro;{Math.round(energieData.kostenTotaalJaar)}/jaar &middot; {(energieData.verbruikKwhTotaal || 0).toLocaleString("nl-NL")} kWh{energieData.verbruikGasM3 ? ` + ${energieData.verbruikGasM3.toLocaleString("nl-NL")} m\u00B3` : ""}
+                  </div>
+                </>
+              ) : (
+                <div className="text-[13px] text-bw-text-mid">
+                  {(energieData.verbruikKwhTotaal || 0).toLocaleString("nl-NL")} kWh{energieData.verbruikGasM3 ? ` + ${energieData.verbruikGasM3.toLocaleString("nl-NL")} m\u00B3` : ""}/jaar
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* ── PERSONALIZED TIPS (collapsed) ── */}
+          {tips.length > 0 && (
+            <div className="mb-4 px-4 py-3 bg-[#FFF7ED] border border-[#FED7AA] rounded-xl flex items-start gap-2.5">
+              <Lightbulb className="w-4 h-4 text-[#C2410C] shrink-0 mt-0.5" />
+              <div className="text-[12px] text-[#9A3412]">
+                <strong>Tip:</strong> {tips[0].titel} — {tips[0].beschrijving}
+                {tips.length > 1 && <span className="text-[#C2410C]/60"> (+{tips.length - 1} meer)</span>}
+              </div>
+            </div>
+          )}
+
+          {/* ── COMPARISON (directly visible, no scroll needed) ── */}
+          <Vergelijking
+            resultaten={vergelijking}
+            huidigeLeverancier={energieData.leverancier}
+            affiliateUrls={affiliateUrls}
+          />
+
+          {/* Upload meer */}
+          <div className="mt-8 text-center">
+            <button
+              onClick={() => { setPhase("upload"); setEnergieData(null); setApparaten(null); }}
+              className="inline-flex items-center gap-1.5 px-5 py-2.5 rounded-lg text-sm font-semibold bg-white text-bw-blue border border-bw-border hover:border-bw-blue hover:bg-bw-blue-light transition-all cursor-pointer"
+            >
+              Nieuw bestand uploaden <ArrowRightIcon className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        </div>
       )}
 
       {/* Bottom CTA (upload phase only) */}
@@ -230,12 +253,12 @@ function EnergieAnalyseContent() {
             </h2>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-8">
               {[
-                { icon: "📄", title: "Upload PDF", desc: "Sleep je jaaroverzicht of energierekening in het uploadvak." },
-                { icon: "🔍", title: "Automatische analyse", desc: "Wij lezen je verbruik uit en vergelijken met 11 leveranciers." },
-                { icon: "💡", title: "Persoonlijk advies", desc: "Ontvang tips op maat, gebaseerd op jouw situatie." },
+                { icon: <FileText className="w-7 h-7 text-bw-blue" />, title: "Upload PDF", desc: "Sleep je jaaroverzicht of energierekening in het uploadvak." },
+                { icon: <Search className="w-7 h-7 text-bw-blue" />, title: "Automatische analyse", desc: "Wij lezen je verbruik uit en vergelijken met 11 leveranciers." },
+                { icon: <Lightbulb className="w-7 h-7 text-bw-green" />, title: "Persoonlijk advies", desc: "Ontvang tips op maat, gebaseerd op jouw situatie." },
               ].map((step) => (
                 <div key={step.title} className="bg-white rounded-2xl border border-bw-border p-6 text-center">
-                  <span className="text-3xl mb-3 block">{step.icon}</span>
+                  <span className="mb-3 block">{step.icon}</span>
                   <h3 className="text-[15px] font-bold text-bw-deep mb-1.5">{step.title}</h3>
                   <p className="text-[13px] text-bw-text-mid leading-relaxed">{step.desc}</p>
                 </div>

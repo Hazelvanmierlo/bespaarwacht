@@ -8,7 +8,7 @@ import { anonymize } from "@/lib/anonymizer";
 import { getAlternativesFallback } from "@/lib/market-data";
 import { polisToScraperInput } from "@/lib/polis-to-input";
 import { VERZEKERAAR_USP } from "@/lib/verzekeraar-meta";
-import { CheckIcon, ArrowRightIcon, StarIcon, LockIcon, SaveIcon, ShieldIcon, PulseDot, XIcon } from "@/components/icons";
+import { CheckIcon, ArrowRightIcon, StarIcon, LockIcon, SaveIcon, ShieldIcon, PulseDot, XIcon, Home, Building2, ShieldCheck, Plane } from "@/components/icons";
 import type { AnonResult, Alternative, PolisData } from "@/lib/types";
 import type { ProductType } from "@/lib/scrapers/base";
 
@@ -21,11 +21,11 @@ const PRODUCT_LABELS: Record<ProductType, string> = {
   reis: "Reisverzekering",
 };
 
-const PRODUCT_ICONS: Record<ProductType, string> = {
-  inboedel: "\u{1F3E0}",
-  opstal: "\u{1F3D7}\uFE0F",
-  aansprakelijkheid: "\u{1F6E1}\uFE0F",
-  reis: "\u{2708}\uFE0F",
+const PRODUCT_ICONS: Record<ProductType, React.ReactNode> = {
+  inboedel: <Home className="w-5 h-5" />,
+  opstal: <Building2 className="w-5 h-5" />,
+  aansprakelijkheid: <ShieldCheck className="w-5 h-5" />,
+  reis: <Plane className="w-5 h-5" />,
 };
 
 const LIVE_ENABLED = process.env.NEXT_PUBLIC_ENABLE_LIVE_SCRAPERS === "true";
@@ -546,7 +546,7 @@ function AnalyseDemoContent() {
                             : "bg-bw-deep hover:bg-bw-navy hover:shadow-[0_4px_16px_rgba(15,33,55,0.2)]"
                         }`}
                       >
-                        Bereken premie <ArrowRightIcon className="w-3 h-3" />
+                        Bekijk aanbieding <ArrowRightIcon className="w-3 h-3" />
                       </button>
                     </div>
                   </div>
@@ -766,21 +766,18 @@ function ProfileSummary({ polisData, productType }: { polisData: PolisData; prod
         f("Dekking", polisData.dekking),
         f("Gezin", polisData.gezin),
         f("Huisnummer", polisData.huisnummer),
-        f("Geboortedatum", polisData.geboortedatum),
       ];
     }
     if (productType === "aansprakelijkheid") {
       return [
         f("Postcode", polisData.postcode),
         f("Gezin", polisData.gezin),
-        f("Geboortedatum", polisData.geboortedatum),
       ];
     }
     // reis
     return [
       f("Gezin", polisData.gezin),
       f("Dekking", polisData.dekking),
-      f("Geboortedatum", polisData.geboortedatum),
     ];
   };
 
@@ -890,7 +887,7 @@ function OverstapModal({ alt, polisData, productType, huidigeMaand, onClose }: {
   }
 
   const steps = [
-    { label: "Bereken premie", desc: `Bereken je exacte premie bij ${alt.naam}` },
+    { label: "Ga naar verzekeraar", desc: `Bekijk het aanbod bij ${alt.naam}` },
     { label: "Sluit online af", desc: `Kies dekking en rond de aanvraag af` },
     { label: "Opzegging geregeld", desc: `${alt.naam} zegt je huidige verzekering op` },
     { label: "Nieuwe polis actief", desc: "Je nieuwe polis gaat direct in" },
@@ -1008,7 +1005,7 @@ function OverstapModal({ alt, polisData, productType, huidigeMaand, onClose }: {
             onClick={handleGoDoor}
             className="w-full inline-flex items-center justify-center gap-2 py-3.5 rounded-xl text-[15px] font-bold bg-bw-green text-white border-none cursor-pointer hover:bg-bw-green-strong hover:shadow-[0_4px_16px_rgba(22,163,74,0.3)] transition-all"
           >
-            Bereken premie bij {alt.naam} <ArrowRightIcon className="w-4 h-4" />
+            Overstappen naar {alt.naam} <ArrowRightIcon className="w-4 h-4" />
           </button>
 
           <p className="text-[11px] text-bw-text-light text-center mt-3">

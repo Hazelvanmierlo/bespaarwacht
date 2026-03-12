@@ -4,7 +4,7 @@ import { useState, useEffect, useRef, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { signIn } from "next-auth/react";
 import Link from "next/link";
-import { ShieldIcon, ArrowRightIcon, LockIcon } from "@/components/icons";
+import { ShieldIcon, ArrowRightIcon, LockIcon, Mail } from "@/components/icons";
 
 // ─── Step types ────────────────────────────────────────────────────────────
 
@@ -216,7 +216,7 @@ function LoginPageInner() {
           {step === "link_sent" && (
             <div className="flex flex-col gap-4">
               <div className="rounded-xl bg-bw-green-bg border border-[#BBF7D0] p-4 text-sm text-bw-green-dark">
-                <p className="font-semibold mb-1">Verificatielink verstuurd! ✉️</p>
+                <p className="font-semibold mb-1 flex items-center gap-1.5">Verificatielink verstuurd! <Mail className="w-4 h-4" /></p>
                 <p className="text-[13px] leading-relaxed">
                   We hebben een e-mail gestuurd naar <strong>{email}</strong>.
                   Klik op de link in de e-mail om in te loggen. De link is 1 uur geldig.
