@@ -797,7 +797,7 @@ function UploadContent() {
         onDragLeave={() => setIsDragging(false)}
         onDrop={handleDrop}
       >
-        <input ref={fileRef} type="file" accept=".pdf,.jpg,.jpeg,.png,.webp,image/*" capture="environment" className="hidden" onChange={handleInputChange} />
+        <input ref={fileRef} type="file" accept=".pdf,.jpg,.jpeg,.png,.webp,image/*" className="hidden" onChange={handleInputChange} />
 
         {isUploading ? (
           <>
