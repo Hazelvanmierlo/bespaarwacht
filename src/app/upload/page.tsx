@@ -228,85 +228,139 @@ function UploadContent() {
   if (energieData) {
     // If data came from PDF upload, show all-in-one confirmation
     if (energieFromPdf) {
+      const jaarkosten = energieData.kosten_jaar || (energieData.kosten_maand ? energieData.kosten_maand * 12 : 0);
+
       return (
-        <div className="max-w-[540px] mx-auto px-4 sm:px-6 py-8 sm:py-16">
-          <div className="flex items-center gap-4 mb-6">
-            <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-bw-green-bg to-[#D1FAE5] flex items-center justify-center shadow-[0_2px_8px_rgba(22,163,74,0.1)]"><Zap className="w-5 h-5 text-bw-green" /></div>
-            <div>
-              <h2 className="font-heading text-[22px] sm:text-[26px] font-bold text-bw-deep">Klopt dit?</h2>
-              <p className="text-[13px] sm:text-[14px] text-bw-text-mid">Gegevens uit je energierekening. Pas aan indien nodig.</p>
+        <div className="max-w-[580px] mx-auto px-4 sm:px-6 py-8 sm:py-12">
+          {/* Success header with animation */}
+          <div className="text-center mb-6 animate-fadeUp">
+            <div className="inline-flex items-center gap-1.5 bg-bw-green-bg text-bw-green-strong px-3 py-1 rounded-full text-[12px] font-bold mb-3">
+              <CircleCheckBig className="w-3.5 h-3.5" /> Document succesvol uitgelezen
+            </div>
+            <h2 className="font-heading text-[24px] sm:text-[30px] font-bold text-bw-deep mb-1">
+              Controleer je gegevens
+            </h2>
+            <p className="text-[14px] text-bw-text-mid">Klopt alles? Dan vergelijken we direct 18+ leveranciers.</p>
+          </div>
+
+          {/* Big highlight card — current cost */}
+          {jaarkosten > 0 && (
+            <div className="bg-gradient-to-br from-bw-deep to-bw-navy rounded-2xl p-5 sm:p-6 mb-5 text-white animate-fadeUp" style={{ animationDelay: "0.05s" }}>
+              <div className="flex items-center justify-between">
+                <div>
+                  <div className="text-[12px] text-white/60 mb-0.5">Je betaalt nu</div>
+                  <div className="font-heading text-[32px] sm:text-[38px] font-bold leading-tight">
+                    &euro;{Math.round(jaarkosten).toLocaleString("nl-NL")}<span className="text-[16px] font-semibold text-white/50">/jaar</span>
+                  </div>
+                  <div className="text-[13px] text-white/50 mt-0.5">= &euro;{(jaarkosten / 12).toFixed(0)}/maand bij {energieData.leverancier || "je leverancier"}</div>
+                </div>
+                <div className="w-14 h-14 rounded-2xl bg-white/10 flex items-center justify-center shrink-0">
+                  <Zap className="w-7 h-7 text-[#4ADE80]" />
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Compact data cards in 2 columns */}
+          <div className="grid grid-cols-2 gap-3 mb-5 animate-fadeUp" style={{ animationDelay: "0.1s" }}>
+            {/* Contract card */}
+            <div className="bg-white rounded-xl border border-bw-border p-4">
+              <div className="text-[10px] font-bold text-bw-text-light uppercase tracking-[0.5px] mb-2.5">Contract</div>
+              <div className="space-y-2">
+                <div>
+                  <div className="text-[11px] text-bw-text-light">Leverancier</div>
+                  <div className="text-[14px] font-bold text-bw-deep">{energieData.leverancier || "Onbekend"}</div>
+                </div>
+                <div>
+                  <div className="text-[11px] text-bw-text-light">Type</div>
+                  <div className="text-[13px] font-semibold text-bw-deep capitalize">{energieData.contract_type || "Variabel"}</div>
+                </div>
+                {energieData.contract_einddatum && (
+                  <div>
+                    <div className="text-[11px] text-bw-text-light">Einddatum</div>
+                    <div className="text-[13px] font-semibold text-bw-deep">{energieData.contract_einddatum}</div>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Usage card */}
+            <div className="bg-white rounded-xl border border-bw-border p-4">
+              <div className="text-[10px] font-bold text-bw-text-light uppercase tracking-[0.5px] mb-2.5">Verbruik</div>
+              <div className="space-y-2">
+                <div>
+                  <div className="text-[11px] text-bw-text-light">Stroom</div>
+                  <div className="text-[14px] font-bold text-bw-deep">{(energieData.stroom_kwh_jaar || 0).toLocaleString("nl-NL")} <span className="text-[11px] font-normal text-bw-text-light">kWh/jaar</span></div>
+                </div>
+                <div>
+                  <div className="text-[11px] text-bw-text-light">Gas</div>
+                  <div className="text-[13px] font-semibold text-bw-deep">{energieData.gas_m3_jaar ? `${energieData.gas_m3_jaar.toLocaleString("nl-NL")} m\u00B3/jaar` : "Geen gas"}</div>
+                </div>
+                {energieData.teruglevering_kwh != null && energieData.teruglevering_kwh > 0 && (
+                  <div>
+                    <div className="text-[11px] text-bw-text-light">Teruglevering</div>
+                    <div className="text-[13px] font-semibold text-bw-green">{energieData.teruglevering_kwh.toLocaleString("nl-NL")} kWh</div>
+                  </div>
+                )}
+                {energieData.meter_type && (
+                  <div>
+                    <div className="text-[11px] text-bw-text-light">Meter</div>
+                    <div className="text-[13px] font-semibold text-bw-deep capitalize">{energieData.meter_type}</div>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
 
-          <div className="bg-white rounded-xl border border-bw-border overflow-hidden">
-            {/* Personal info (if extracted from PDF) */}
-            {(energieData.naam || energieData.adres) && (
-              <>
-                <div className="px-4 py-3 bg-[#F8FAFC] border-b border-bw-border">
-                  <span className="text-[11px] font-bold text-bw-text-mid uppercase tracking-[0.5px]">Persoonsgegevens</span>
-                </div>
-                <div className="px-4 py-3 space-y-3">
-                  {energieData.naam && <EditRow label="Naam" value={energieData.naam} onChange={(v) => updateEnergieField("naam", v)} />}
-                  {energieData.adres && <EditRow label="Adres" value={energieData.adres} onChange={(v) => updateEnergieField("adres", v)} />}
-                </div>
-              </>
-            )}
-
-            {/* Contract */}
-            <div className="px-4 py-3 bg-[#F8FAFC] border-t border-b border-bw-border">
-              <span className="text-[11px] font-bold text-bw-text-mid uppercase tracking-[0.5px]">Contract</span>
+          {/* Personal info + EAN in collapsed detail row */}
+          {(energieData.naam || energieData.adres || energieData.ean_stroom) && (
+            <div className="bg-[#F8FAFC] rounded-xl border border-[#E2E8F0] px-4 py-3 mb-5 animate-fadeUp" style={{ animationDelay: "0.15s" }}>
+              <div className="flex flex-wrap gap-x-6 gap-y-1.5 text-[12px]">
+                {energieData.naam && (
+                  <div><span className="text-bw-text-light">Naam:</span> <span className="font-semibold text-bw-deep">{energieData.naam}</span></div>
+                )}
+                {energieData.adres && (
+                  <div><span className="text-bw-text-light">Adres:</span> <span className="font-semibold text-bw-deep">{energieData.adres}</span></div>
+                )}
+                {energieData.ean_stroom && (
+                  <div><span className="text-bw-text-light">EAN:</span> <span className="font-mono font-semibold text-bw-deep text-[11px]">{energieData.ean_stroom}</span></div>
+                )}
+              </div>
             </div>
-            <div className="px-4 py-3 space-y-3">
-              <EditRow label="Leverancier" value={energieData.leverancier || ""} onChange={(v) => updateEnergieField("leverancier", v)} />
-              <EditRow label="Contract" value={energieData.contract_type || ""} onChange={(v) => updateEnergieField("contract_type", v)} options={["vast", "variabel", "dynamisch"]} />
-              {energieData.contract_einddatum && (
-                <EditRow label="Einddatum" value={energieData.contract_einddatum} onChange={(v) => updateEnergieField("contract_einddatum", v)} />
-              )}
-              <EditRow label="Maandkosten" value={energieData.kosten_maand || 0} type="number" prefix="€" onChange={(v) => { const num = parseFloat(v) || 0; updateEnergieField("kosten_maand", num); updateEnergieField("kosten_jaar", +(num * 12).toFixed(2)); }} />
-            </div>
+          )}
 
-            {/* Usage */}
-            <div className="px-4 py-3 bg-[#F8FAFC] border-t border-b border-bw-border">
-              <span className="text-[11px] font-bold text-bw-text-mid uppercase tracking-[0.5px]">Verbruik</span>
-            </div>
-            <div className="px-4 py-3 space-y-3">
-              <EditRow label="Stroom" value={energieData.stroom_kwh_jaar || 0} type="number" onChange={(v) => { const num = parseFloat(v) || 0; updateEnergieField("stroom_kwh_jaar", num); updateEnergieField("stroom_normaal_kwh", num); }} />
-              {energieData.stroom_dal_kwh != null && energieData.stroom_dal_kwh > 0 && (
-                <EditRow label="Stroom dal" value={energieData.stroom_dal_kwh} type="number" onChange={(v) => updateEnergieField("stroom_dal_kwh", parseFloat(v) || null)} />
-              )}
-              <EditRow label="Gas" value={energieData.gas_m3_jaar ?? ""} type="number" onChange={(v) => updateEnergieField("gas_m3_jaar", v ? parseFloat(v) : null)} />
-              {energieData.teruglevering_kwh != null && energieData.teruglevering_kwh > 0 && (
-                <EditRow label="Teruglevering" value={energieData.teruglevering_kwh} type="number" onChange={(v) => updateEnergieField("teruglevering_kwh", parseFloat(v) || null)} />
-              )}
-            </div>
-
-            {/* EAN numbers (read-only display) */}
-            {(energieData.ean_stroom || energieData.ean_gas) && (
-              <>
-                <div className="px-4 py-3 bg-[#F8FAFC] border-t border-b border-bw-border">
-                  <span className="text-[11px] font-bold text-bw-text-mid uppercase tracking-[0.5px]">Aansluitgegevens</span>
-                  <span className="text-[10px] text-bw-text-light ml-1">(handig bij overstappen)</span>
-                </div>
-                <div className="px-4 py-3 space-y-3">
-                  {energieData.ean_stroom && <EditRow label="EAN stroom" value={energieData.ean_stroom} />}
-                  {energieData.ean_gas && <EditRow label="EAN gas" value={energieData.ean_gas} />}
-                  {energieData.meter_type && <EditRow label="Meter" value={energieData.meter_type} />}
-                </div>
-              </>
-            )}
-          </div>
-
-          <div className="mt-6 flex gap-3">
-            <button onClick={handleEnergieConfirmAndAnalyze} className="flex-1 inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-xl text-[15px] font-bold bg-bw-green text-white border-none cursor-pointer font-[inherit] hover:bg-bw-green-strong hover:shadow-[0_4px_16px_rgba(22,163,74,0.25)] transition-all">
-              Ja, vergelijk leveranciers <ArrowRightIcon className="w-4 h-4" />
+          {/* CTA — big, prominent, sticky-feeling */}
+          <div className="animate-fadeUp" style={{ animationDelay: "0.2s" }}>
+            <button
+              onClick={handleEnergieConfirmAndAnalyze}
+              className="w-full inline-flex items-center justify-center gap-2.5 px-6 py-4 rounded-2xl text-[16px] font-bold bg-bw-green text-white border-none cursor-pointer font-[inherit] hover:bg-bw-green-strong hover:shadow-[0_8px_24px_rgba(22,163,74,0.3)] hover:-translate-y-0.5 active:translate-y-0 transition-all"
+            >
+              Vergelijk 18+ leveranciers <ArrowRightIcon className="w-4.5 h-4.5" />
             </button>
-            <button onClick={handleReset} className="inline-flex items-center px-4 py-3.5 rounded-xl text-[13px] font-semibold bg-white text-bw-text-mid border border-bw-border cursor-pointer font-[inherit] hover:bg-bw-bg transition-colors">
-              Opnieuw
-            </button>
-          </div>
-          <div className="mt-3 flex items-center gap-2 px-3 py-2 bg-[#F0FDF4] rounded-lg border border-[#BBF7D0]">
-            <LockIcon className="w-3.5 h-3.5 text-bw-green shrink-0" />
-            <span className="text-[11px] text-bw-green-dark"><strong>Je bestand is al verwijderd.</strong> Alleen deze gegevens worden gebruikt.</span>
+
+            <div className="flex items-center justify-center gap-4 mt-3 text-[11px] text-bw-text-light">
+              <span className="inline-flex items-center gap-1"><LockIcon className="w-3 h-3 text-bw-green" /> Gratis &amp; vrijblijvend</span>
+              <span>&middot;</span>
+              <span>Resultaat in 2 sec</span>
+              <span>&middot;</span>
+              <span>100% onafhankelijk</span>
+            </div>
+
+            <div className="flex items-center justify-center gap-3 mt-4">
+              <button
+                onClick={handleReset}
+                className="text-[12px] font-semibold text-bw-text-mid hover:text-bw-deep cursor-pointer bg-transparent border-none font-[inherit] transition-colors hover:underline"
+              >
+                Ander bestand uploaden
+              </button>
+              <span className="text-bw-text-light text-[10px]">|</span>
+              <button
+                onClick={() => { /* TODO: expand edit mode */ }}
+                className="text-[12px] font-semibold text-bw-blue hover:text-bw-deep cursor-pointer bg-transparent border-none font-[inherit] transition-colors hover:underline"
+              >
+                Gegevens aanpassen
+              </button>
+            </div>
           </div>
         </div>
       );
@@ -575,140 +629,207 @@ function UploadContent() {
 
   // === VERZEKERING CONFIRMATION VIEW ===
   if (parsedData) {
+    const [showEditFields, setShowEditFields] = useState(isManualInputVerzekering);
+
     return (
-      <div className="max-w-[680px] mx-auto px-4 sm:px-6 py-8 sm:py-16">
-        <div className="flex items-center gap-4 mb-2">
-          <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-bw-blue-light to-[#DBEAFE] flex items-center justify-center shadow-[0_2px_8px_rgba(43,108,176,0.1)]">
-            {isManualInputVerzekering ? <ClipboardList className="w-5 h-5 text-bw-blue" /> : <FileText className="w-5 h-5 text-bw-blue" />}
-          </div>
-          <div>
-            <h2 className="font-heading text-[26px] font-bold text-bw-deep">
-              {isManualInputVerzekering ? "Vul je gegevens in" : "Klopt dit?"}
-            </h2>
-            <p className="text-[14px] text-bw-text-mid">
-              {isManualInputVerzekering
-                ? "Vul je huidige verzekeringsgegevens in en ontdek of je goedkoper uit kunt."
-                : "We hebben deze gegevens uit je polis gehaald. Pas aan indien nodig."}
-            </p>
-          </div>
+      <div className="max-w-[580px] mx-auto px-4 sm:px-6 py-8 sm:py-12">
+        {/* Success header */}
+        <div className="text-center mb-6 animate-fadeUp">
+          {!isManualInputVerzekering && (
+            <div className="inline-flex items-center gap-1.5 bg-bw-green-bg text-bw-green-strong px-3 py-1 rounded-full text-[12px] font-bold mb-3">
+              <CircleCheckBig className="w-3.5 h-3.5" /> Polis succesvol uitgelezen
+            </div>
+          )}
+          <h2 className="font-heading text-[24px] sm:text-[30px] font-bold text-bw-deep mb-1">
+            {isManualInputVerzekering ? "Vul je gegevens in" : "Controleer je gegevens"}
+          </h2>
+          <p className="text-[14px] text-bw-text-mid">
+            {isManualInputVerzekering ? "Vul je huidige polis in en ontdek of het goedkoper kan." : "Klopt alles? Dan vergelijken we direct 12+ verzekeraars."}
+          </p>
         </div>
 
-        {/* Product type */}
-        <div className="mt-6 mb-4">
-          <label className="text-[12px] font-bold text-bw-text-mid uppercase tracking-[0.5px] mb-2 block">Type verzekering</label>
-          <div className="grid grid-cols-2 gap-2">
+        {/* Current premium highlight (if from PDF) */}
+        {!isManualInputVerzekering && parsedData.maandpremie > 0 && (
+          <div className="bg-gradient-to-br from-bw-deep to-bw-navy rounded-2xl p-5 sm:p-6 mb-5 text-white animate-fadeUp" style={{ animationDelay: "0.05s" }}>
+            <div className="flex items-center justify-between">
+              <div>
+                <div className="text-[12px] text-white/60 mb-0.5">Je betaalt nu</div>
+                <div className="font-heading text-[32px] sm:text-[38px] font-bold leading-tight">
+                  &euro;{parsedData.maandpremie.toFixed(2)}<span className="text-[16px] font-semibold text-white/50">/mnd</span>
+                </div>
+                <div className="text-[13px] text-white/50 mt-0.5">{parsedData.verzekeraar || "Je verzekeraar"} &middot; {parsedData.dekking} &middot; {parsedData.eigenRisico} eigen risico</div>
+              </div>
+              <div className="w-14 h-14 rounded-2xl bg-white/10 flex items-center justify-center shrink-0">
+                {PRODUCTS.find(p => p.type === detectedProduct)?.icon || <Home className="w-6 h-6" />}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Product type selector */}
+        <div className="mb-4 animate-fadeUp" style={{ animationDelay: "0.1s" }}>
+          <div className="grid grid-cols-4 gap-1.5 p-1 bg-bw-bg rounded-xl border border-bw-border">
             {PRODUCTS.map((p) => (
               <button
                 key={p.type}
                 onClick={() => setDetectedProduct(p.type)}
-                className={`flex items-center gap-2 p-2.5 rounded-lg border text-left cursor-pointer font-[inherit] transition-all text-[12px] ${
+                className={`flex flex-col items-center gap-1 py-2.5 px-1 rounded-lg text-center cursor-pointer border-none font-[inherit] transition-all ${
                   detectedProduct === p.type
-                    ? "border-bw-green bg-bw-green-bg shadow-[0_0_0_1px_#16A34A] font-semibold text-bw-green-strong"
-                    : "border-bw-border bg-white hover:border-[#94A3B8] text-bw-deep"
+                    ? "bg-white text-bw-deep shadow-sm"
+                    : "bg-transparent text-bw-text-light hover:text-bw-deep"
                 }`}
               >
-                <span>{p.icon}</span> {p.label}
+                <span className={detectedProduct === p.type ? "text-bw-green" : ""}>{p.icon}</span>
+                <span className="text-[10px] font-semibold leading-tight">{p.type === "aansprakelijkheid" ? "AVP" : p.label.replace("verzekering", "")}</span>
               </button>
             ))}
           </div>
         </div>
 
-        {/* Editable fields */}
-        <div className="bg-white rounded-xl border border-bw-border overflow-hidden">
-          {/* Polis section */}
-          <div className="px-4 py-3 bg-[#F8FAFC] border-b border-bw-border">
-            <span className="text-[11px] font-bold text-bw-text-mid uppercase tracking-[0.5px]">Polisgegevens</span>
-          </div>
-          <div className="px-4 py-3 space-y-3">
-            <EditRow label="Verzekeraar" value={parsedData.verzekeraar} onChange={(v) => updateField("verzekeraar", v)} />
-            <EditRow label="Maandpremie" value={parsedData.maandpremie} type="number" prefix="€" onChange={(v) => {
-              const num = parseFloat(v) || 0;
-              updateField("maandpremie", num);
-              updateField("jaarpremie", +(num * 12).toFixed(2));
-            }} />
-            <EditRow label="Dekking" value={parsedData.dekking} onChange={(v) => updateField("dekking", v)}
-              options={detectedProduct === "inboedel" || detectedProduct === "opstal" ? DEKKING_OPTIONS_INBOEDEL : undefined} />
-            <EditRow label="Eigen risico" value={parsedData.eigenRisico} onChange={(v) => updateField("eigenRisico", v)} />
-          </div>
-
-          {/* Profiel section — conditional per product type */}
-          {(detectedProduct === "inboedel" || detectedProduct === "opstal") && (
-            <>
-              <div className="px-4 py-3 bg-[#F8FAFC] border-t border-b border-bw-border">
-                <span className="text-[11px] font-bold text-bw-text-mid uppercase tracking-[0.5px]">Woning & profiel</span>
+        {/* Summary cards (compact, like energy) — only when NOT manual input */}
+        {!isManualInputVerzekering && !showEditFields && (
+          <div className="grid grid-cols-2 gap-3 mb-5 animate-fadeUp" style={{ animationDelay: "0.15s" }}>
+            <div className="bg-white rounded-xl border border-bw-border p-4">
+              <div className="text-[10px] font-bold text-bw-text-light uppercase tracking-[0.5px] mb-2.5">Polis</div>
+              <div className="space-y-2">
+                <div>
+                  <div className="text-[11px] text-bw-text-light">Verzekeraar</div>
+                  <div className="text-[14px] font-bold text-bw-deep">{parsedData.verzekeraar || "Onbekend"}</div>
+                </div>
+                <div>
+                  <div className="text-[11px] text-bw-text-light">Dekking</div>
+                  <div className="text-[13px] font-semibold text-bw-deep">{parsedData.dekking}</div>
+                </div>
+                <div>
+                  <div className="text-[11px] text-bw-text-light">Eigen risico</div>
+                  <div className="text-[13px] font-semibold text-bw-deep">{parsedData.eigenRisico}</div>
+                </div>
               </div>
-              <div className="px-4 py-3 space-y-3">
-                <EditRow label="Postcode" value={parsedData.postcode} onChange={(v) => updateField("postcode", v)} />
-                <EditRow label="Woningtype" value={parsedData.woning} onChange={(v) => updateField("woning", v)} options={WONINGTYPE_OPTIONS} />
-                <EditRow label="Oppervlakte" value={parsedData.oppervlakte} onChange={(v) => updateField("oppervlakte", v)} />
-                {detectedProduct === "opstal" && (
-                  <EditRow label="Bouwjaar/aard" value={parsedData.bouwaard} onChange={(v) => updateField("bouwaard", v)} />
+            </div>
+            <div className="bg-white rounded-xl border border-bw-border p-4">
+              <div className="text-[10px] font-bold text-bw-text-light uppercase tracking-[0.5px] mb-2.5">Profiel</div>
+              <div className="space-y-2">
+                {parsedData.postcode && (
+                  <div>
+                    <div className="text-[11px] text-bw-text-light">Postcode</div>
+                    <div className="text-[13px] font-semibold text-bw-deep">{parsedData.postcode}</div>
+                  </div>
                 )}
-                <EditRow label="Gezin" value={parsedData.gezin} onChange={(v) => updateField("gezin", v)} options={GEZIN_OPTIONS} />
+                {parsedData.woning && (detectedProduct === "inboedel" || detectedProduct === "opstal") && (
+                  <div>
+                    <div className="text-[11px] text-bw-text-light">Woning</div>
+                    <div className="text-[13px] font-semibold text-bw-deep">{parsedData.woning}</div>
+                  </div>
+                )}
+                <div>
+                  <div className="text-[11px] text-bw-text-light">Gezin</div>
+                  <div className="text-[13px] font-semibold text-bw-deep">{parsedData.gezin}</div>
+                </div>
               </div>
+            </div>
+          </div>
+        )}
 
-              {/* Extra velden voor nauwkeurigere live premies */}
-              <div className="px-4 py-3 bg-[#F8FAFC] border-t border-b border-bw-border">
-                <span className="text-[11px] font-bold text-bw-text-mid uppercase tracking-[0.5px]">Extra gegevens</span>
-                <span className="text-[10px] text-bw-text-light ml-1">(optioneel, voor nauwkeurigere premies)</span>
-              </div>
-              <div className="px-4 py-3 space-y-3">
-                <EditRow label="Huisnummer" value={parsedData.huisnummer} onChange={(v) => updateField("huisnummer", v)} />
-                <EditRow label="Eigenaar/Huurder" value={parsedData.eigenaar || "Eigenaar"} onChange={(v) => updateField("eigenaar", v)} options={EIGENAAR_OPTIONS} />
-              </div>
-            </>
-          )}
+        {/* Editable fields — shown for manual input or when "aanpassen" is clicked */}
+        {(isManualInputVerzekering || showEditFields) && (
+          <div className="bg-white rounded-xl border border-bw-border overflow-hidden mb-5 animate-fadeUp" style={{ animationDelay: "0.1s" }}>
+            <div className="px-4 py-3 bg-[#F8FAFC] border-b border-bw-border">
+              <span className="text-[11px] font-bold text-bw-text-mid uppercase tracking-[0.5px]">Polisgegevens</span>
+            </div>
+            <div className="px-4 py-3 space-y-3">
+              <EditRow label="Verzekeraar" value={parsedData.verzekeraar} onChange={(v) => updateField("verzekeraar", v)} />
+              <EditRow label="Maandpremie" value={parsedData.maandpremie} type="number" prefix="€" onChange={(v) => {
+                const num = parseFloat(v) || 0;
+                updateField("maandpremie", num);
+                updateField("jaarpremie", +(num * 12).toFixed(2));
+              }} />
+              <EditRow label="Dekking" value={parsedData.dekking} onChange={(v) => updateField("dekking", v)}
+                options={detectedProduct === "inboedel" || detectedProduct === "opstal" ? DEKKING_OPTIONS_INBOEDEL : undefined} />
+              <EditRow label="Eigen risico" value={parsedData.eigenRisico} onChange={(v) => updateField("eigenRisico", v)} />
+            </div>
 
-          {detectedProduct === "aansprakelijkheid" && (
-            <>
-              <div className="px-4 py-3 bg-[#F8FAFC] border-t border-b border-bw-border">
-                <span className="text-[11px] font-bold text-bw-text-mid uppercase tracking-[0.5px]">Profiel</span>
-              </div>
-              <div className="px-4 py-3 space-y-3">
-                <EditRow label="Postcode" value={parsedData.postcode} onChange={(v) => updateField("postcode", v)} />
-                <EditRow label="Gezin" value={parsedData.gezin} onChange={(v) => updateField("gezin", v)} options={GEZIN_OPTIONS} />
-              </div>
-            </>
-          )}
+            {(detectedProduct === "inboedel" || detectedProduct === "opstal") && (
+              <>
+                <div className="px-4 py-3 bg-[#F8FAFC] border-t border-b border-bw-border">
+                  <span className="text-[11px] font-bold text-bw-text-mid uppercase tracking-[0.5px]">Woning &amp; profiel</span>
+                </div>
+                <div className="px-4 py-3 space-y-3">
+                  <EditRow label="Postcode" value={parsedData.postcode} onChange={(v) => updateField("postcode", v)} />
+                  <EditRow label="Woningtype" value={parsedData.woning} onChange={(v) => updateField("woning", v)} options={WONINGTYPE_OPTIONS} />
+                  <EditRow label="Oppervlakte" value={parsedData.oppervlakte} onChange={(v) => updateField("oppervlakte", v)} />
+                  {detectedProduct === "opstal" && (
+                    <EditRow label="Bouwjaar/aard" value={parsedData.bouwaard} onChange={(v) => updateField("bouwaard", v)} />
+                  )}
+                  <EditRow label="Gezin" value={parsedData.gezin} onChange={(v) => updateField("gezin", v)} options={GEZIN_OPTIONS} />
+                  <EditRow label="Huisnummer" value={parsedData.huisnummer} onChange={(v) => updateField("huisnummer", v)} />
+                  <EditRow label="Eigenaar/Huurder" value={parsedData.eigenaar || "Eigenaar"} onChange={(v) => updateField("eigenaar", v)} options={EIGENAAR_OPTIONS} />
+                </div>
+              </>
+            )}
 
-          {detectedProduct === "reis" && (
-            <>
-              <div className="px-4 py-3 bg-[#F8FAFC] border-t border-b border-bw-border">
-                <span className="text-[11px] font-bold text-bw-text-mid uppercase tracking-[0.5px]">Reisprofiel</span>
-              </div>
-              <div className="px-4 py-3 space-y-3">
-                <EditRow label="Gezin" value={parsedData.gezin} onChange={(v) => updateField("gezin", v)} options={GEZIN_OPTIONS} />
-                <EditRow label="Dekking" value={parsedData.dekking} onChange={(v) => updateField("dekking", v)}
-                  options={["Doorlopend Europa", "Doorlopend Wereld", "Kortlopend Europa", "Kortlopend Wereld"]} />
-              </div>
-            </>
-          )}
-        </div>
+            {detectedProduct === "aansprakelijkheid" && (
+              <>
+                <div className="px-4 py-3 bg-[#F8FAFC] border-t border-b border-bw-border">
+                  <span className="text-[11px] font-bold text-bw-text-mid uppercase tracking-[0.5px]">Profiel</span>
+                </div>
+                <div className="px-4 py-3 space-y-3">
+                  <EditRow label="Postcode" value={parsedData.postcode} onChange={(v) => updateField("postcode", v)} />
+                  <EditRow label="Gezin" value={parsedData.gezin} onChange={(v) => updateField("gezin", v)} options={GEZIN_OPTIONS} />
+                </div>
+              </>
+            )}
 
-        {/* Actions */}
-        <div className="mt-6 flex gap-3">
+            {detectedProduct === "reis" && (
+              <>
+                <div className="px-4 py-3 bg-[#F8FAFC] border-t border-b border-bw-border">
+                  <span className="text-[11px] font-bold text-bw-text-mid uppercase tracking-[0.5px]">Reisprofiel</span>
+                </div>
+                <div className="px-4 py-3 space-y-3">
+                  <EditRow label="Gezin" value={parsedData.gezin} onChange={(v) => updateField("gezin", v)} options={GEZIN_OPTIONS} />
+                  <EditRow label="Dekking" value={parsedData.dekking} onChange={(v) => updateField("dekking", v)}
+                    options={["Doorlopend Europa", "Doorlopend Wereld", "Kortlopend Europa", "Kortlopend Wereld"]} />
+                </div>
+              </>
+            )}
+          </div>
+        )}
+
+        {/* CTA */}
+        <div className="animate-fadeUp" style={{ animationDelay: "0.2s" }}>
           <button
             onClick={handleConfirmAndAnalyze}
-            className="flex-1 inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-xl text-[15px] font-bold bg-bw-orange text-white border-none cursor-pointer font-[inherit] hover:bg-bw-orange-strong hover:shadow-[0_4px_16px_rgba(249,115,22,0.3)] transition-all"
+            className="w-full inline-flex items-center justify-center gap-2.5 px-6 py-4 rounded-2xl text-[16px] font-bold bg-bw-green text-white border-none cursor-pointer font-[inherit] hover:bg-bw-green-strong hover:shadow-[0_8px_24px_rgba(22,163,74,0.3)] hover:-translate-y-0.5 active:translate-y-0 transition-all"
           >
-            Analyseer en vind goedkoper <ArrowRightIcon className="w-4 h-4" />
+            Vergelijk 12+ verzekeraars <ArrowRightIcon className="w-4.5 h-4.5" />
           </button>
-          <button
-            onClick={handleReset}
-            className="inline-flex items-center px-4 py-3.5 rounded-xl text-[13px] font-semibold bg-white text-bw-text-mid border border-bw-border cursor-pointer font-[inherit] hover:bg-bw-bg transition-colors"
-          >
-            Opnieuw
-          </button>
-        </div>
 
-        {/* Privacy note */}
-        <div className="mt-4 flex items-center gap-2 px-3 py-2 bg-[#F0FDF4] rounded-lg border border-[#BBF7D0]">
-          <LockIcon />
-          <span className="text-[11px] text-bw-green-dark">
-            {isManualInputVerzekering
-              ? <><strong>Privacy gewaarborgd.</strong> Je gegevens worden alleen gebruikt voor deze vergelijking.</>
-              : <><strong>Je PDF is al verwijderd.</strong> Alleen deze gegevens worden gebruikt voor de vergelijking.</>}
-          </span>
+          <div className="flex items-center justify-center gap-4 mt-3 text-[11px] text-bw-text-light">
+            <span className="inline-flex items-center gap-1"><LockIcon className="w-3 h-3 text-bw-green" /> Gratis &amp; vrijblijvend</span>
+            <span>&middot;</span>
+            <span>Resultaat in 5 sec</span>
+            <span>&middot;</span>
+            <span>100% onafhankelijk</span>
+          </div>
+
+          <div className="flex items-center justify-center gap-3 mt-4">
+            <button
+              onClick={handleReset}
+              className="text-[12px] font-semibold text-bw-text-mid hover:text-bw-deep cursor-pointer bg-transparent border-none font-[inherit] transition-colors hover:underline"
+            >
+              Ander bestand uploaden
+            </button>
+            {!isManualInputVerzekering && (
+              <>
+                <span className="text-bw-text-light text-[10px]">|</span>
+                <button
+                  onClick={() => setShowEditFields(!showEditFields)}
+                  className="text-[12px] font-semibold text-bw-blue hover:text-bw-deep cursor-pointer bg-transparent border-none font-[inherit] transition-colors hover:underline"
+                >
+                  {showEditFields ? "Samenvatting tonen" : "Gegevens aanpassen"}
+                </button>
+              </>
+            )}
+          </div>
         </div>
       </div>
     );
