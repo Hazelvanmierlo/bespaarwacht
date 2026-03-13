@@ -35,6 +35,34 @@ export const VERZEKERAAR_USP: Record<string, string> = {
   aegon: "Internationale verzekeraar. Solide financiële basis.",
 };
 
+/** Contact info per verzekeraar — for "Vragen of schade?" redirect */
+export const VERZEKERAAR_CONTACT: Record<string, { telefoon: string; website: string; openingstijden: string }> = {
+  inshared: { telefoon: "020 760 25 00", website: "https://www.inshared.nl/contact", openingstijden: "Ma-Vr 8:00-18:00" },
+  asr: { telefoon: "030 257 91 11", website: "https://www.asr.nl/contact", openingstijden: "Ma-Vr 8:00-18:00" },
+  "allianz-direct": { telefoon: "088 577 47 74", website: "https://www.allianzdirect.nl/contact/", openingstijden: "Ma-Vr 8:00-20:00" },
+  "centraal-beheer": { telefoon: "055 579 81 00", website: "https://www.centraalbeheer.nl/contact", openingstijden: "Ma-Vr 8:00-18:00, Za 9:00-13:00" },
+  fbto: { telefoon: "058 291 31 13", website: "https://www.fbto.nl/contact", openingstijden: "Ma-Vr 8:00-18:00" },
+  zevenwouden: { telefoon: "0513 678 900", website: "https://www.zevenwouden.nl/contact", openingstijden: "Ma-Vr 8:00-17:00" },
+  ohra: { telefoon: "026 400 42 42", website: "https://www.ohra.nl/contact", openingstijden: "Ma-Vr 8:00-18:00" },
+  interpolis: { telefoon: "013 462 20 00", website: "https://www.interpolis.nl/contact", openingstijden: "Ma-Vr 8:00-18:00" },
+  nn: { telefoon: "070 513 78 00", website: "https://www.nn.nl/contact", openingstijden: "Ma-Vr 8:00-18:00" },
+  unive: { telefoon: "0592 74 13 41", website: "https://www.unive.nl/contact", openingstijden: "Ma-Vr 8:00-18:00" },
+  ditzo: { telefoon: "030 799 39 10", website: "https://www.ditzo.nl/contact", openingstijden: "Ma-Vr 8:00-17:30" },
+  aegon: { telefoon: "070 344 32 10", website: "https://www.aegon.nl/contact", openingstijden: "Ma-Vr 8:00-18:00" },
+};
+
+/** Lookup contact info by verzekeraar name (fuzzy match on slug) */
+export function getContactByName(naam: string): { telefoon: string; website: string; openingstijden: string } | null {
+  const lower = naam.toLowerCase();
+  for (const [slug, contact] of Object.entries(VERZEKERAAR_CONTACT)) {
+    const meta = BASE_META[slug];
+    if (meta && (meta.naam.toLowerCase() === lower || lower.includes(slug.replace("-", " ")) || lower.includes(meta.naam.toLowerCase()))) {
+      return contact;
+    }
+  }
+  return null;
+}
+
 /** Product-specific metadata (url + highlight) */
 const PRODUCT_META: Record<ProductType, Record<string, { url: string; highlight: string }>> = {
   inboedel: {

@@ -141,4 +141,5 @@ export {
   Link as LinkIcon,
   DollarSign,
   Mail,
+  ChevronDown,
 } from "lucide-react";

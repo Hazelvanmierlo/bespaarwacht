@@ -78,6 +78,10 @@ export async function saveAnalysis(
     premieHuidig: number;
     besteAlternatief: string;
     maxBesparing: number;
+    einddatum?: string | null;
+    polisnummer?: string | null;
+    verzekeraarTelefoon?: string | null;
+    verzekeraarWebsite?: string | null;
   }
 ) {
   const supabase = getSupabaseAdmin();
@@ -92,7 +96,31 @@ export async function saveAnalysis(
     beste_alternatief: data.besteAlternatief,
     max_besparing: data.maxBesparing,
     monitoring_active: true,
+    einddatum: data.einddatum ?? null,
+    polisnummer: data.polisnummer ?? null,
+    verzekeraar_telefoon: data.verzekeraarTelefoon ?? null,
+    verzekeraar_website: data.verzekeraarWebsite ?? null,
   });
+}
+
+/** Update an analysis (server-side) — for inline edits in dashboard */
+export async function updateAnalysis(
+  userId: string,
+  analysisId: string,
+  data: {
+    einddatum?: string | null;
+    polisnummer?: string | null;
+    monitoring_active?: boolean;
+  }
+) {
+  const supabase = getSupabaseAdmin();
+  if (!supabase) return { error: { message: "DB niet geconfigureerd" } };
+
+  return supabase
+    .from("saved_analyses")
+    .update(data)
+    .eq("id", analysisId)
+    .eq("user_id", userId);
 }
 
 /** Get saved analyses for a user (server-side) */

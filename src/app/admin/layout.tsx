@@ -1,4 +1,4 @@
-import { auth } from "@/auth";
+import { auth, signOut } from "@/auth";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { ShieldDownIcon, LayoutDashboard, Zap, Building, RefreshCw, Users, LinkIcon } from "@/components/icons";
@@ -49,6 +49,14 @@ export default async function AdminLayout({
               Naar site
             </Link>
             <span className="text-xs text-white/40">{session.user.email}</span>
+            <form action={async () => {
+              "use server";
+              await signOut({ redirectTo: "/login" });
+            }}>
+              <button type="submit" className="text-xs text-white/50 hover:text-white transition-colors bg-transparent border-none cursor-pointer font-[inherit]">
+                Uitloggen
+              </button>
+            </form>
           </div>
         </div>
       </div>

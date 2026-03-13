@@ -6,7 +6,7 @@ import Footer from "@/components/footer";
 import { WhatsAppFloat } from "@/components/WhatsAppFloat";
 
 /** Routes where we hide the public nav, footer and WhatsApp float */
-const PORTAL_ROUTES = ["/login", "/account", "/analyse/"];
+const PORTAL_ROUTES = ["/login", "/account", "/analyse/", "/admin"];
 const HIDE_WHATSAPP = ["/login", "/account", "/admin"];
 
 export default function LayoutShell({ children }: { children: React.ReactNode }) {
