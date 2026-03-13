@@ -212,17 +212,54 @@ function UploadContent() {
   const isManualInput = energieData?.leverancier === "" && energieData?.kosten_maand === 0 && !parsedData;
   const isManualInputVerzekering = parsedData?.verzekeraar === "" && parsedData?.maandpremie === 0;
 
-  // Energie wizard step (0 = leverancier, 1 = verbruik, 2 = bevestig)
+  // Energie wizard step (0 = huishouden, 1 = leverancier, 2 = bevestig)
   const [energieStep, setEnergieStep] = useState(0);
+
+  // Verzekering edit fields toggle (must be at top level, not inside conditional)
+  const [showEditFields, setShowEditFields] = useState(false);
+
+  // Estimation profile state
+  const [aantalPersonen, setAantalPersonen] = useState<number | null>(null);
+  const [woningType, setWoningType] = useState<string | null>(null);
+  const [heeftZonnepanelen, setHeeftZonnepanelen] = useState(false);
+  const [showVerbruikDetails, setShowVerbruikDetails] = useState(false);
 
   // Auto-advance to step 1 if data came from PDF (not manual)
   const energieFromPdf = energieData && !isManualInput;
 
   const ENERGIE_STEPS = [
-    { label: "Leverancier", description: "Je huidige contract" },
-    { label: "Verbruik", description: "Stroom & gas" },
+    { label: "Huishouden", description: "Wie wonen er?" },
+    { label: "Contract", description: "Je leverancier" },
     { label: "Vergelijk", description: "Bekijk resultaat" },
   ];
+
+  // Estimation lookup table: [personen][woningtype] → { stroom, gas }
+  const VERBRUIK_SCHATTINGEN: Record<number, Record<string, { stroom: number; gas: number }>> = {
+    1: { appartement: { stroom: 1300, gas: 600 }, tussenwoning: { stroom: 1500, gas: 900 }, hoekwoning: { stroom: 1600, gas: 1000 }, vrijstaand: { stroom: 1800, gas: 1200 }, "2-onder-1-kap": { stroom: 1700, gas: 1100 } },
+    2: { appartement: { stroom: 2200, gas: 800 }, tussenwoning: { stroom: 2500, gas: 1200 }, hoekwoning: { stroom: 2700, gas: 1400 }, vrijstaand: { stroom: 3000, gas: 1700 }, "2-onder-1-kap": { stroom: 2800, gas: 1500 } },
+    3: { appartement: { stroom: 3000, gas: 1000 }, tussenwoning: { stroom: 3300, gas: 1400 }, hoekwoning: { stroom: 3500, gas: 1600 }, vrijstaand: { stroom: 3800, gas: 1900 }, "2-onder-1-kap": { stroom: 3600, gas: 1700 } },
+    4: { appartement: { stroom: 3600, gas: 1100 }, tussenwoning: { stroom: 4000, gas: 1600 }, hoekwoning: { stroom: 4200, gas: 1800 }, vrijstaand: { stroom: 4600, gas: 2200 }, "2-onder-1-kap": { stroom: 4300, gas: 2000 } },
+    5: { appartement: { stroom: 4200, gas: 1300 }, tussenwoning: { stroom: 4700, gas: 1800 }, hoekwoning: { stroom: 5000, gas: 2100 }, vrijstaand: { stroom: 5500, gas: 2600 }, "2-onder-1-kap": { stroom: 5200, gas: 2300 } },
+  };
+
+  const applyEstimation = (personen: number, woning: string, zonne: boolean) => {
+    const entry = VERBRUIK_SCHATTINGEN[Math.min(personen, 5)]?.[woning];
+    if (!entry || !energieData) return;
+    const stroom = entry.stroom;
+    const gas = entry.gas;
+    // Rough cost estimate: €0.30/kWh stroom + €1.30/m³ gas + €30/mnd vastrecht
+    const maand = Math.round(((stroom * 0.30) + (gas * 1.30)) / 12 + 30);
+    updateEnergieField("stroom_kwh_jaar", stroom);
+    updateEnergieField("stroom_normaal_kwh", stroom);
+    updateEnergieField("gas_m3_jaar", gas);
+    updateEnergieField("kosten_maand", maand);
+    updateEnergieField("kosten_jaar", maand * 12);
+    if (zonne) {
+      updateEnergieField("teruglevering_kwh", Math.round(stroom * 0.4));
+    } else {
+      updateEnergieField("teruglevering_kwh", null);
+    }
+  };
 
   // === ENERGIE CONFIRMATION VIEW ===
   if (energieData) {
@@ -261,8 +298,8 @@ function UploadContent() {
             </div>
           )}
 
-          {/* Compact data cards in 2 columns */}
-          <div className="grid grid-cols-2 gap-3 mb-5 animate-fadeUp" style={{ animationDelay: "0.1s" }}>
+          {/* Compact data cards — stacked on very small screens, 2-col on 360px+ */}
+          <div className="grid grid-cols-1 min-[360px]:grid-cols-2 gap-3 mb-5 animate-fadeUp" style={{ animationDelay: "0.1s" }}>
             {/* Contract card */}
             <div className="bg-white rounded-xl border border-bw-border p-4">
               <div className="text-[10px] font-bold text-bw-text-light uppercase tracking-[0.5px] mb-2.5">Contract</div>
@@ -338,11 +375,11 @@ function UploadContent() {
               Vergelijk 18+ leveranciers <ArrowRightIcon className="w-4.5 h-4.5" />
             </button>
 
-            <div className="flex items-center justify-center gap-4 mt-3 text-[11px] text-bw-text-light">
+            <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1 mt-3 text-[11px] text-bw-text-light">
               <span className="inline-flex items-center gap-1"><LockIcon className="w-3 h-3 text-bw-green" /> Gratis &amp; vrijblijvend</span>
-              <span>&middot;</span>
+              <span className="hidden min-[340px]:inline">&middot;</span>
               <span>Resultaat in 2 sec</span>
-              <span>&middot;</span>
+              <span className="hidden min-[340px]:inline">&middot;</span>
               <span>100% onafhankelijk</span>
             </div>
 
@@ -395,10 +432,183 @@ function UploadContent() {
         </div>
 
         {/* Step content */}
+
+        {/* ── STEP 0: Huishouden (profiel schatting) ── */}
         {energieStep === 0 && (
           <div>
+            <h2 className="font-heading text-[22px] sm:text-[26px] font-bold text-bw-deep mb-1">Vertel over je huishouden</h2>
+            <p className="text-[13px] sm:text-[14px] text-bw-text-mid mb-6">We schatten je verbruik op basis van je situatie. Duurt maar 30 seconden.</p>
+
+            {/* Aantal personen */}
+            <div className="mb-5">
+              <label className="text-[13px] font-semibold text-bw-deep mb-2.5 block">Hoeveel personen wonen er?</label>
+              <div className="grid grid-cols-5 gap-2">
+                {[1, 2, 3, 4, 5].map((n) => (
+                  <button
+                    key={n}
+                    onClick={() => {
+                      setAantalPersonen(n);
+                      if (woningType) applyEstimation(n, woningType, heeftZonnepanelen);
+                    }}
+                    className={`flex flex-col items-center gap-1 py-3 rounded-xl border cursor-pointer font-[inherit] transition-all ${
+                      aantalPersonen === n
+                        ? "border-bw-green bg-bw-green-bg text-bw-green-strong shadow-[0_0_0_1px_#16A34A]"
+                        : "border-bw-border bg-white text-bw-deep hover:border-[#94A3B8] hover:bg-[#FAFAFA]"
+                    }`}
+                  >
+                    <span className="text-[20px]">{n === 1 ? "\uD83D\uDC64" : n === 2 ? "\uD83D\uDC6B" : n === 3 ? "\uD83D\uDC68\u200D\uD83D\uDC69\u200D\uD83D\uDC66" : n === 4 ? "\uD83D\uDC68\u200D\uD83D\uDC69\u200D\uD83D\uDC66\u200D\uD83D\uDC66" : "\uD83D\uDC68\u200D\uD83D\uDC69\u200D\uD83D\uDC67\u200D\uD83D\uDC66"}</span>
+                    <span className="text-[13px] font-bold">{n}{n === 5 ? "+" : ""}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Woningtype */}
+            <div className="mb-5">
+              <label className="text-[13px] font-semibold text-bw-deep mb-2.5 block">Wat voor woning heb je?</label>
+              <div className="grid grid-cols-2 min-[400px]:grid-cols-3 gap-2">
+                {([
+                  { key: "appartement", label: "Appartement", icon: "\uD83C\uDFE2" },
+                  { key: "tussenwoning", label: "Tussenwoning", icon: "\uD83C\uDFE0" },
+                  { key: "hoekwoning", label: "Hoekwoning", icon: "\uD83C\uDFE1" },
+                  { key: "2-onder-1-kap", label: "2-onder-1-kap", icon: "\uD83C\uDFD8\uFE0F" },
+                  { key: "vrijstaand", label: "Vrijstaand", icon: "\uD83C\uDFE1" },
+                ] as const).map((w) => (
+                  <button
+                    key={w.key}
+                    onClick={() => {
+                      setWoningType(w.key);
+                      if (aantalPersonen) applyEstimation(aantalPersonen, w.key, heeftZonnepanelen);
+                    }}
+                    className={`flex flex-col items-center gap-1 py-3 px-2 rounded-xl border cursor-pointer font-[inherit] transition-all ${
+                      woningType === w.key
+                        ? "border-bw-green bg-bw-green-bg text-bw-green-strong shadow-[0_0_0_1px_#16A34A]"
+                        : "border-bw-border bg-white text-bw-deep hover:border-[#94A3B8] hover:bg-[#FAFAFA]"
+                    }`}
+                  >
+                    <span className="text-[20px]">{w.icon}</span>
+                    <span className="text-[12px] font-semibold text-center leading-tight">{w.label}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Zonnepanelen */}
+            <div className="mb-5">
+              <label className="text-[13px] font-semibold text-bw-deep mb-2.5 block">Heb je zonnepanelen?</label>
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  onClick={() => {
+                    setHeeftZonnepanelen(false);
+                    if (aantalPersonen && woningType) applyEstimation(aantalPersonen, woningType, false);
+                  }}
+                  className={`flex items-center justify-center gap-2 py-3 rounded-xl border cursor-pointer font-[inherit] transition-all ${
+                    !heeftZonnepanelen
+                      ? "border-bw-green bg-bw-green-bg text-bw-green-strong shadow-[0_0_0_1px_#16A34A]"
+                      : "border-bw-border bg-white text-bw-deep hover:border-[#94A3B8]"
+                  }`}
+                >
+                  <span className="text-[18px]">{"\u274C"}</span>
+                  <span className="text-[13px] font-semibold">Nee</span>
+                </button>
+                <button
+                  onClick={() => {
+                    setHeeftZonnepanelen(true);
+                    if (aantalPersonen && woningType) applyEstimation(aantalPersonen, woningType, true);
+                  }}
+                  className={`flex items-center justify-center gap-2 py-3 rounded-xl border cursor-pointer font-[inherit] transition-all ${
+                    heeftZonnepanelen
+                      ? "border-bw-green bg-bw-green-bg text-bw-green-strong shadow-[0_0_0_1px_#16A34A]"
+                      : "border-bw-border bg-white text-bw-deep hover:border-[#94A3B8]"
+                  }`}
+                >
+                  <span className="text-[18px]">{"\u2600\uFE0F"}</span>
+                  <span className="text-[13px] font-semibold">Ja</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Geschat verbruik preview */}
+            {aantalPersonen && woningType && energieData.stroom_kwh_jaar > 0 && (
+              <div className="bg-gradient-to-br from-[#EFF6FF] to-[#DBEAFE] rounded-xl p-4 mb-5 border border-[#BFDBFE] animate-fadeUp">
+                <div className="flex items-center gap-2 mb-2">
+                  <Zap className="w-4 h-4 text-bw-blue" />
+                  <span className="text-[13px] font-bold text-bw-deep">Geschat verbruik</span>
+                </div>
+                <div className="grid grid-cols-3 gap-3 text-center">
+                  <div>
+                    <div className="text-[18px] font-bold text-bw-deep">{energieData.stroom_kwh_jaar.toLocaleString("nl-NL")}</div>
+                    <div className="text-[10px] text-bw-text-mid font-semibold">kWh stroom/jaar</div>
+                  </div>
+                  <div>
+                    <div className="text-[18px] font-bold text-bw-deep">{energieData.gas_m3_jaar ? energieData.gas_m3_jaar.toLocaleString("nl-NL") : "0"}</div>
+                    <div className="text-[10px] text-bw-text-mid font-semibold">m&sup3; gas/jaar</div>
+                  </div>
+                  <div>
+                    <div className="text-[18px] font-bold text-bw-deep">&euro; {energieData.kosten_maand || 0}</div>
+                    <div className="text-[10px] text-bw-text-mid font-semibold">geschat/maand</div>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setShowVerbruikDetails(!showVerbruikDetails)}
+                  className="mt-2 w-full text-center text-[11px] font-semibold text-bw-blue cursor-pointer bg-transparent border-none font-[inherit] hover:underline"
+                >
+                  {showVerbruikDetails ? "Verberg details" : "Verbruik handmatig aanpassen"}
+                </button>
+
+                {showVerbruikDetails && (
+                  <div className="mt-3 pt-3 border-t border-[#BFDBFE] space-y-3">
+                    <div>
+                      <label className="text-[11px] font-semibold text-bw-deep mb-1 block">Stroom (kWh/jaar)</label>
+                      <input
+                        type="number"
+                        value={energieData.stroom_kwh_jaar || ""}
+                        onChange={(e) => { const num = parseFloat(e.target.value) || 0; updateEnergieField("stroom_kwh_jaar", num); updateEnergieField("stroom_normaal_kwh", num); }}
+                        className="w-full px-3 py-2 rounded-lg border border-[#BFDBFE] text-[13px] text-bw-deep bg-white focus:outline-none focus:border-bw-green focus:ring-1 focus:ring-bw-green/20"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-[11px] font-semibold text-bw-deep mb-1 block">Gas (m&sup3;/jaar)</label>
+                      <input
+                        type="number"
+                        value={energieData.gas_m3_jaar ?? ""}
+                        onChange={(e) => updateEnergieField("gas_m3_jaar", e.target.value ? parseFloat(e.target.value) : null)}
+                        className="w-full px-3 py-2 rounded-lg border border-[#BFDBFE] text-[13px] text-bw-deep bg-white focus:outline-none focus:border-bw-green focus:ring-1 focus:ring-bw-green/20"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-[11px] font-semibold text-bw-deep mb-1 block">Maandkosten (&euro;)</label>
+                      <input
+                        type="number"
+                        value={energieData.kosten_maand || ""}
+                        onChange={(e) => { const num = parseFloat(e.target.value) || 0; updateEnergieField("kosten_maand", num); updateEnergieField("kosten_jaar", +(num * 12).toFixed(2)); }}
+                        className="w-full px-3 py-2 rounded-lg border border-[#BFDBFE] text-[13px] text-bw-deep bg-white focus:outline-none focus:border-bw-green focus:ring-1 focus:ring-bw-green/20"
+                      />
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            <button
+              onClick={() => setEnergieStep(1)}
+              disabled={!aantalPersonen || !woningType}
+              className="w-full inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-xl text-[15px] font-bold bg-bw-blue text-white border-none cursor-pointer font-[inherit] hover:bg-[#1E40AF] transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              Volgende <ArrowRightIcon className="w-4 h-4" />
+            </button>
+
+            {!aantalPersonen && !woningType && (
+              <p className="text-center text-[11px] text-bw-text-light mt-2">Selecteer je huishouden en woningtype om door te gaan</p>
+            )}
+          </div>
+        )}
+
+        {/* ── STEP 1: Leverancier & contract ── */}
+        {energieStep === 1 && (
+          <div>
             <h2 className="font-heading text-[22px] sm:text-[26px] font-bold text-bw-deep mb-1">Bij welke leverancier zit je?</h2>
-            <p className="text-[13px] sm:text-[14px] text-bw-text-mid mb-6">Vul je huidige energieleverancier en contractgegevens in.</p>
+            <p className="text-[13px] sm:text-[14px] text-bw-text-mid mb-6">Weet je het niet zeker? Kies dan &quot;Anders&quot; of &quot;Weet ik niet&quot;.</p>
 
             <div className="space-y-4">
               <div>
@@ -409,7 +619,7 @@ function UploadContent() {
                   className="w-full px-4 py-3 rounded-xl border border-bw-border text-[14px] text-bw-deep bg-white focus:outline-none focus:border-bw-green focus:ring-2 focus:ring-bw-green/20"
                 >
                   <option value="">Selecteer je leverancier...</option>
-                  {["Budget Energie", "Eneco", "Essent", "Greenchoice", "Oxxio", "Vattenfall", "Vandebron", "Engie", "Nederlandse Energie Maatschappij", "Mega", "Frank Energie", "Tibber", "UnitedConsumers", "Coolblue Energie", "Pure Energie", "HEM", "NextEnergy", "Anders"].map((l) => (
+                  {["Budget Energie", "Eneco", "Essent", "Greenchoice", "Oxxio", "Vattenfall", "Vandebron", "Engie", "Nederlandse Energie Maatschappij", "Mega", "Frank Energie", "Tibber", "UnitedConsumers", "Coolblue Energie", "Pure Energie", "HEM", "NextEnergy", "Weet ik niet", "Anders"].map((l) => (
                     <option key={l} value={l}>{l}</option>
                   ))}
                 </select>
@@ -437,7 +647,7 @@ function UploadContent() {
               <div>
                 <label className="text-[13px] font-semibold text-bw-deep mb-1.5 block">Wat betaal je per maand? <span className="font-normal text-bw-text-light">(schatting is ok)</span></label>
                 <div className="relative">
-                  <span className="absolute left-4 top-1/2 -translate-y-1/2 text-[14px] font-semibold text-bw-text-mid">€</span>
+                  <span className="absolute left-4 top-1/2 -translate-y-1/2 text-[14px] font-semibold text-bw-text-mid">&euro;</span>
                   <input
                     type="number"
                     value={energieData.kosten_maand || ""}
@@ -447,103 +657,8 @@ function UploadContent() {
                   />
                   <span className="absolute right-4 top-1/2 -translate-y-1/2 text-[12px] text-bw-text-light">per maand</span>
                 </div>
-              </div>
-            </div>
-
-            <button
-              onClick={() => setEnergieStep(1)}
-              className="mt-6 w-full inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-xl text-[15px] font-bold bg-bw-blue text-white border-none cursor-pointer font-[inherit] hover:bg-[#1E40AF] transition-all"
-            >
-              Volgende: verbruik invullen <ArrowRightIcon className="w-4 h-4" />
-            </button>
-          </div>
-        )}
-
-        {energieStep === 1 && (
-          <div>
-            <h2 className="font-heading text-[22px] sm:text-[26px] font-bold text-bw-deep mb-1">Hoeveel verbruik je?</h2>
-            <p className="text-[13px] sm:text-[14px] text-bw-text-mid mb-6">Dit staat op je jaaroverzicht of energierekening. Weet je het niet precies? Een schatting is voldoende.</p>
-
-            <div className="space-y-4">
-              <div>
-                <label className="text-[13px] font-semibold text-bw-deep mb-1.5 block">Stroomverbruik per jaar</label>
-                <div className="relative">
-                  <input
-                    type="number"
-                    value={energieData.stroom_kwh_jaar || ""}
-                    onChange={(e) => { const num = parseFloat(e.target.value) || 0; updateEnergieField("stroom_kwh_jaar", num); updateEnergieField("stroom_normaal_kwh", num); }}
-                    placeholder="bijv. 2500"
-                    className="w-full px-4 pr-16 py-3 rounded-xl border border-bw-border text-[14px] text-bw-deep focus:outline-none focus:border-bw-green focus:ring-2 focus:ring-bw-green/20"
-                  />
-                  <span className="absolute right-4 top-1/2 -translate-y-1/2 text-[12px] text-bw-text-light">kWh/jaar</span>
-                </div>
-                <div className="mt-1.5 flex gap-2">
-                  {[1500, 2500, 4000, 6000].map((v) => (
-                    <button key={v} onClick={() => { updateEnergieField("stroom_kwh_jaar", v); updateEnergieField("stroom_normaal_kwh", v); }}
-                      className={`px-2.5 py-1 rounded-lg text-[11px] font-semibold cursor-pointer font-[inherit] transition-all ${
-                        energieData.stroom_kwh_jaar === v ? "bg-bw-blue text-white" : "bg-bw-bg text-bw-text-mid border border-bw-border hover:bg-[#E2E8F0]"
-                      }`}>
-                      {v.toLocaleString("nl-NL")}
-                    </button>
-                  ))}
-                </div>
-                <div className="text-[10px] text-bw-text-light mt-1">Gemiddeld: alleenstaand ~1.500 · huishouden ~2.500 · groot gezin ~4.000+</div>
-              </div>
-
-              <div>
-                <label className="text-[13px] font-semibold text-bw-deep mb-1.5 block">Gasverbruik per jaar <span className="font-normal text-bw-text-light">(geen gas? Laat leeg)</span></label>
-                <div className="relative">
-                  <input
-                    type="number"
-                    value={energieData.gas_m3_jaar ?? ""}
-                    onChange={(e) => updateEnergieField("gas_m3_jaar", e.target.value ? parseFloat(e.target.value) : null)}
-                    placeholder="bijv. 1200"
-                    className="w-full px-4 pr-16 py-3 rounded-xl border border-bw-border text-[14px] text-bw-deep focus:outline-none focus:border-bw-green focus:ring-2 focus:ring-bw-green/20"
-                  />
-                  <span className="absolute right-4 top-1/2 -translate-y-1/2 text-[12px] text-bw-text-light">m³/jaar</span>
-                </div>
-                <div className="mt-1.5 flex gap-2">
-                  {[800, 1200, 1800, 2500].map((v) => (
-                    <button key={v} onClick={() => updateEnergieField("gas_m3_jaar", v)}
-                      className={`px-2.5 py-1 rounded-lg text-[11px] font-semibold cursor-pointer font-[inherit] transition-all ${
-                        energieData.gas_m3_jaar === v ? "bg-bw-blue text-white" : "bg-bw-bg text-bw-text-mid border border-bw-border hover:bg-[#E2E8F0]"
-                      }`}>
-                      {v.toLocaleString("nl-NL")}
-                    </button>
-                  ))}
-                </div>
-                <div className="text-[10px] text-bw-text-light mt-1">Gemiddeld: appartement ~800 · tussenwoning ~1.200 · vrijstaand ~2.000+</div>
-              </div>
-
-              <div>
-                <label className="text-[13px] font-semibold text-bw-deep mb-1.5 block">Zonnepanelen? <span className="font-normal text-bw-text-light">(optioneel)</span></label>
-                <div className="grid grid-cols-2 gap-2">
-                  <button
-                    onClick={() => updateEnergieField("teruglevering_kwh", null)}
-                    className={`px-3 py-2.5 rounded-xl border text-[13px] font-semibold cursor-pointer font-[inherit] transition-all ${
-                      !energieData.teruglevering_kwh ? "border-bw-green bg-bw-green-bg text-bw-green-strong shadow-[0_0_0_1px_#16A34A]" : "border-bw-border bg-white text-bw-deep hover:border-[#94A3B8]"
-                    }`}>
-                    Nee
-                  </button>
-                  <button
-                    onClick={() => updateEnergieField("teruglevering_kwh", energieData.teruglevering_kwh || 1500)}
-                    className={`px-3 py-2.5 rounded-xl border text-[13px] font-semibold cursor-pointer font-[inherit] transition-all ${
-                      energieData.teruglevering_kwh ? "border-bw-green bg-bw-green-bg text-bw-green-strong shadow-[0_0_0_1px_#16A34A]" : "border-bw-border bg-white text-bw-deep hover:border-[#94A3B8]"
-                    }`}>
-                    Ja
-                  </button>
-                </div>
-                {energieData.teruglevering_kwh && (
-                  <div className="mt-2 relative">
-                    <input
-                      type="number"
-                      value={energieData.teruglevering_kwh}
-                      onChange={(e) => updateEnergieField("teruglevering_kwh", parseFloat(e.target.value) || null)}
-                      placeholder="bijv. 1500"
-                      className="w-full px-4 pr-24 py-3 rounded-xl border border-bw-border text-[14px] text-bw-deep focus:outline-none focus:border-bw-green focus:ring-2 focus:ring-bw-green/20"
-                    />
-                    <span className="absolute right-4 top-1/2 -translate-y-1/2 text-[12px] text-bw-text-light">kWh teruglevering</span>
-                  </div>
+                {energieData.kosten_maand > 0 && (
+                  <div className="mt-1 text-[11px] text-bw-text-light">= &euro; {(energieData.kosten_maand * 12).toFixed(0)} per jaar</div>
                 )}
               </div>
             </div>
@@ -559,67 +674,94 @@ function UploadContent() {
                 onClick={() => setEnergieStep(2)}
                 className="flex-1 inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-xl text-[15px] font-bold bg-bw-blue text-white border-none cursor-pointer font-[inherit] hover:bg-[#1E40AF] transition-all"
               >
-                Volgende: bekijk resultaat <ArrowRightIcon className="w-4 h-4" />
+                Volgende <ArrowRightIcon className="w-4 h-4" />
               </button>
             </div>
           </div>
         )}
 
+        {/* ── STEP 2: Bevestig & vergelijk ── */}
         {energieStep === 2 && (
           <div>
-            <h2 className="font-heading text-[22px] sm:text-[26px] font-bold text-bw-deep mb-1">Alles klaar!</h2>
-            <p className="text-[13px] sm:text-[14px] text-bw-text-mid mb-6">Controleer je gegevens en vergelijk direct alle leveranciers.</p>
+            <h2 className="font-heading text-[22px] sm:text-[26px] font-bold text-bw-deep mb-1">Klaar om te vergelijken!</h2>
+            <p className="text-[13px] sm:text-[14px] text-bw-text-mid mb-5">Controleer je gegevens en vergelijk direct alle leveranciers.</p>
 
-            {/* Summary */}
-            <div className="bg-white rounded-xl border border-bw-border overflow-hidden mb-6">
-              <div className="divide-y divide-bw-border">
-                <div className="px-4 py-3 flex justify-between items-center">
-                  <span className="text-[13px] text-bw-text-mid">Leverancier</span>
-                  <span className="text-[13px] font-semibold text-bw-deep">{energieData.leverancier || "Niet ingevuld"}</span>
-                </div>
-                <div className="px-4 py-3 flex justify-between items-center">
-                  <span className="text-[13px] text-bw-text-mid">Contract</span>
-                  <span className="text-[13px] font-semibold text-bw-deep capitalize">{energieData.contract_type}</span>
-                </div>
-                <div className="px-4 py-3 flex justify-between items-center">
-                  <span className="text-[13px] text-bw-text-mid">Maandkosten</span>
-                  <span className="text-[13px] font-semibold text-bw-deep">€ {energieData.kosten_maand || 0}</span>
-                </div>
-                <div className="px-4 py-3 flex justify-between items-center">
-                  <span className="text-[13px] text-bw-text-mid">Stroom</span>
-                  <span className="text-[13px] font-semibold text-bw-deep">{energieData.stroom_kwh_jaar?.toLocaleString("nl-NL")} kWh/jaar</span>
-                </div>
-                <div className="px-4 py-3 flex justify-between items-center">
-                  <span className="text-[13px] text-bw-text-mid">Gas</span>
-                  <span className="text-[13px] font-semibold text-bw-deep">{energieData.gas_m3_jaar ? `${energieData.gas_m3_jaar.toLocaleString("nl-NL")} m³/jaar` : "Geen gas"}</span>
-                </div>
-                {energieData.teruglevering_kwh && (
-                  <div className="px-4 py-3 flex justify-between items-center">
-                    <span className="text-[13px] text-bw-text-mid">Zonnepanelen</span>
-                    <span className="text-[13px] font-semibold text-bw-deep">{energieData.teruglevering_kwh.toLocaleString("nl-NL")} kWh teruglevering</span>
+            {/* Summary cards — like PDF confirmation style */}
+            <div className="grid grid-cols-1 min-[360px]:grid-cols-2 gap-3 mb-4">
+              <div className="bg-white rounded-xl border border-bw-border p-4">
+                <div className="text-[10px] font-bold text-bw-text-light uppercase tracking-[0.5px] mb-2.5">Huishouden</div>
+                <div className="space-y-2">
+                  <div>
+                    <div className="text-[11px] text-bw-text-light">Personen</div>
+                    <div className="text-[14px] font-bold text-bw-deep">{aantalPersonen || "?"}{aantalPersonen === 5 ? "+" : ""}</div>
                   </div>
-                )}
+                  <div>
+                    <div className="text-[11px] text-bw-text-light">Woning</div>
+                    <div className="text-[13px] font-semibold text-bw-deep capitalize">{woningType || "Onbekend"}</div>
+                  </div>
+                  {heeftZonnepanelen && (
+                    <div>
+                      <div className="text-[11px] text-bw-text-light">Zonnepanelen</div>
+                      <div className="text-[13px] font-semibold text-bw-green">Ja</div>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div className="bg-white rounded-xl border border-bw-border p-4">
+                <div className="text-[10px] font-bold text-bw-text-light uppercase tracking-[0.5px] mb-2.5">Verbruik</div>
+                <div className="space-y-2">
+                  <div>
+                    <div className="text-[11px] text-bw-text-light">Stroom</div>
+                    <div className="text-[14px] font-bold text-bw-deep">{(energieData.stroom_kwh_jaar || 0).toLocaleString("nl-NL")} <span className="text-[11px] font-normal text-bw-text-light">kWh/jaar</span></div>
+                  </div>
+                  <div>
+                    <div className="text-[11px] text-bw-text-light">Gas</div>
+                    <div className="text-[13px] font-semibold text-bw-deep">{energieData.gas_m3_jaar ? `${energieData.gas_m3_jaar.toLocaleString("nl-NL")} m\u00B3/jaar` : "Geen gas"}</div>
+                  </div>
+                </div>
               </div>
             </div>
 
-            <div className="flex gap-3">
+            {/* Contract info bar */}
+            <div className="bg-[#F8FAFC] rounded-xl border border-[#E2E8F0] px-4 py-3 mb-5">
+              <div className="flex flex-wrap gap-x-6 gap-y-1.5 text-[12px]">
+                <div><span className="text-bw-text-light">Leverancier:</span> <span className="font-semibold text-bw-deep">{energieData.leverancier || "Onbekend"}</span></div>
+                <div><span className="text-bw-text-light">Contract:</span> <span className="font-semibold text-bw-deep capitalize">{energieData.contract_type}</span></div>
+                <div><span className="text-bw-text-light">Kosten:</span> <span className="font-semibold text-bw-deep">&euro; {energieData.kosten_maand || 0}/mnd</span></div>
+              </div>
+            </div>
+
+            {/* CTA */}
+            <button
+              onClick={handleEnergieConfirmAndAnalyze}
+              className="w-full inline-flex items-center justify-center gap-2.5 px-6 py-4 rounded-2xl text-[16px] font-bold bg-bw-green text-white border-none cursor-pointer font-[inherit] hover:bg-bw-green-strong hover:shadow-[0_8px_24px_rgba(22,163,74,0.3)] hover:-translate-y-0.5 active:translate-y-0 transition-all"
+            >
+              Vergelijk 18+ leveranciers <ArrowRightIcon className="w-4.5 h-4.5" />
+            </button>
+
+            <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1 mt-3 text-[11px] text-bw-text-light">
+              <span className="inline-flex items-center gap-1"><LockIcon className="w-3 h-3 text-bw-green" /> Gratis &amp; vrijblijvend</span>
+              <span className="hidden min-[340px]:inline">&middot;</span>
+              <span>Resultaat in 2 sec</span>
+              <span className="hidden min-[340px]:inline">&middot;</span>
+              <span>100% onafhankelijk</span>
+            </div>
+
+            <div className="flex items-center justify-center gap-3 mt-3">
               <button
                 onClick={() => setEnergieStep(1)}
-                className="inline-flex items-center px-4 py-3.5 rounded-xl text-[13px] font-semibold bg-white text-bw-text-mid border border-bw-border cursor-pointer font-[inherit] hover:bg-bw-bg transition-colors"
+                className="text-[12px] font-semibold text-bw-text-mid hover:text-bw-deep cursor-pointer bg-transparent border-none font-[inherit] transition-colors hover:underline"
               >
                 Terug
               </button>
+              <span className="text-bw-text-light text-[10px]">|</span>
               <button
-                onClick={handleEnergieConfirmAndAnalyze}
-                className="flex-1 inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-xl text-[15px] font-bold bg-bw-green text-white border-none cursor-pointer font-[inherit] hover:bg-bw-green-strong hover:shadow-[0_4px_16px_rgba(22,163,74,0.25)] transition-all"
+                onClick={() => { setEnergieStep(0); setShowVerbruikDetails(false); }}
+                className="text-[12px] font-semibold text-bw-blue hover:text-bw-deep cursor-pointer bg-transparent border-none font-[inherit] transition-colors hover:underline"
               >
-                Vergelijk alle leveranciers <ArrowRightIcon className="w-4 h-4" />
+                Gegevens aanpassen
               </button>
-            </div>
-
-            <div className="mt-3 flex items-center gap-2 px-3 py-2 bg-[#F0FDF4] rounded-lg border border-[#BBF7D0]">
-              <LockIcon className="w-3.5 h-3.5 text-bw-green shrink-0" />
-              <span className="text-[11px] text-bw-green-dark"><strong>Privacy gewaarborgd.</strong> Je gegevens worden alleen gebruikt voor deze vergelijking.</span>
             </div>
           </div>
         )}
@@ -629,8 +771,6 @@ function UploadContent() {
 
   // === VERZEKERING CONFIRMATION VIEW ===
   if (parsedData) {
-    const [showEditFields, setShowEditFields] = useState(isManualInputVerzekering);
-
     return (
       <div className="max-w-[580px] mx-auto px-4 sm:px-6 py-8 sm:py-12">
         {/* Success header */}
@@ -688,7 +828,7 @@ function UploadContent() {
 
         {/* Summary cards (compact, like energy) — only when NOT manual input */}
         {!isManualInputVerzekering && !showEditFields && (
-          <div className="grid grid-cols-2 gap-3 mb-5 animate-fadeUp" style={{ animationDelay: "0.15s" }}>
+          <div className="grid grid-cols-1 min-[360px]:grid-cols-2 gap-3 mb-5 animate-fadeUp" style={{ animationDelay: "0.15s" }}>
             <div className="bg-white rounded-xl border border-bw-border p-4">
               <div className="text-[10px] font-bold text-bw-text-light uppercase tracking-[0.5px] mb-2.5">Polis</div>
               <div className="space-y-2">
@@ -731,7 +871,7 @@ function UploadContent() {
         )}
 
         {/* Editable fields — shown for manual input or when "aanpassen" is clicked */}
-        {(isManualInputVerzekering || showEditFields) && (
+        {(isManualInputVerzekering || showEditFields) && parsedData && (
           <div className="bg-white rounded-xl border border-bw-border overflow-hidden mb-5 animate-fadeUp" style={{ animationDelay: "0.1s" }}>
             <div className="px-4 py-3 bg-[#F8FAFC] border-b border-bw-border">
               <span className="text-[11px] font-bold text-bw-text-mid uppercase tracking-[0.5px]">Polisgegevens</span>
@@ -803,11 +943,11 @@ function UploadContent() {
             Vergelijk 12+ verzekeraars <ArrowRightIcon className="w-4.5 h-4.5" />
           </button>
 
-          <div className="flex items-center justify-center gap-4 mt-3 text-[11px] text-bw-text-light">
+          <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1 mt-3 text-[11px] text-bw-text-light">
             <span className="inline-flex items-center gap-1"><LockIcon className="w-3 h-3 text-bw-green" /> Gratis &amp; vrijblijvend</span>
-            <span>&middot;</span>
+            <span className="hidden min-[340px]:inline">&middot;</span>
             <span>Resultaat in 5 sec</span>
-            <span>&middot;</span>
+            <span className="hidden min-[340px]:inline">&middot;</span>
             <span>100% onafhankelijk</span>
           </div>
 

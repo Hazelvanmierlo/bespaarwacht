@@ -15,8 +15,22 @@ import UploadZone from "@/components/energie/UploadZone";
 import Vergelijking from "@/components/energie/Vergelijking";
 import CountUp from "@/components/energie/CountUp";
 import { ArrowRightIcon, CheckIcon, FileText, Search, Lightbulb, Zap, LockIcon } from "@/components/icons";
+import StepperBar from "@/components/StepperBar";
 
-type Phase = "upload" | "results";
+const ENERGIE_FLOW_STEPS = [
+  { label: "Gegevens" },
+  { label: "Vergelijking" },
+  { label: "Overstappen" },
+];
+
+type Phase = "upload" | "analyzing" | "results";
+
+const analyzeSteps = [
+  { step: 1, label: "PDF uitlezen", desc: "Energiegegevens worden geëxtraheerd" },
+  { step: 2, label: "Anonimisering", desc: "Persoonsgegevens worden verwijderd" },
+  { step: 3, label: "Tarieven vergelijken", desc: "Alle leveranciers worden doorgerekend" },
+  { step: 4, label: "Resultaten klaar", desc: "Goedkopere opties gevonden!" },
+];
 
 export default function EnergieAnalysePage() {
   return (
@@ -32,6 +46,23 @@ function EnergieAnalyseContent() {
   const [energieData, setEnergieData] = useState<EnergieData | null>(null);
   const [apparaten, setApparaten] = useState<ApparaatDetectie | null>(null);
   const [affiliateUrls, setAffiliateUrls] = useState<Record<string, string>>({});
+  const [animStep, setAnimStep] = useState(0);
+  const [showMobileFilters, setShowMobileFilters] = useState(false);
+
+  const startAnalyzing = useCallback((data: EnergieData) => {
+    setEnergieData(data);
+    setApparaten(detecteerApparaten(data));
+    setPhase("analyzing");
+    setAnimStep(0);
+    // Step-by-step animation
+    setTimeout(() => setAnimStep(1), 500);
+    setTimeout(() => setAnimStep(2), 1600);
+    setTimeout(() => setAnimStep(3), 2800);
+    setTimeout(() => {
+      setAnimStep(4);
+      setTimeout(() => setPhase("results"), 600);
+    }, 4000);
+  }, []);
 
   useEffect(() => {
     fetch("/api/daisycon/urls")
@@ -47,14 +78,12 @@ function EnergieAnalyseContent() {
       if (stored) {
         try {
           const data = JSON.parse(stored) as EnergieData;
-          setEnergieData(data);
-          setApparaten(detecteerApparaten(data));
-          setPhase("results");
           sessionStorage.removeItem("bw-upload-energie");
+          startAnalyzing(data);
         } catch { /* ignore parse errors */ }
       }
     }
-  }, [searchParams]);
+  }, [searchParams, startAnalyzing]);
 
   const handleParsed = useCallback((results: ParseResult[]) => {
     if (results.length === 0) return;
@@ -63,10 +92,8 @@ function EnergieAnalyseContent() {
       const scoreMap = { goed: 3, redelijk: 2, beperkt: 1 };
       return scoreMap[a.data.kwaliteit] >= scoreMap[b.data.kwaliteit] ? a : b;
     });
-    setEnergieData(best.data);
-    setApparaten(detecteerApparaten(best.data));
-    setPhase("results");
-  }, []);
+    startAnalyzing(best.data);
+  }, [startAnalyzing]);
 
   /* ── Derived calculations ── */
   const vergelijking = useMemo(() => {
@@ -100,6 +127,9 @@ function EnergieAnalyseContent() {
 
   return (
     <>
+      {/* STEPPER BAR */}
+      <StepperBar steps={ENERGIE_FLOW_STEPS} currentStep={phase === "upload" ? 0 : phase === "analyzing" ? 0 : 1} />
+
       {/* HERO — only on upload phase */}
       {phase === "upload" && (
         <section className="py-16 md:py-20 px-6 bg-white">
@@ -122,9 +152,45 @@ function EnergieAnalyseContent() {
         </section>
       )}
 
+      {/* ANALYZING ANIMATION */}
+      {phase === "analyzing" && (
+        <div className="max-w-[520px] mx-auto px-6 py-20">
+          <h2 className="font-heading text-[28px] font-bold text-bw-deep text-center mb-10">
+            Energiekosten worden geanalyseerd...
+          </h2>
+          {analyzeSteps.map((s) => (
+            <div
+              key={s.step}
+              className={`flex items-center gap-4 py-3.5 border-b border-[#F1F5F9] transition-all duration-500 ${
+                animStep >= s.step ? "opacity-100" : "opacity-30"
+              } ${animStep >= s.step ? "animate-slideIn" : ""}`}
+            >
+              <div
+                className={`w-9 h-9 rounded-full flex items-center justify-center shrink-0 text-sm font-bold transition-all duration-400 ${
+                  animStep >= s.step ? "bg-bw-green text-white" : "bg-bw-border text-bw-text-light"
+                }`}
+              >
+                {animStep >= s.step ? <CheckIcon className="w-3.5 h-3.5" /> : s.step}
+              </div>
+              <div>
+                <div className={`text-[15px] font-semibold transition-all duration-400 ${animStep >= s.step ? "text-bw-deep" : "text-bw-text-light"}`}>
+                  {s.label}
+                </div>
+                <div className={`text-[13px] transition-all duration-400 ${animStep >= s.step ? "text-bw-text-mid" : "text-[#CBD5E1]"}`}>
+                  {s.desc}
+                </div>
+              </div>
+              {animStep === s.step && (
+                <div className="ml-auto w-5 h-5 border-2 border-bw-green border-t-transparent rounded-full animate-spin" />
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+
       {/* RESULTS — same structure as /analyse/demo */}
       {phase === "results" && energieData && apparaten && (
-        <div className="max-w-[860px] mx-auto px-4 sm:px-6 py-10 pb-20">
+        <div className="max-w-[1120px] mx-auto px-4 sm:px-6 py-6 sm:py-10 pb-20">
 
           {/* ── HERO ── */}
           <div className="text-center mb-6">
@@ -173,6 +239,17 @@ function EnergieAnalyseContent() {
               <svg className="w-3.5 h-3.5 text-bw-green" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M14 9V5a3 3 0 00-6 0v4" /><rect x="2" y="9" width="20" height="13" rx="2" /><circle cx="12" cy="16" r="1" /></svg>
               Gratis &amp; vrijblijvend
             </span>
+          </div>
+
+          {/* ── MOBILE FILTER TOGGLE ── */}
+          <div className="lg:hidden mb-4 flex gap-2">
+            <button
+              onClick={() => setShowMobileFilters(!showMobileFilters)}
+              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-[13px] font-semibold bg-white border border-bw-border cursor-pointer font-[inherit] hover:bg-bw-bg transition-colors"
+            >
+              <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M4 21V14M4 10V3M12 21V12M12 8V3M20 21V16M20 12V3M1 14h6M9 8h6M17 16h6" /></svg>
+              Keuzes {showMobileFilters ? "verbergen" : "aanscherpen"}
+            </button>
           </div>
 
           {/* ── HUIDIGE SITUATIE (compact inline like polis) ── */}
@@ -225,12 +302,97 @@ function EnergieAnalyseContent() {
             </div>
           )}
 
-          {/* ── COMPARISON (directly visible, no scroll needed) ── */}
-          <Vergelijking
-            resultaten={vergelijking}
-            huidigeLeverancier={energieData.leverancier}
-            affiliateUrls={affiliateUrls}
-          />
+          {/* ── 2-COLUMN LAYOUT: SIDEBAR + RESULTS ── */}
+          <div className="flex gap-6 items-start">
+
+            {/* ── SIDEBAR (desktop always, mobile toggle) ── */}
+            <aside className={`w-[280px] shrink-0 ${showMobileFilters ? "block" : "hidden"} lg:block`}>
+              <div className="sticky top-14 space-y-4">
+
+                {/* Profile summary — Keuzes aanscherpen */}
+                <div className="bg-white rounded-xl border border-bw-border p-4">
+                  <div className="flex items-center justify-between mb-3">
+                    <span className="text-[13px] font-bold text-bw-deep">Keuzes aanscherpen</span>
+                    <button
+                      onClick={() => { setPhase("upload"); setEnergieData(null); setApparaten(null); }}
+                      className="text-[11px] font-semibold text-bw-blue hover:underline bg-transparent border-none cursor-pointer font-[inherit]"
+                    >
+                      wijzig
+                    </button>
+                  </div>
+                  <div className="space-y-2 text-[12px]">
+                    {/* Verbruik */}
+                    <div className="border-b border-[#F1F5F9] pb-2">
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="text-bw-text-mid">Verbruik</span>
+                      </div>
+                      <div className="text-[12px] text-bw-deep font-semibold">
+                        Stroom: {(energieData.verbruikKwhTotaal || ((energieData.verbruikKwhDal || 0) + (energieData.verbruikKwhPiek || 0))).toLocaleString("nl-NL")} kWh
+                      </div>
+                      {energieData.verbruikKwhDal != null && energieData.verbruikKwhPiek != null && (
+                        <div className="text-[11px] text-bw-text-light mt-0.5">
+                          Dal: {energieData.verbruikKwhDal.toLocaleString("nl-NL")} · Normaal: {energieData.verbruikKwhPiek.toLocaleString("nl-NL")}
+                        </div>
+                      )}
+                      {energieData.verbruikGasM3 != null && energieData.verbruikGasM3 > 0 && (
+                        <div className="text-[12px] text-bw-deep font-semibold mt-1">
+                          Gas: {energieData.verbruikGasM3.toLocaleString("nl-NL")} m&sup3;
+                        </div>
+                      )}
+                      {energieData.terugleveringKwh != null && energieData.terugleveringKwh > 0 && (
+                        <div className="text-[12px] text-bw-green font-semibold mt-1">
+                          Teruglevering: {energieData.terugleveringKwh.toLocaleString("nl-NL")} kWh
+                        </div>
+                      )}
+                    </div>
+                    {/* Leverancier */}
+                    {energieData.leverancier && (
+                      <div className="flex justify-between">
+                        <span className="text-bw-text-mid">Leverancier</span>
+                        <span className="font-semibold text-bw-deep">{energieData.leverancier}</span>
+                      </div>
+                    )}
+                    {/* Contract type */}
+                    {energieData.contractType && (
+                      <div className="flex justify-between">
+                        <span className="text-bw-text-mid">Contract</span>
+                        <span className="font-semibold text-bw-deep">{energieData.contractType}</span>
+                      </div>
+                    )}
+                    {/* Einddatum */}
+                    {energieData.einddatum && (
+                      <div className="flex justify-between">
+                        <span className="text-bw-text-mid">Einddatum</span>
+                        <span className="font-semibold text-bw-deep">{energieData.einddatum}</span>
+                      </div>
+                    )}
+                    {/* Huidige kosten */}
+                    {energieData.kostenTotaalJaar != null && energieData.kostenTotaalJaar > 0 && (
+                      <div className="flex justify-between">
+                        <span className="text-bw-text-mid">Kosten</span>
+                        <span className="font-semibold text-bw-red">&euro;{Math.round(energieData.kostenTotaalJaar)}/jaar</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* 24/7 monitoring CTA */}
+                <button className="w-full bg-bw-green text-white rounded-xl py-3.5 px-4 text-[13px] font-bold text-center hover:bg-bw-green-dark transition-colors border-none cursor-pointer font-[inherit]">
+                  <Zap className="w-4 h-4 inline mr-1.5 -mt-0.5" />
+                  24/7 monitoring
+                </button>
+              </div>
+            </aside>
+
+            {/* ── MAIN RESULTS ── */}
+            <div className="min-w-0 flex-1">
+              <Vergelijking
+                resultaten={vergelijking}
+                huidigeLeverancier={energieData.leverancier}
+                affiliateUrls={affiliateUrls}
+              />
+            </div>
+          </div>
 
           {/* Upload meer */}
           <div className="mt-8 text-center">

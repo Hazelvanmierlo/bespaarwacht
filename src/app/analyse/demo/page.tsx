@@ -11,6 +11,13 @@ import { VERZEKERAAR_USP } from "@/lib/verzekeraar-meta";
 import { CheckIcon, ArrowRightIcon, StarIcon, LockIcon, SaveIcon, ShieldIcon, PulseDot, XIcon, Home, Building2, ShieldCheck, Plane } from "@/components/icons";
 import type { AnonResult, Alternative, PolisData } from "@/lib/types";
 import type { ProductType } from "@/lib/scrapers/base";
+import StepperBar from "@/components/StepperBar";
+
+const VERZEKERING_FLOW_STEPS = [
+  { label: "Gegevens" },
+  { label: "Vergelijking" },
+  { label: "Overstappen" },
+];
 
 const VALID_PRODUCTS: ProductType[] = ["inboedel", "opstal", "aansprakelijkheid", "reis"];
 
@@ -74,6 +81,13 @@ const COVERAGE_REIS: Record<string, { label: string; basis: boolean; uitgebreid:
   reisrechts: { label: "Rechtsbijstand", basis: false, uitgebreid: true },
 };
 
+/* Badge labels for top 3 */
+const TOP_BADGES = [
+  { label: "Beste keuze", bg: "bg-bw-green", text: "text-white" },
+  { label: "Goed alternatief", bg: "bg-bw-deep", text: "text-white" },
+  { label: "Ook interessant", bg: "bg-[#6B7280]", text: "text-white" },
+];
+
 function getCoverageItems(productType: ProductType, dekking: string, gezin?: string) {
   const d = dekking.toLowerCase();
   const isAllRisk = d.includes("all risk") || d.includes("allrisk");
@@ -129,6 +143,7 @@ function AnalyseDemoContent() {
   const [expandedCard, setExpandedCard] = useState<string | null>(null);
   const [overstapModal, setOverstapModal] = useState<(Alternative & { besparingJaar: number }) | null>(null);
   const [eigenRisicoFilter, setEigenRisicoFilter] = useState<string>("alle");
+  const [showMobileFilters, setShowMobileFilters] = useState(false);
 
   const [polisData, setPolisData] = useState<PolisData>(() => getDemoPolisData(productType));
 
@@ -171,8 +186,9 @@ function AnalyseDemoContent() {
 
   const besteSaving = filteredAndSorted[0];
   const heeftBesparing = besteSaving && besteSaving.besparingJaar > 0;
+  const top3 = filteredAndSorted.slice(0, 3);
+  const overige = filteredAndSorted.slice(3);
 
-  // Check if there are different eigen risico values for the filter
   const eigenRisicoValues = [...new Set(alternatives.map((a) => a.eigenRisico))];
   const showERFilter = eigenRisicoValues.length > 1;
 
@@ -234,6 +250,8 @@ function AnalyseDemoContent() {
   // === LOADING ANIMATION ===
   if (!showResults) {
     return (
+      <>
+      <StepperBar steps={VERZEKERING_FLOW_STEPS} currentStep={0} />
       <div className="max-w-[520px] mx-auto px-6 py-20">
         <h2 className="font-heading text-[28px] font-bold text-bw-deep text-center mb-10">
           {PRODUCT_LABELS[productType]} wordt geanalyseerd...
@@ -266,12 +284,15 @@ function AnalyseDemoContent() {
           </div>
         ))}
       </div>
+      </>
     );
   }
 
   // === RESULTS ===
   return (
-    <div className="max-w-[860px] mx-auto px-4 sm:px-6 py-10 pb-20">
+    <>
+    <StepperBar steps={VERZEKERING_FLOW_STEPS} currentStep={overstapModal ? 2 : 1} />
+    <div className="max-w-[1120px] mx-auto px-4 sm:px-6 py-6 sm:py-10 pb-20">
 
       {/* ── HERO ── */}
       <div className="text-center mb-6">
@@ -280,20 +301,20 @@ function AnalyseDemoContent() {
         </div>
         {heeftBesparing ? (
           <>
-            <h2 className="font-heading text-[clamp(28px,3.2vw,40px)] font-bold text-bw-deep mb-2">
+            <h2 className="font-heading text-[clamp(26px,3vw,38px)] font-bold text-bw-deep mb-2">
               Bespaar <span className="text-bw-green">&euro; {besteSaving.besparingJaar}</span> per jaar
             </h2>
-            <p className="text-[15px] text-bw-text-mid max-w-[480px] mx-auto">
+            <p className="text-[14px] sm:text-[15px] text-bw-text-mid max-w-[520px] mx-auto">
               Je betaalt nu <strong className="text-bw-red">&euro; {huidigeMaand.toFixed(2)}/mnd</strong> bij {polisData.verzekeraar}.
-              Bij {besteSaving.naam} betaal je <strong className="text-bw-green">&euro; {besteSaving.premie.toFixed(2)}/mnd</strong>.
+              {" "}Bij <strong className="text-bw-green">{besteSaving.naam}</strong> betaal je slechts <strong className="text-bw-green">&euro; {besteSaving.premie.toFixed(2)}/mnd</strong>.
             </p>
           </>
         ) : (
           <>
-            <h2 className="font-heading text-[clamp(28px,3.2vw,40px)] font-bold text-bw-deep mb-2">
+            <h2 className="font-heading text-[clamp(26px,3vw,38px)] font-bold text-bw-deep mb-2">
               Je zit al <span className="text-bw-green">goed</span>!
             </h2>
-            <p className="text-[15px] text-bw-text-mid max-w-[480px] mx-auto">
+            <p className="text-[14px] sm:text-[15px] text-bw-text-mid max-w-[520px] mx-auto">
               Je betaalt <strong className="text-bw-green">&euro; {huidigeMaand.toFixed(2)}/mnd</strong> bij {polisData.verzekeraar}.
               Geen van de {filteredAndSorted.length} vergeleken verzekeraars is goedkoper.
             </p>
@@ -302,396 +323,491 @@ function AnalyseDemoContent() {
       </div>
 
       {/* ── TRUST BAR ── */}
-      <div className="flex items-center justify-center gap-4 sm:gap-6 mb-6 py-3 px-4 bg-[#F8FAFC] rounded-xl border border-[#E2E8F0] flex-wrap">
+      <div className="flex items-center justify-center gap-4 sm:gap-6 mb-6 py-2.5 px-4 bg-[#F8FAFC] rounded-xl border border-[#E2E8F0] flex-wrap">
         <TrustItem icon={<ShieldCheckSVG />} label="Onafhankelijk" />
         <TrustItem icon={<UsersSVG />} label={`${filteredAndSorted.length} verzekeraars`} />
         <TrustItem icon={<LockIcon className="w-3.5 h-3.5" />} label="Privacygarantie" />
         <TrustItem icon={<ThumbsUpSVG />} label="Gratis & vrijblijvend" />
       </div>
 
-      {/* ── PROFIEL SAMENVATTING ── */}
-      <ProfileSummary polisData={polisData} productType={productType} />
-
-      {/* ── HUIDIGE POLIS ── */}
-      <div className={`rounded-xl px-5 py-3.5 mb-4 flex items-center justify-between flex-wrap gap-3 border ${
-        heeftBesparing
-          ? "bg-bw-red-bg border-[#FECACA]"
-          : "bg-[#F0FDF4] border-[#BBF7D0]"
-      }`}>
-        <div className="flex items-center gap-3">
-          <div className={`w-10 h-10 rounded-lg flex items-center justify-center text-lg shrink-0 ${
-            heeftBesparing ? "bg-[#FECACA]" : "bg-[#BBF7D0]"
-          }`}>{PRODUCT_ICONS[productType]}</div>
-          <div>
-            <div className={`text-xs font-bold uppercase tracking-[0.5px] ${
-              heeftBesparing ? "text-bw-red" : "text-bw-green-strong"
-            }`}>Huidige polis{!heeftBesparing && " \u{00B7} Beste prijs"}</div>
-            <div className={`text-[15px] font-bold ${
-              heeftBesparing ? "text-[#991B1B]" : "text-[#166534]"
-            }`}>{polisData.verzekeraar} \u{2014} {polisData.type}</div>
-          </div>
-        </div>
-        <div className="text-right">
-          <div className={`text-xl font-bold ${heeftBesparing ? "text-bw-red" : "text-bw-green"}`}>&euro; {huidigeMaand.toFixed(2)}<span className="text-xs font-semibold">/mnd</span></div>
-          <div className={`text-[11px] ${heeftBesparing ? "text-[#B91C1C]" : "text-[#166534]"}`}>&euro; {huidigeJaar.toFixed(2)}/jaar &middot; {polisData.dekking}</div>
-        </div>
+      {/* ── MOBILE FILTER TOGGLE ── */}
+      <div className="lg:hidden mb-4 flex gap-2">
+        <button
+          onClick={() => setShowMobileFilters(!showMobileFilters)}
+          className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-[13px] font-semibold bg-white border border-bw-border cursor-pointer font-[inherit] hover:bg-bw-bg transition-colors"
+        >
+          <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M4 21V14M4 10V3M12 21V12M12 8V3M20 21V16M20 12V3M1 14h6M9 8h6M17 16h6" /></svg>
+          Filters {showMobileFilters ? "verbergen" : "tonen"}
+        </button>
+        <Link href="/upload" className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-[13px] font-semibold text-bw-blue bg-white border border-bw-border hover:bg-bw-bg transition-colors">
+          Mijn gegevens
+        </Link>
       </div>
 
-      {/* ── SORT + FILTER CONTROLS ── */}
-      <div className="flex items-center gap-2 mb-2 flex-wrap">
-        <span className="text-[12px] font-semibold text-bw-text-mid">Sorteer:</span>
-        {([
-          { key: "besparing" as SortMode, label: "Hoogste besparing" },
-          { key: "premie" as SortMode, label: "Laagste premie" },
-          { key: "beoordeling" as SortMode, label: "Beste beoordeling" },
-        ]).map((opt) => (
-          <button
-            key={opt.key}
-            onClick={() => setSortMode(opt.key)}
-            className={`px-3 py-1.5 rounded-lg text-[12px] font-semibold border transition-all cursor-pointer ${
-              sortMode === opt.key
-                ? "bg-bw-deep text-white border-bw-deep"
-                : "bg-white text-bw-text-mid border-bw-border hover:border-bw-deep"
-            }`}
-          >
-            {opt.label}
-          </button>
-        ))}
-      </div>
-      {showERFilter && (
-        <div className="flex items-center gap-2 mb-4 flex-wrap">
-          <span className="text-[12px] font-semibold text-bw-text-mid">Eigen risico:</span>
-          {([
-            { key: "alle", label: "Alle" },
-            { key: "0", label: "\u{20AC} 0" },
-            { key: "150", label: "\u{2264} \u{20AC} 150" },
-          ]).map((opt) => (
-            <button
-              key={opt.key}
-              onClick={() => setEigenRisicoFilter(opt.key)}
-              className={`px-3 py-1.5 rounded-lg text-[12px] font-semibold border transition-all cursor-pointer ${
-                eigenRisicoFilter === opt.key
-                  ? "bg-bw-deep text-white border-bw-deep"
-                  : "bg-white text-bw-text-mid border-bw-border hover:border-bw-deep"
-              }`}
-            >
-              {opt.label}
-            </button>
-          ))}
-          <span className="ml-auto text-[11px] text-bw-text-light">
-            {filteredAndSorted.length} resultaten
-          </span>
-        </div>
-      )}
-      {!showERFilter && (
-        <div className="flex items-center mb-4">
-          <span className="ml-auto text-[11px] text-bw-text-light">
-            {filteredAndSorted.length} verzekeraars vergeleken
-          </span>
-        </div>
-      )}
+      {/* ── 2-COLUMN LAYOUT: SIDEBAR + RESULTS ── */}
+      <div className="flex gap-6 items-start">
 
-      {/* ── ALTERNATIEVEN ── */}
-      <div className="flex flex-col gap-3">
-        {filteredAndSorted.map((alt, i) => {
-          const isExpanded = expandedCard === alt.id;
-          const isTop = i === 0 && heeftBesparing;
-          const usp = VERZEKERAAR_USP[alt.id] || "";
-          const coverageItems = getCoverageItems(productType, alt.dekking, polisData.gezin);
+        {/* ── SIDEBAR (desktop always, mobile toggle) ── */}
+        <aside className={`w-[280px] shrink-0 ${showMobileFilters ? "block" : "hidden"} lg:block`}>
+          <div className="sticky top-6 space-y-4">
 
-          return (
-            <div
-              key={alt.id}
-              className={`bg-white rounded-2xl overflow-hidden transition-all ${
-                isTop ? "border-2 border-bw-green shadow-[0_4px_24px_rgba(22,163,74,0.10)]" : "border border-bw-border hover:shadow-[0_4px_16px_rgba(0,0,0,0.06)]"
-              }`}
-            >
-              {/* Top badge */}
-              {isTop && (
-                <div className="bg-gradient-to-r from-[#16A34A] to-[#15803D] px-5 py-2 flex items-center justify-between gap-2">
-                  <div className="flex items-center gap-2">
-                    <svg className="w-4 h-4 text-white" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" /></svg>
-                    <span className="text-[13px] font-bold text-white">Beste keuze</span>
+            {/* Profile summary */}
+            <div className="bg-white rounded-xl border border-bw-border p-4">
+              <div className="flex items-center justify-between mb-3">
+                <span className="text-[13px] font-bold text-bw-deep">Mijn gegevens</span>
+                <Link href="/upload" className="text-[11px] font-semibold text-bw-blue hover:underline">wijzig</Link>
+              </div>
+              <div className="space-y-2 text-[12px]">
+                {polisData.verzekeraar && (
+                  <div className="flex justify-between">
+                    <span className="text-bw-text-mid">Verzekeraar</span>
+                    <span className="font-semibold text-bw-deep">{polisData.verzekeraar}</span>
                   </div>
-                  <span className="text-[13px] font-bold text-white bg-white/20 px-2.5 py-0.5 rounded-md">
-                    Bespaar &euro; {alt.besparingJaar}/jaar
-                  </span>
+                )}
+                <div className="flex justify-between">
+                  <span className="text-bw-text-mid">Premie</span>
+                  <span className="font-semibold text-bw-red">&euro; {huidigeMaand.toFixed(2)}/mnd</span>
                 </div>
-              )}
-
-              <div className="flex items-stretch">
-                {/* Kleur accent bar */}
-                <div className="w-1.5 shrink-0" style={{ backgroundColor: alt.kleur || "#94A3B8" }} />
-
-                <div className="flex-1 px-4 sm:px-5 py-4">
-                  {/* Row 1: Naam + badges + ranking */}
-                  <div className="flex items-start gap-3 mb-3">
-                    {/* Ranking + Logo */}
-                    <div className="flex items-center gap-2.5 shrink-0">
-                      <div className={`w-7 h-7 rounded-lg flex items-center justify-center text-[11px] font-bold ${
-                        isTop ? "bg-bw-green text-white" : "bg-bw-bg text-bw-text-mid"
-                      }`}>
-                        #{i + 1}
-                      </div>
-                      <div
-                        className="w-10 h-10 rounded-xl flex items-center justify-center text-white text-[11px] font-bold shrink-0"
-                        style={{ backgroundColor: alt.kleur || "#94A3B8" }}
-                      >
-                        {alt.naam.slice(0, 2).toUpperCase()}
-                      </div>
-                    </div>
-
-                    {/* Name + rating + highlight */}
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <h3 className="text-[16px] font-bold text-bw-deep">{alt.naam}</h3>
-                        {alt.highlight && (
-                          <span className={`px-2 py-0.5 rounded text-[10px] font-bold whitespace-nowrap ${
-                            alt.highlight === "Hoogste besparing" ? "bg-bw-green-bg text-bw-green-strong" :
-                            alt.highlight === "Beste uit de Test" ? "bg-bw-blue-light text-[#1D4ED8]" :
-                            alt.highlight === "Laagste premie" ? "bg-[#FFF7ED] text-[#C2410C]" :
-                            "bg-[#F3F4F6] text-bw-text-mid"
-                          }`}>{alt.highlight}</span>
-                        )}
-                      </div>
-                      <div className="flex items-center gap-1.5 text-[12px] text-bw-text-mid mt-0.5">
-                        <div className="flex items-center gap-0.5">
-                          {[1, 2, 3, 4, 5].map((s) => <StarIcon key={s} filled={s <= alt.beoordeling} />)}
-                        </div>
-                        <span>{alt.beoordelingBron}</span>
-                      </div>
-                    </div>
-
-                    {/* Price block (desktop) */}
-                    <div className="hidden sm:block text-right shrink-0">
-                      <div className={`text-[22px] font-bold leading-tight ${alt.besparingJaar > 0 ? "text-bw-green" : "text-bw-text-mid"}`}>
-                        &euro; {alt.premie.toFixed(2)}<span className="text-xs font-semibold">/mnd</span>
-                      </div>
-                      {alt.besparingJaar > 0 ? (
-                        <div className="text-[12px] font-semibold text-bw-green-strong">
-                          &euro; {alt.besparingMaand.toFixed(2)}/mnd goedkoper
-                        </div>
-                      ) : alt.besparingJaar < 0 ? (
-                        <div className="text-[12px] text-bw-text-light">
-                          &euro; {Math.abs(alt.besparingMaand).toFixed(2)}/mnd duurder
-                        </div>
-                      ) : null}
-                    </div>
+                {polisData.postcode && (
+                  <div className="flex justify-between">
+                    <span className="text-bw-text-mid">Postcode</span>
+                    <span className="font-semibold text-bw-deep">{polisData.postcode}</span>
                   </div>
-
-                  {/* Row 2: Coverage checkmarks */}
-                  <div className="flex flex-wrap gap-x-4 gap-y-1 mb-3">
-                    {coverageItems.map((item) => (
-                      <span key={item.label} className="inline-flex items-center gap-1 text-[12px]">
-                        {item.covered ? (
-                          <svg className="w-3.5 h-3.5 text-bw-green shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>
-                        ) : (
-                          <svg className="w-3.5 h-3.5 text-[#D1D5DB] shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M18 6L6 18M6 6l12 12" /></svg>
-                        )}
-                        <span className={item.covered ? "text-bw-deep" : "text-[#9CA3AF]"}>{item.label}</span>
-                      </span>
-                    ))}
+                )}
+                {polisData.woning && (productType === "inboedel" || productType === "opstal") && (
+                  <div className="flex justify-between">
+                    <span className="text-bw-text-mid">Woning</span>
+                    <span className="font-semibold text-bw-deep">{polisData.woning}</span>
                   </div>
-
-                  {/* Row 3: Details chips */}
-                  <div className="flex items-center gap-3 flex-wrap mb-3 text-[12px]">
-                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-[#F8FAFC] rounded-md border border-[#E2E8F0]">
-                      <span className="text-bw-text-light">Dekking:</span>
-                      <span className="font-semibold text-bw-deep">{alt.dekking}</span>
-                    </span>
-                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-[#F8FAFC] rounded-md border border-[#E2E8F0]">
-                      <span className="text-bw-text-light">Eigen risico:</span>
-                      <span className="font-semibold text-bw-deep">{alt.eigenRisico}</span>
-                    </span>
-                    {productType === "reis" && alt.dekking.toLowerCase().includes("doorlopend") && (
-                      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-[#F8FAFC] rounded-md border border-[#E2E8F0]">
-                        <span className="text-bw-text-light">Type:</span>
-                        <span className="font-semibold text-bw-deep">Doorlopend</span>
-                      </span>
-                    )}
+                )}
+                {polisData.gezin && (
+                  <div className="flex justify-between">
+                    <span className="text-bw-text-mid">Gezin</span>
+                    <span className="font-semibold text-bw-deep">{polisData.gezin}</span>
                   </div>
-
-                  {/* Row 4: Price (mobile) + CTA */}
-                  <div className="flex items-center gap-3 flex-wrap">
-                    {/* Mobile price */}
-                    <div className="sm:hidden">
-                      <span className={`text-[20px] font-bold ${alt.besparingJaar > 0 ? "text-bw-green" : "text-bw-text-mid"}`}>
-                        &euro; {alt.premie.toFixed(2)}<span className="text-xs font-semibold">/mnd</span>
-                      </span>
-                      {alt.besparingJaar > 0 && (
-                        <span className="ml-2 text-[12px] font-semibold text-bw-green-strong">
-                          = &euro; {alt.besparingJaar}/jaar besparing
-                        </span>
-                      )}
-                    </div>
-
-                    <div className="flex items-center gap-2 ml-auto">
-                      {/* Expand details */}
-                      <button
-                        onClick={() => setExpandedCard(isExpanded ? null : alt.id)}
-                        className="inline-flex items-center gap-1 px-3 py-2 rounded-lg text-[12px] font-semibold text-bw-text-mid bg-bw-bg border border-bw-border cursor-pointer hover:bg-[#E2E8F0] transition-colors"
-                      >
-                        {isExpanded ? "Minder" : "Bekijk dekking"}
-                        <svg className={`w-3 h-3 transition-transform ${isExpanded ? "rotate-180" : ""}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                          <path d="M6 9l6 6 6-6" />
-                        </svg>
-                      </button>
-
-                      {/* CTA */}
-                      <button
-                        onClick={() => setOverstapModal({ ...alt })}
-                        className={`inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-[13px] font-bold text-white cursor-pointer border-none transition-all hover:-translate-y-px ${
-                          isTop
-                            ? "bg-bw-green hover:bg-bw-green-strong hover:shadow-[0_4px_16px_rgba(22,163,74,0.3)]"
-                            : "bg-bw-deep hover:bg-bw-navy hover:shadow-[0_4px_16px_rgba(15,33,55,0.2)]"
-                        }`}
-                      >
-                        Bekijk aanbieding <ArrowRightIcon className="w-3 h-3" />
-                      </button>
-                    </div>
+                )}
+                {polisData.dekking && (
+                  <div className="flex justify-between">
+                    <span className="text-bw-text-mid">Dekking</span>
+                    <span className="font-semibold text-bw-deep">{polisData.dekking}</span>
                   </div>
-
-                  {/* Expanded details */}
-                  {isExpanded && (
-                    <div className="mt-4 pt-4 border-t border-bw-border">
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-                        {/* Left: Coverage details */}
-                        <div>
-                          <div className="text-[11px] font-bold text-bw-text-mid uppercase tracking-[0.5px] mb-3">Dekking details</div>
-                          <div className="space-y-2">
-                            {coverageItems.map((item) => (
-                              <div key={item.label} className="flex items-center justify-between py-1.5 border-b border-[#F1F5F9]">
-                                <span className="text-[13px] text-bw-text-mid">{item.label}</span>
-                                {item.covered ? (
-                                  <span className="inline-flex items-center gap-1 text-[12px] font-semibold text-bw-green-strong">
-                                    <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>
-                                    Gedekt
-                                  </span>
-                                ) : (
-                                  <span className="inline-flex items-center gap-1 text-[12px] font-medium text-[#9CA3AF]">
-                                    <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M18 6L6 18M6 6l12 12" /></svg>
-                                    Niet gedekt
-                                  </span>
-                                )}
-                              </div>
-                            ))}
-                          </div>
-                          <div className="mt-3 space-y-1.5 text-[13px]">
-                            <DetailRow label="Type dekking" value={alt.dekking} />
-                            <DetailRow label="Eigen risico" value={alt.eigenRisico} />
-                            <ProductDetails alt={alt} productType={productType} polisData={polisData} />
-                          </div>
-                        </div>
-
-                        {/* Right: About + pricing */}
-                        <div>
-                          <div className="text-[11px] font-bold text-bw-text-mid uppercase tracking-[0.5px] mb-3">Over {alt.naam}</div>
-                          <div className="flex items-center gap-1.5 mb-3">
-                            {[1, 2, 3, 4, 5].map((s) => <StarIcon key={s} filled={s <= alt.beoordeling} className="w-4 h-4" />)}
-                            <span className="font-semibold text-bw-deep ml-1">{alt.beoordelingBron}</span>
-                          </div>
-                          {usp && <p className="text-[13px] text-bw-text-mid leading-relaxed mb-3">{usp}</p>}
-
-                          {/* Price comparison */}
-                          <div className="bg-[#F8FAFC] rounded-lg p-3 space-y-2 mt-3">
-                            <div className="text-[11px] font-bold text-bw-text-mid uppercase tracking-[0.5px]">Prijsvergelijking</div>
-                            <div className="flex justify-between text-[13px]">
-                              <span className="text-bw-text-mid">Huidig ({polisData.verzekeraar})</span>
-                              <span className="font-semibold text-bw-red">&euro; {huidigeMaand.toFixed(2)}/mnd</span>
-                            </div>
-                            <div className="flex justify-between text-[13px]">
-                              <span className="text-bw-text-mid">{alt.naam}</span>
-                              <span className="font-semibold text-bw-green">&euro; {alt.premie.toFixed(2)}/mnd</span>
-                            </div>
-                            {alt.besparingJaar > 0 && (
-                              <div className="flex justify-between text-[13px] pt-2 border-t border-[#E2E8F0]">
-                                <span className="font-semibold text-bw-deep">Besparing per jaar</span>
-                                <span className="font-bold text-bw-green">&euro; {alt.besparingJaar}</span>
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                </div>
+                )}
               </div>
             </div>
-          );
-        })}
-      </div>
 
-      {filteredAndSorted.length === 0 && (
-        <div className="text-center py-10 text-bw-text-mid">
-          <p className="text-[15px]">Geen resultaten met deze filters.</p>
-          <button onClick={() => setEigenRisicoFilter("alle")} className="mt-2 text-bw-blue font-semibold text-[13px] cursor-pointer bg-transparent border-none">
-            Filters resetten
-          </button>
+            {/* Sort options */}
+            <div className="bg-white rounded-xl border border-bw-border p-4">
+              <div className="text-[13px] font-bold text-bw-deep mb-3">Sorteer op</div>
+              <div className="space-y-1.5">
+                {([
+                  { key: "besparing" as SortMode, label: "Hoogste besparing" },
+                  { key: "premie" as SortMode, label: "Laagste premie" },
+                  { key: "beoordeling" as SortMode, label: "Beste beoordeling" },
+                ] as const).map((opt) => (
+                  <label key={opt.key} className="flex items-center gap-2.5 cursor-pointer py-1">
+                    <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center transition-all ${
+                      sortMode === opt.key ? "border-bw-green" : "border-[#CBD5E1]"
+                    }`}>
+                      {sortMode === opt.key && <div className="w-2 h-2 rounded-full bg-bw-green" />}
+                    </div>
+                    <button
+                      onClick={() => setSortMode(opt.key)}
+                      className={`text-[13px] font-[inherit] bg-transparent border-none cursor-pointer ${
+                        sortMode === opt.key ? "font-semibold text-bw-deep" : "text-bw-text-mid"
+                      }`}
+                    >
+                      {opt.label}
+                    </button>
+                  </label>
+                ))}
+              </div>
+            </div>
+
+            {/* Eigen risico filter */}
+            {showERFilter && (
+              <div className="bg-white rounded-xl border border-bw-border p-4">
+                <div className="text-[13px] font-bold text-bw-deep mb-3">Eigen risico</div>
+                <div className="space-y-1.5">
+                  {([
+                    { key: "alle", label: "Alle" },
+                    { key: "0", label: "\u{20AC} 0" },
+                    { key: "150", label: "\u{2264} \u{20AC} 150" },
+                  ]).map((opt) => (
+                    <label key={opt.key} className="flex items-center gap-2.5 cursor-pointer py-1">
+                      <div className={`w-4 h-4 rounded border flex items-center justify-center transition-all ${
+                        eigenRisicoFilter === opt.key ? "border-bw-green bg-bw-green" : "border-[#CBD5E1] bg-white"
+                      }`}>
+                        {eigenRisicoFilter === opt.key && (
+                          <svg className="w-2.5 h-2.5 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="4" strokeLinecap="round"><polyline points="20 6 9 17 4 12" /></svg>
+                        )}
+                      </div>
+                      <button
+                        onClick={() => setEigenRisicoFilter(opt.key)}
+                        className={`text-[13px] font-[inherit] bg-transparent border-none cursor-pointer ${
+                          eigenRisicoFilter === opt.key ? "font-semibold text-bw-deep" : "text-bw-text-mid"
+                        }`}
+                      >
+                        {opt.label}
+                      </button>
+                    </label>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Monitoring CTA in sidebar */}
+            <button
+              onClick={handleSave}
+              disabled={saved}
+              className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl text-[13px] font-bold bg-bw-deep text-white border-none cursor-pointer font-[inherit] hover:bg-bw-navy transition-colors disabled:opacity-50"
+            >
+              <ShieldIcon className="w-4 h-4" />
+              {saved ? <><PulseDot /> Monitoring actief</> : <>24/7 monitoring</>}
+            </button>
+          </div>
+        </aside>
+
+        {/* ── MAIN RESULTS AREA ── */}
+        <div className="flex-1 min-w-0">
+
+          {/* ── HUIDIGE POLIS (compact bar) ── */}
+          <div className={`rounded-xl px-4 py-3 mb-5 flex items-center justify-between flex-wrap gap-2 border ${
+            heeftBesparing
+              ? "bg-bw-red-bg border-[#FECACA]"
+              : "bg-[#F0FDF4] border-[#BBF7D0]"
+          }`}>
+            <div className="flex items-center gap-3">
+              <div className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 ${
+                heeftBesparing ? "bg-[#FECACA]" : "bg-[#BBF7D0]"
+              }`}>{PRODUCT_ICONS[productType]}</div>
+              <div>
+                <div className={`text-[10px] font-bold uppercase tracking-[0.5px] ${
+                  heeftBesparing ? "text-bw-red" : "text-bw-green-strong"
+                }`}>Huidige polis{!heeftBesparing && " \u{00B7} Beste prijs"}</div>
+                <div className={`text-[14px] font-bold ${
+                  heeftBesparing ? "text-[#991B1B]" : "text-[#166534]"
+                }`}>{polisData.verzekeraar}</div>
+              </div>
+            </div>
+            <div className="text-right">
+              <div className={`text-[20px] font-bold ${heeftBesparing ? "text-bw-red" : "text-bw-green"}`}>&euro; {huidigeMaand.toFixed(2)}<span className="text-[11px] font-semibold">/mnd</span></div>
+              <div className={`text-[11px] ${heeftBesparing ? "text-[#B91C1C]" : "text-[#166534]"}`}>{polisData.dekking} &middot; {polisData.eigenRisico}</div>
+            </div>
+          </div>
+
+          {/* ── SORT TABS (mobile + desktop inline) ── */}
+          <div className="flex items-center gap-1 mb-4 bg-[#F1F5F9] rounded-xl p-1 lg:hidden">
+            {([
+              { key: "besparing" as SortMode, label: "Besparing" },
+              { key: "premie" as SortMode, label: "Goedkoopst" },
+              { key: "beoordeling" as SortMode, label: "Beoordeling" },
+            ]).map((opt) => (
+              <button
+                key={opt.key}
+                onClick={() => setSortMode(opt.key)}
+                className={`flex-1 px-3 py-2 rounded-lg text-[12px] font-semibold cursor-pointer border-none font-[inherit] transition-all ${
+                  sortMode === opt.key ? "bg-white text-bw-deep shadow-sm" : "bg-transparent text-bw-text-mid"
+                }`}
+              >
+                {opt.label}
+              </button>
+            ))}
+          </div>
+
+          {/* ── TOP 3: "Jouw persoonlijke top 3" ── */}
+          {top3.length > 0 && (
+            <>
+              <h3 className="text-[18px] sm:text-[20px] font-bold text-bw-deep mb-3">Jouw persoonlijke top {Math.min(3, top3.length)}</h3>
+
+              {/* Top 3 cards — on desktop show side-by-side if 3, on mobile stack */}
+              <div className={`grid gap-3 mb-6 ${top3.length >= 3 ? "grid-cols-1 md:grid-cols-3" : top3.length === 2 ? "grid-cols-1 md:grid-cols-2" : "grid-cols-1"}`}>
+                {top3.map((alt, i) => {
+                  const badge = TOP_BADGES[i];
+                  const coverageItems = getCoverageItems(productType, alt.dekking, polisData.gezin);
+                  const coveredCount = coverageItems.filter(c => c.covered).length;
+
+                  return (
+                    <div
+                      key={alt.id}
+                      className={`bg-white rounded-2xl overflow-hidden flex flex-col ${
+                        i === 0
+                          ? "border-2 border-bw-green shadow-[0_4px_24px_rgba(22,163,74,0.10)]"
+                          : "border border-bw-border hover:shadow-[0_4px_16px_rgba(0,0,0,0.06)]"
+                      } transition-all`}
+                    >
+                      {/* Badge */}
+                      <div className={`${badge.bg} ${badge.text} px-4 py-2 flex items-center justify-between`}>
+                        <div className="flex items-center gap-2">
+                          <span className="text-[13px] font-bold">{badge.label}</span>
+                        </div>
+                        {alt.besparingJaar > 0 && (
+                          <span className="text-[12px] font-bold bg-white/20 px-2 py-0.5 rounded-md">
+                            &minus;&euro; {alt.besparingJaar}/jr
+                          </span>
+                        )}
+                      </div>
+
+                      <div className="p-4 flex flex-col flex-1">
+                        {/* Logo + name */}
+                        <div className="flex items-center gap-3 mb-3">
+                          <InsLogo naam={alt.naam} kleur={alt.kleur} size="lg" />
+                          <div className="min-w-0 flex-1">
+                            <div className="text-[15px] font-bold text-bw-deep truncate">{alt.naam}</div>
+                            <div className="flex items-center gap-0.5 mt-0.5">
+                              {[1, 2, 3, 4, 5].map((s) => <StarIcon key={s} filled={s <= alt.beoordeling} />)}
+                              <span className="text-[10px] text-bw-text-light ml-1">({alt.beoordelingBron})</span>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Price — big */}
+                        <div className="text-right mb-3">
+                          <div className="text-[11px] text-bw-text-light">Per maand</div>
+                          <div className={`font-heading text-[28px] font-bold leading-tight ${
+                            alt.besparingJaar > 0 ? "text-bw-green" : "text-bw-deep"
+                          }`}>
+                            &euro; {alt.premie.toFixed(2).replace(".", ",")}<span className="text-[13px] font-semibold text-bw-text-light align-top ml-0.5">/mnd</span>
+                          </div>
+                          {alt.besparingJaar > 0 && (
+                            <div className="text-[12px] font-semibold text-bw-green-strong">
+                              &euro; {alt.besparingMaand.toFixed(2)}/mnd goedkoper
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Details chips */}
+                        <div className="flex flex-wrap gap-1.5 mb-3 text-[11px]">
+                          <span className="px-2 py-0.5 bg-[#F8FAFC] rounded border border-[#E2E8F0] text-bw-text-mid">
+                            {alt.dekking}
+                          </span>
+                          <span className="px-2 py-0.5 bg-[#F8FAFC] rounded border border-[#E2E8F0] text-bw-text-mid">
+                            ER: {alt.eigenRisico}
+                          </span>
+                          <span className="px-2 py-0.5 bg-[#F0FDF4] rounded border border-[#BBF7D0] text-[#166534]">
+                            {coveredCount}/{coverageItems.length} gedekt
+                          </span>
+                        </div>
+
+                        {/* Spacer to push CTA to bottom */}
+                        <div className="flex-1" />
+
+                        {/* CTA: "Kies deze" */}
+                        <button
+                          onClick={() => setOverstapModal({ ...alt })}
+                          className={`w-full inline-flex items-center justify-center gap-2 px-4 py-3 rounded-xl text-[14px] font-bold cursor-pointer border-none font-[inherit] transition-all hover:-translate-y-px ${
+                            i === 0
+                              ? "bg-bw-green text-white hover:bg-bw-green-strong hover:shadow-[0_4px_16px_rgba(22,163,74,0.3)]"
+                              : "bg-bw-deep text-white hover:bg-bw-navy hover:shadow-[0_4px_16px_rgba(15,33,55,0.2)]"
+                          }`}
+                        >
+                          <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 002 1.61h9.72a2 2 0 002-1.61L23 6H6"/></svg>
+                          Kies deze
+                        </button>
+
+                        {/* Meer informatie toggle */}
+                        <button
+                          onClick={() => setExpandedCard(expandedCard === alt.id ? null : alt.id)}
+                          className="mt-2 w-full inline-flex items-center justify-center gap-1 py-2 text-[12px] font-semibold text-bw-blue cursor-pointer bg-transparent border-none font-[inherit] hover:underline"
+                        >
+                          {expandedCard === alt.id ? "\u2212 Minder informatie" : "+ Meer informatie"}
+                        </button>
+
+                        {/* Expanded info */}
+                        {expandedCard === alt.id && (
+                          <CardDetails
+                            alt={alt}
+                            productType={productType}
+                            polisData={polisData}
+                            huidigeMaand={huidigeMaand}
+                            coverageItems={coverageItems}
+                          />
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </>
+          )}
+
+          {/* ── ALLE VERZEKERAARS (list view, includes top 3) ── */}
+          {filteredAndSorted.length > 0 && (
+            <>
+              <h3 className="text-[16px] font-bold text-bw-deep mb-3">
+                Alle {filteredAndSorted.length} verzekeraars
+              </h3>
+
+              <div className="flex flex-col gap-2.5">
+                {filteredAndSorted.map((alt, i) => {
+                  const rank = i + 1;
+                  const isExpanded = expandedCard === alt.id;
+                  const coverageItems = getCoverageItems(productType, alt.dekking, polisData.gezin);
+
+                  return (
+                    <div
+                      key={alt.id}
+                      className="bg-white rounded-xl border border-bw-border overflow-hidden hover:shadow-[0_2px_12px_rgba(0,0,0,0.05)] transition-all"
+                    >
+                      <div className="flex items-center gap-3 px-4 py-3">
+                        {/* Rank number */}
+                        <div className="w-6 h-6 rounded-md bg-[#F1F5F9] flex items-center justify-center text-[11px] font-bold text-bw-text-mid shrink-0">
+                          {rank}
+                        </div>
+
+                        {/* Logo */}
+                        <InsLogo naam={alt.naam} kleur={alt.kleur} size="sm" />
+
+                        {/* Name + details */}
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="text-[14px] font-bold text-bw-deep">{alt.naam}</span>
+                            {alt.highlight && (
+                              <span className={`px-1.5 py-0.5 rounded text-[9px] font-bold whitespace-nowrap ${
+                                alt.highlight === "Beste uit de Test" ? "bg-bw-blue-light text-[#1D4ED8]" :
+                                alt.highlight === "Laagste premie" ? "bg-[#FFF7ED] text-[#C2410C]" :
+                                "bg-[#F3F4F6] text-bw-text-mid"
+                              }`}>{alt.highlight}</span>
+                            )}
+                          </div>
+                          <div className="flex items-center gap-2 text-[11px] text-bw-text-light mt-0.5">
+                            <span>{alt.dekking}</span>
+                            <span>&middot;</span>
+                            <span>ER: {alt.eigenRisico}</span>
+                            <span>&middot;</span>
+                            <div className="flex items-center gap-0.5">
+                              {[1, 2, 3, 4, 5].map((s) => <StarIcon key={s} filled={s <= alt.beoordeling} />)}
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Price */}
+                        <div className="text-right shrink-0">
+                          <div className={`text-[18px] font-bold ${
+                            alt.besparingJaar > 0 ? "text-bw-green" : "text-bw-text-mid"
+                          }`}>
+                            &euro; {alt.premie.toFixed(2)}<span className="text-[10px] font-semibold">/mnd</span>
+                          </div>
+                          {alt.besparingJaar > 0 ? (
+                            <div className="text-[11px] font-semibold text-bw-green-strong">&minus;&euro; {alt.besparingJaar}/jr</div>
+                          ) : alt.besparingJaar < 0 ? (
+                            <div className="text-[11px] text-bw-text-light">+&euro; {Math.abs(alt.besparingJaar)}/jr</div>
+                          ) : null}
+                        </div>
+
+                        {/* CTA */}
+                        <button
+                          onClick={() => setOverstapModal({ ...alt })}
+                          className="hidden sm:inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-[13px] font-bold bg-bw-green text-white cursor-pointer border-none font-[inherit] hover:bg-bw-green-strong transition-all shrink-0"
+                        >
+                          <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 002 1.61h9.72a2 2 0 002-1.61L23 6H6"/></svg>
+                          Kies deze
+                        </button>
+                      </div>
+
+                      {/* Mobile CTA + expand row */}
+                      <div className="flex items-center border-t border-[#F1F5F9] sm:border-t-0">
+                        <button
+                          onClick={() => setOverstapModal({ ...alt })}
+                          className="sm:hidden flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-2.5 text-[12px] font-bold text-bw-green cursor-pointer bg-transparent border-none font-[inherit] border-r border-[#F1F5F9]"
+                        >
+                          Kies deze
+                        </button>
+                        <button
+                          onClick={() => setExpandedCard(isExpanded ? null : alt.id)}
+                          className="flex-1 sm:flex-none inline-flex items-center justify-center gap-1 px-3 py-2.5 text-[12px] font-semibold text-bw-blue cursor-pointer bg-transparent border-none font-[inherit] hover:underline sm:border-t sm:border-[#F1F5F9] sm:w-full"
+                        >
+                          {isExpanded ? "\u2212 Minder informatie" : "+ Meer informatie"}
+                        </button>
+                      </div>
+
+                      {/* Expanded */}
+                      {isExpanded && (
+                        <div className="px-4 pb-4">
+                          <CardDetails
+                            alt={alt}
+                            productType={productType}
+                            polisData={polisData}
+                            huidigeMaand={huidigeMaand}
+                            coverageItems={coverageItems}
+                          />
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </>
+          )}
+
+          {filteredAndSorted.length === 0 && (
+            <div className="text-center py-10 text-bw-text-mid">
+              <p className="text-[15px]">Geen resultaten met deze filters.</p>
+              <button onClick={() => setEigenRisicoFilter("alle")} className="mt-2 text-bw-blue font-semibold text-[13px] cursor-pointer bg-transparent border-none">
+                Filters resetten
+              </button>
+            </div>
+          )}
+
+          {/* ── SAVE + MONITORING (mobile) ── */}
+          <div className="mt-6 flex gap-3 flex-wrap lg:hidden">
+            <button
+              onClick={handleSave}
+              disabled={saved}
+              className="flex-1 inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl text-[14px] font-bold bg-bw-deep text-white border-none cursor-pointer font-[inherit] hover:bg-bw-navy transition-colors disabled:opacity-50 min-w-[200px]"
+            >
+              <ShieldIcon className="w-4 h-4" />
+              {saved ? <><PulseDot /> Monitoring actief</> : <>Activeer 24/7 monitoring</>}
+            </button>
+            <button
+              onClick={handleSave}
+              disabled={saved}
+              className="inline-flex items-center gap-1.5 px-5 py-3 rounded-xl text-[14px] font-semibold bg-white text-bw-deep border border-bw-border cursor-pointer font-[inherit] hover:bg-bw-bg transition-colors disabled:opacity-50"
+            >
+              <SaveIcon className="w-4 h-4" /> {saved ? "Opgeslagen" : "Opslaan"}
+            </button>
+          </div>
+
+          {/* ── PRIVACY ── */}
+          <div className="flex items-center gap-2.5 mt-5 px-4 py-2.5 bg-[#F0FDF4] rounded-lg border border-[#BBF7D0]">
+            <LockIcon />
+            <span className="text-xs text-bw-green-dark">
+              <strong>Geen persoonsgegevens opgeslagen.</strong> Alleen geanonimiseerde data.{" "}
+              <Link href="/privacy" className="underline">Privacy &rarr;</Link>
+            </span>
+          </div>
+
+          {/* ── DATA SOURCE ── */}
+          <div className={`mt-3 flex items-center gap-2 px-4 py-2 rounded-lg border ${
+            dataSource === "live" ? "bg-[#F0FDF4] border-[#BBF7D0]" :
+            dataSource === "calculated" ? "bg-[#EFF6FF] border-[#BFDBFE]" :
+            dataSource === "upload" ? "bg-[#F0FDF4] border-[#BBF7D0]" :
+            "bg-[#FFF7ED] border-[#FED7AA]"
+          }`}>
+            <span className={`text-[11px] ${
+              dataSource === "live" ? "text-[#166534]" :
+              dataSource === "calculated" ? "text-[#1D4ED8]" :
+              dataSource === "upload" ? "text-[#166534]" :
+              "text-[#C2410C]"
+            }`}>
+              {dataSource === "live" ? (
+                <><strong>Live premies</strong> &mdash; Echte premies opgehaald bij {alternatives.length} verzekeraars.</>
+              ) : dataSource === "calculated" ? (
+                <><strong>Berekende premies</strong> &mdash; Op basis van markttarieven berekend voor {alternatives.length} verzekeraars.</>
+              ) : dataSource === "upload" ? (
+                <><strong>Upload analyse</strong> &mdash; Premies berekend op basis van je eigen polisgegevens.</>
+              ) : (
+                <><strong>Demo premies</strong> &mdash; Voorbeelddata. Live scraping niet beschikbaar.</>
+              )}
+            </span>
+          </div>
+
+          {/* ── DISCLAIMER ── */}
+          <div className="mt-3 p-3 bg-bw-bg rounded-lg border-l-[3px] border-bw-border">
+            <p className="text-[11px] text-bw-text-light leading-relaxed">
+              <strong className="text-bw-text-mid">Provisie-disclosure:</strong> Bij afsluiting via DeVerzekeringsAgent ontvangen wij een vergoeding van de verzekeraar. Dit kost jou niets extra.
+            </p>
+          </div>
         </div>
-      )}
-
-      {/* ── SAVE + MONITORING ── */}
-      <div className="mt-6 flex gap-3 flex-wrap">
-        <button
-          onClick={handleSave}
-          disabled={saved}
-          className="flex-1 inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl text-[14px] font-bold bg-bw-deep text-white border-none cursor-pointer font-[inherit] hover:bg-bw-navy transition-colors disabled:opacity-50 min-w-[200px]"
-        >
-          <ShieldIcon className="w-4 h-4" />
-          {saved ? (
-            <><PulseDot /> Monitoring actief</>
-          ) : (
-            <>Activeer 24/7 monitoring</>
-          )}
-        </button>
-        <button
-          onClick={handleSave}
-          disabled={saved}
-          className="inline-flex items-center gap-1.5 px-5 py-3 rounded-xl text-[14px] font-semibold bg-white text-bw-deep border border-bw-border cursor-pointer font-[inherit] hover:bg-bw-bg transition-colors disabled:opacity-50"
-        >
-          <SaveIcon className="w-4 h-4" /> {saved ? "Opgeslagen" : "Opslaan"}
-        </button>
-      </div>
-
-      {/* ── PRIVACY ── */}
-      <div className="flex items-center gap-2.5 mt-4 px-4 py-2.5 bg-[#F0FDF4] rounded-lg border border-[#BBF7D0]">
-        <LockIcon />
-        <span className="text-xs text-bw-green-dark">
-          <strong>Geen persoonsgegevens opgeslagen.</strong> PDF is verwijderd. Alleen geanonimiseerde data.{" "}
-          <Link href="/privacy" className="underline">Privacy \u{2192}</Link>
-        </span>
-      </div>
-
-      {/* ── DATA SOURCE ── */}
-      <div className={`mt-4 flex items-center gap-2 px-4 py-2 rounded-lg border ${
-        dataSource === "live" ? "bg-[#F0FDF4] border-[#BBF7D0]" :
-        dataSource === "calculated" ? "bg-[#EFF6FF] border-[#BFDBFE]" :
-        dataSource === "upload" ? "bg-[#F0FDF4] border-[#BBF7D0]" :
-        "bg-[#FFF7ED] border-[#FED7AA]"
-      }`}>
-        <span className={`text-[11px] ${
-          dataSource === "live" ? "text-[#166534]" :
-          dataSource === "calculated" ? "text-[#1D4ED8]" :
-          dataSource === "upload" ? "text-[#166534]" :
-          "text-[#C2410C]"
-        }`}>
-          {dataSource === "live" ? (
-            <><strong>Live premies</strong> \u{2014} Echte premies opgehaald bij {alternatives.length} verzekeraars.</>
-          ) : dataSource === "calculated" ? (
-            <><strong>Berekende premies</strong> \u{2014} Op basis van markttarieven berekend voor {alternatives.length} verzekeraars.</>
-          ) : dataSource === "upload" ? (
-            <><strong>Upload analyse</strong> \u{2014} Premies berekend op basis van je eigen polisgegevens.</>
-          ) : (
-            <><strong>Demo premies</strong> \u{2014} Voorbeelddata. Live scraping niet beschikbaar.</>
-          )}
-        </span>
-      </div>
-
-      {/* ── DISCLAIMER ── */}
-      <div className="mt-4 p-3 bg-bw-bg rounded-lg border-l-[3px] border-bw-border">
-        <p className="text-[11px] text-bw-text-light leading-relaxed">
-          <strong className="text-bw-text-mid">Provisie-disclosure:</strong> Bij afsluiting via DeVerzekeringsAgent ontvangen wij een vergoeding van de verzekeraar. Dit kost jou niets extra. Premies zijn berekend op basis van je profiel.
-        </p>
       </div>
 
       {/* ── OVERSTAP MODAL ── */}
@@ -704,6 +820,92 @@ function AnalyseDemoContent() {
           onClose={() => setOverstapModal(null)}
         />
       )}
+    </div>
+    </>
+  );
+}
+
+/* ─── INSURER LOGO ─── */
+function InsLogo({ naam, kleur, size = "sm" }: { naam: string; kleur: string; size?: "sm" | "lg" }) {
+  const sizeClasses = size === "lg"
+    ? "w-12 h-12 rounded-xl text-[14px]"
+    : "w-9 h-9 rounded-lg text-[11px]";
+
+  return (
+    <div
+      className={`${sizeClasses} flex items-center justify-center text-white font-bold shrink-0 shadow-[0_2px_8px_rgba(0,0,0,0.12)]`}
+      style={{ backgroundColor: kleur || "#94A3B8" }}
+    >
+      {naam.slice(0, 2).toUpperCase()}
+    </div>
+  );
+}
+
+/* ─── CARD EXPANDED DETAILS ─── */
+function CardDetails({ alt, productType, polisData, huidigeMaand, coverageItems }: {
+  alt: Alternative & { besparingMaand: number; besparingJaar: number };
+  productType: ProductType;
+  polisData: PolisData;
+  huidigeMaand: number;
+  coverageItems: { label: string; covered: boolean }[];
+}) {
+  const usp = VERZEKERAAR_USP[alt.id] || "";
+
+  return (
+    <div className="mt-3 pt-3 border-t border-[#F1F5F9]">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        {/* Coverage details */}
+        <div>
+          <div className="text-[11px] font-bold text-bw-text-mid uppercase tracking-[0.5px] mb-2">Dekking</div>
+          <div className="space-y-1.5">
+            {coverageItems.map((item) => (
+              <div key={item.label} className="flex items-center justify-between py-1 border-b border-[#F8FAFC]">
+                <span className="text-[12px] text-bw-text-mid">{item.label}</span>
+                {item.covered ? (
+                  <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-bw-green-strong">
+                    <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round"><polyline points="20 6 9 17 4 12" /></svg>
+                    Gedekt
+                  </span>
+                ) : (
+                  <span className="inline-flex items-center gap-1 text-[11px] text-[#9CA3AF]">
+                    <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M18 6L6 18M6 6l12 12" /></svg>
+                    Niet gedekt
+                  </span>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* About + price comparison */}
+        <div>
+          <div className="text-[11px] font-bold text-bw-text-mid uppercase tracking-[0.5px] mb-2">Over {alt.naam}</div>
+          <div className="flex items-center gap-1 mb-2">
+            {[1, 2, 3, 4, 5].map((s) => <StarIcon key={s} filled={s <= alt.beoordeling} className="w-3.5 h-3.5" />)}
+            <span className="text-[11px] font-semibold text-bw-deep ml-1">{alt.beoordelingBron}</span>
+          </div>
+          {usp && <p className="text-[12px] text-bw-text-mid leading-relaxed mb-3">{usp}</p>}
+
+          {/* Price comparison mini-table */}
+          <div className="bg-[#F8FAFC] rounded-lg p-3 space-y-1.5">
+            <div className="text-[10px] font-bold text-bw-text-mid uppercase tracking-[0.5px]">Prijsvergelijking</div>
+            <div className="flex justify-between text-[12px]">
+              <span className="text-bw-text-mid">Huidig ({polisData.verzekeraar})</span>
+              <span className="font-semibold text-bw-red">&euro; {huidigeMaand.toFixed(2)}/mnd</span>
+            </div>
+            <div className="flex justify-between text-[12px]">
+              <span className="text-bw-text-mid">{alt.naam}</span>
+              <span className="font-semibold text-bw-green">&euro; {alt.premie.toFixed(2)}/mnd</span>
+            </div>
+            {alt.besparingJaar > 0 && (
+              <div className="flex justify-between text-[12px] pt-1.5 border-t border-[#E2E8F0]">
+                <span className="font-semibold text-bw-deep">Besparing per jaar</span>
+                <span className="font-bold text-bw-green">&euro; {alt.besparingJaar}</span>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
@@ -744,120 +946,6 @@ function ThumbsUpSVG() {
       <path d="M14 9V5a3 3 0 00-3-3l-4 9v11h11.28a2 2 0 002-1.7l1.38-9a2 2 0 00-2-2.3H14z" />
       <path d="M7 22H4a2 2 0 01-2-2v-7a2 2 0 012-2h3" />
     </svg>
-  );
-}
-
-/* ─── PROFILE SUMMARY ─── */
-function ProfileSummary({ polisData, productType }: { polisData: PolisData; productType: ProductType }) {
-  type Field = { label: string; value: string; filled: boolean };
-
-  const getFields = (): Field[] => {
-    const f = (label: string, val: string | undefined | null) => ({
-      label,
-      value: val || "",
-      filled: !!val && val !== "0" && val !== "\u{20AC} 0",
-    });
-
-    if (productType === "inboedel" || productType === "opstal") {
-      return [
-        f("Postcode", polisData.postcode),
-        f("Woningtype", polisData.woning),
-        f("Oppervlakte", polisData.oppervlakte),
-        f("Dekking", polisData.dekking),
-        f("Gezin", polisData.gezin),
-        f("Huisnummer", polisData.huisnummer),
-      ];
-    }
-    if (productType === "aansprakelijkheid") {
-      return [
-        f("Postcode", polisData.postcode),
-        f("Gezin", polisData.gezin),
-      ];
-    }
-    // reis
-    return [
-      f("Gezin", polisData.gezin),
-      f("Dekking", polisData.dekking),
-    ];
-  };
-
-  const fields = getFields();
-  const filledCount = fields.filter((f) => f.filled).length;
-
-  return (
-    <div className="mb-6 bg-white rounded-xl border border-bw-border px-4 py-3">
-      <div className="flex items-center justify-between mb-2">
-        <div className="text-[12px] font-bold text-bw-text-mid uppercase tracking-[0.5px]">
-          Jouw profiel \u{2014} {filledCount}/{fields.length} ingevuld
-        </div>
-        <Link href="/upload" className="text-[11px] font-semibold text-bw-blue hover:underline">
-          Wijzig gegevens
-        </Link>
-      </div>
-      <div className="flex flex-wrap gap-1.5">
-        {fields.map((field) => (
-          <span
-            key={field.label}
-            className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-medium ${
-              field.filled
-                ? "bg-[#F0FDF4] text-[#166534] border border-[#BBF7D0]"
-                : "bg-[#FFF7ED] text-[#C2410C] border border-[#FED7AA]"
-            }`}
-          >
-            {field.filled ? (
-              <CheckIcon className="w-2.5 h-2.5" />
-            ) : (
-              <svg className="w-2.5 h-2.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><path d="M12 9v4M12 17h.01" /></svg>
-            )}
-            {field.label}{field.filled ? `: ${field.value}` : ""}
-          </span>
-        ))}
-      </div>
-      {filledCount < fields.length && (
-        <p className="mt-2 text-[11px] text-[#C2410C]">
-          Vul ontbrekende velden in voor nauwkeurigere premies.
-        </p>
-      )}
-    </div>
-  );
-}
-
-/* ─── PRODUCT-SPECIFIC EXPANDED DETAILS ─── */
-function ProductDetails({ alt, productType, polisData }: { alt: Alternative; productType: ProductType; polisData: PolisData }) {
-  if (productType === "inboedel" || productType === "opstal") {
-    return (
-      <>
-        {polisData.woning && <DetailRow label="Woningtype" value={polisData.woning} />}
-        {polisData.oppervlakte && <DetailRow label="Oppervlakte" value={polisData.oppervlakte} />}
-        {polisData.gezin && <DetailRow label="Gezin" value={polisData.gezin} />}
-      </>
-    );
-  }
-  if (productType === "aansprakelijkheid") {
-    return (
-      <>
-        {polisData.gezin && <DetailRow label="Gezinsdekking" value={polisData.gezin.toLowerCase().includes("gezin") ? "Ja" : "Nee"} />}
-      </>
-    );
-  }
-  if (productType === "reis") {
-    return (
-      <>
-        <DetailRow label="Reisgebied" value={alt.dekking.toLowerCase().includes("wereld") ? "Wereldwijd" : "Europa"} />
-        <DetailRow label="Type" value={alt.dekking.toLowerCase().includes("doorlopend") ? "Doorlopend" : "Kortlopend"} />
-      </>
-    );
-  }
-  return null;
-}
-
-/* ─── DETAIL ROW ─── */
-function DetailRow({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="flex justify-between py-1 border-b border-bw-bg">
-      <span className="text-bw-text-mid">{label}</span>
-      <span className="font-semibold text-bw-deep">{value}</span>
-    </div>
   );
 }
 
@@ -906,12 +994,7 @@ function OverstapModal({ alt, polisData, productType, huidigeMaand, onClose }: {
         {/* Header */}
         <div className="px-6 pt-5 pb-4 flex items-start justify-between">
           <div className="flex items-center gap-3">
-            <div
-              className="w-12 h-12 rounded-xl flex items-center justify-center text-white text-sm font-bold"
-              style={{ backgroundColor: alt.kleur || "#94A3B8" }}
-            >
-              {alt.naam.slice(0, 2).toUpperCase()}
-            </div>
+            <InsLogo naam={alt.naam} kleur={alt.kleur} size="lg" />
             <div>
               <h3 className="text-[18px] font-bold text-bw-deep">Overstappen naar {alt.naam}</h3>
               <p className="text-[13px] text-bw-text-mid">{PRODUCT_LABELS[productType]}</p>
@@ -930,7 +1013,6 @@ function OverstapModal({ alt, polisData, productType, huidigeMaand, onClose }: {
                 <span className="text-[13px] font-semibold text-[#166534]">Jouw besparing</span>
                 <span className="text-[22px] font-bold text-bw-green">&euro; {alt.besparingJaar}/jaar</span>
               </div>
-              {/* Savings bar */}
               <div className="h-2 bg-[#BBF7D0] rounded-full overflow-hidden">
                 <div
                   className="h-full bg-bw-green rounded-full transition-all"
@@ -967,7 +1049,7 @@ function OverstapModal({ alt, polisData, productType, huidigeMaand, onClose }: {
             </div>
           </div>
 
-          {/* Profile fields to take along */}
+          {/* Profile fields */}
           {tipFields.length > 0 && (
             <div className="mb-5">
               <div className="text-[12px] font-bold text-bw-text-mid uppercase tracking-[0.5px] mb-2">
@@ -1009,7 +1091,7 @@ function OverstapModal({ alt, polisData, productType, huidigeMaand, onClose }: {
           </button>
 
           <p className="text-[11px] text-bw-text-light text-center mt-3">
-            Dezelfde prijs als rechtstreeks \u{2014} wij ontvangen een vergoeding van de verzekeraar.
+            Dezelfde prijs als rechtstreeks &mdash; wij ontvangen een vergoeding van de verzekeraar.
           </p>
         </div>
       </div>
