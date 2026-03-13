@@ -35,7 +35,7 @@ export async function scrapeOhra(input: LiveScraperInput): Promise<LiveScraperRe
 
   try {
     browser = await launchBrowser();
-    const page = await createPage(browser);
+    const page = await createPage(browser!);
     logger.log("Browser gestart");
 
     // ── Navigate to calculator ──
@@ -212,7 +212,7 @@ export async function scrapeOhra(input: LiveScraperInput): Promise<LiveScraperRe
       logger.log("Premie gevonden", `${premie} per maand`);
       return {
         status: "success",
-        premie,
+        premie: premie ?? undefined,
         dekking: "Inboedel Basis",
         eigenRisico: "€ 0",
         duration_ms: Date.now() - start,

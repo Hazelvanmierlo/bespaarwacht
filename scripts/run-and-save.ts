@@ -39,6 +39,7 @@ async function main() {
     huisnummer: "10",
     gezin: "gezin",
     eigenaar: true,
+    geboortedatum: "15-06-1985",
   });
 
   console.log(`Status: ${result.status}`);

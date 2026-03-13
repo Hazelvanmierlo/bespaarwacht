@@ -9,6 +9,7 @@ async function main() {
     postcode: "3581KJ",
     huisnummer: "5",
     geboortedatum: "15-06-1985",
+    gezin: "gezin",
     eigenaar: true,
   });
   console.log("\nResult:", JSON.stringify(result, null, 2));

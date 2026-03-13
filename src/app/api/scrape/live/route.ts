@@ -34,6 +34,7 @@ export async function POST() {
   const result = await scrapeInShared({
     postcode: "1181EC",
     huisnummer: "10",
+    geboortedatum: "15-06-1985",
     gezin: "gezin",
     eigenaar: true,
   });

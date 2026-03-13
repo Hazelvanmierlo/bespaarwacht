@@ -937,7 +937,7 @@ function UploadContent() {
 function EditRow({ label, value, onChange, type = "text", prefix, options, placeholder }: {
   label: string;
   value: string | number;
-  onChange: (v: string) => void;
+  onChange?: (v: string) => void;
   type?: "text" | "number";
   prefix?: string;
   options?: string[];
@@ -948,7 +948,9 @@ function EditRow({ label, value, onChange, type = "text", prefix, options, place
       <span className="text-[12px] text-bw-text-mid w-[80px] sm:w-[100px] shrink-0">{label}</span>
       <div className="flex-1 flex items-center gap-1">
         {prefix && <span className="text-[13px] font-semibold text-bw-deep">{prefix}</span>}
-        {options ? (
+        {!onChange ? (
+          <span className="text-[13px] font-semibold text-bw-deep">{String(value)}</span>
+        ) : options ? (
           <select
             value={String(value)}
             onChange={(e) => onChange(e.target.value)}
