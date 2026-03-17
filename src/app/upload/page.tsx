@@ -1061,17 +1061,7 @@ function UploadContent() {
         <input ref={fileRef} type="file" accept=".pdf,.jpg,.jpeg,.png,.webp,image/*" className="hidden" onChange={handleInputChange} />
 
         {isUploading ? (
-          <>
-            <div className="w-14 sm:w-16 h-14 sm:h-16 rounded-2xl bg-bw-blue-light flex items-center justify-center mx-auto mb-4">
-              <div className="w-7 sm:w-8 h-7 sm:h-8 border-3 border-bw-blue border-t-transparent rounded-full animate-spin" />
-            </div>
-            <div className="text-[15px] sm:text-[16px] font-bold text-bw-deep mb-1">Document wordt verwerkt...</div>
-            <div className="text-[13px] sm:text-[14px] text-bw-text-mid">
-              {docCategory === "energie"
-                ? "Even geduld, we lezen je energierekening uit."
-                : "Even geduld, we lezen je polis uit."}
-            </div>
-          </>
+          <UploadProcessing docCategory={docCategory} />
         ) : (
           <>
             <div className="w-14 sm:w-16 h-14 sm:h-16 rounded-2xl bg-gradient-to-br from-bw-blue-light to-[#DBEAFE] flex items-center justify-center mx-auto mb-4 sm:mb-5 shadow-[0_2px_8px_rgba(26,86,219,0.1)]">
@@ -1235,6 +1225,126 @@ function EditRow({ label, value, onChange, type = "text", prefix, options, place
             className="w-full px-2.5 py-1.5 rounded-lg border border-bw-border text-[13px] font-semibold text-bw-deep focus:outline-none focus:border-bw-green focus:ring-1 focus:ring-bw-green"
           />
         )}
+      </div>
+    </div>
+  );
+}
+
+/* ── Upload Processing Animation ── */
+function UploadProcessing({ docCategory }: { docCategory: string }) {
+  const [step, setStep] = useState(0);
+  const [elapsed, setElapsed] = useState(0);
+
+  const isEnergie = docCategory === "energie";
+
+  const steps = isEnergie
+    ? [
+        { label: "Document ontvangen", desc: "Je energierekening is veilig geupload" },
+        { label: "Gegevens uitlezen", desc: "Verbruik, tarieven en kosten worden herkend" },
+        { label: "Privacy beschermen", desc: "Persoonsgegevens worden versleuteld" },
+      ]
+    : [
+        { label: "Document ontvangen", desc: "Je polis is veilig geupload" },
+        { label: "Polis uitlezen", desc: "Dekking, premie en voorwaarden worden herkend" },
+        { label: "Privacy beschermen", desc: "Naam, adres en IBAN worden versleuteld" },
+      ];
+
+  const trustMessages = isEnergie
+    ? [
+        "We vergelijken Vattenfall, Eneco, Essent, Budget Energie...",
+        "Je persoonsgegevens verlaten nooit onze server",
+        "Versleuteld met bankniveau-encryptie",
+        "Verbruik en tarieven worden automatisch herkend",
+      ]
+    : [
+        "We vergelijken Centraal Beheer, FBTO, ASR, Allianz...",
+        "Je persoonsgegevens verlaten nooit onze server",
+        "Versleuteld met bankniveau-encryptie",
+        "Dekking, eigen risico en voorwaarden worden geanalyseerd",
+      ];
+
+  const currentTrust = trustMessages[Math.floor(elapsed / 2) % trustMessages.length];
+
+  useEffect(() => {
+    const timers = [
+      setTimeout(() => setStep(1), 800),
+      setTimeout(() => setStep(2), 2200),
+      setTimeout(() => setStep(3), 3800),
+    ];
+    const interval = setInterval(() => setElapsed((e) => e + 1), 1000);
+    return () => { timers.forEach(clearTimeout); clearInterval(interval); };
+  }, []);
+
+  return (
+    <div className="py-2">
+      {/* Agent mini illustration */}
+      <div className="flex items-center justify-center mb-4">
+        <div className="relative">
+          {/* Head */}
+          <div className="w-12 h-12 rounded-full bg-[#FBBF24] mx-auto relative">
+            <div className="absolute top-[14px] left-[12px] flex gap-[8px]">
+              <div className="w-2 h-2 rounded-full bg-[#1E293B]" />
+              <div className="w-2 h-2 rounded-full bg-[#1E293B]" />
+            </div>
+            <div className={`absolute bottom-[10px] left-1/2 -translate-x-1/2 transition-all duration-500 ${
+              step >= 3 ? "w-4 h-2 rounded-b-full bg-[#1E293B]" : "w-3 h-0.5 bg-[#1E293B] rounded"
+            }`} />
+            {/* Hat */}
+            <div className="absolute -top-1.5 left-1/2 -translate-x-1/2 w-8 h-4 bg-bw-blue rounded-t-lg flex items-center justify-center">
+              <svg className="w-2.5 h-2.5 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+            </div>
+          </div>
+          {/* Magnifying glass animation */}
+          <div className={`absolute -right-3 top-1 transition-all duration-700 ${step >= 2 ? "rotate-12 scale-110" : "rotate-0"}`}>
+            <svg className="w-6 h-6 text-bw-blue" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+              <circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/>
+            </svg>
+          </div>
+        </div>
+      </div>
+
+      {/* Progress bar */}
+      <div className="max-w-[240px] mx-auto mb-4">
+        <div className="h-1.5 bg-bw-border rounded-full overflow-hidden">
+          <div
+            className="h-full bg-gradient-to-r from-bw-blue to-bw-green rounded-full transition-all duration-700 ease-out"
+            style={{ width: step >= 3 ? "100%" : step >= 2 ? "66%" : step >= 1 ? "33%" : "5%" }}
+          />
+        </div>
+      </div>
+
+      {/* Current step */}
+      <div className="text-[15px] sm:text-[16px] font-bold text-bw-deep mb-1 text-center">
+        {step >= 3 ? "Bijna klaar!" : steps[Math.min(step, steps.length - 1)].label}
+      </div>
+      <div className="text-[13px] text-bw-text-mid mb-3 text-center">
+        {step >= 3 ? "Je resultaat verschijnt zo..." : steps[Math.min(step, steps.length - 1)].desc}
+      </div>
+
+      {/* Steps checklist */}
+      <div className="space-y-1.5 mb-4">
+        {steps.map((s, i) => (
+          <div key={i} className={`flex items-center gap-2 transition-all duration-400 ${step > i ? "opacity-100" : step === i ? "opacity-80" : "opacity-30"}`}>
+            {step > i ? (
+              <svg className="w-4 h-4 text-bw-green shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round"><polyline points="20 6 9 17 4 12"/></svg>
+            ) : step === i ? (
+              <div className="w-4 h-4 border-2 border-bw-blue border-t-transparent rounded-full animate-spin shrink-0" />
+            ) : (
+              <div className="w-4 h-4 rounded-full border-2 border-bw-border shrink-0" />
+            )}
+            <span className={`text-[12px] ${step > i ? "text-bw-green-strong font-semibold" : step === i ? "text-bw-deep font-medium" : "text-bw-text-light"}`}>
+              {s.label}
+            </span>
+          </div>
+        ))}
+      </div>
+
+      {/* Trust message */}
+      <div className="flex items-center justify-center gap-1.5 text-[11px] text-bw-green font-medium">
+        <svg className="w-3 h-3 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+          <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><polyline points="9 12 11 14 15 10"/>
+        </svg>
+        <span>{currentTrust}</span>
       </div>
     </div>
   );
