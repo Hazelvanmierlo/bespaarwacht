@@ -82,6 +82,10 @@ export async function saveAnalysis(
     polisnummer?: string | null;
     verzekeraarTelefoon?: string | null;
     verzekeraarWebsite?: string | null;
+    geanonimiseerdeTekst?: string | null;
+    piiCount?: number;
+    reviewStatus?: string;
+    bedragenJson?: Record<string, unknown> | null;
   }
 ) {
   const supabase = getSupabaseAdmin();
@@ -100,6 +104,10 @@ export async function saveAnalysis(
     polisnummer: data.polisnummer ?? null,
     verzekeraar_telefoon: data.verzekeraarTelefoon ?? null,
     verzekeraar_website: data.verzekeraarWebsite ?? null,
+    geanonimiseerde_tekst: data.geanonimiseerdeTekst ?? null,
+    pii_count: data.piiCount ?? 0,
+    review_status: data.reviewStatus ?? "ok",
+    bedragen_json: data.bedragenJson ?? null,
   });
 }
 

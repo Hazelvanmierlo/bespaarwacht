@@ -152,15 +152,102 @@ export async function POST(req: NextRequest) {
     }
 
     if (documentType === "verzekering") {
-      // Remove documentType from polisData
       const { documentType: _, ...polisData } = parsed;
       const productType = PRODUCT_TYPE_MAP[polisData.type] || "inboedel";
-      return NextResponse.json({ type: "verzekering", polisData, productType });
+
+      // Build anonymized version: replace PII with tokens
+      const piiFields: Record<string, string> = {};
+      const piiTokenMap: Record<string, string> = {};
+      let tokenCount = 0;
+
+      const piiMapping: { field: string; token: string; label: string }[] = [
+        { field: "naam", token: "NAAM", label: "Naam" },
+        { field: "adres", token: "ADRES", label: "Adres" },
+        { field: "postcode", token: "POSTCODE", label: "Postcode" },
+        { field: "woonplaats", token: "WOONPLAATS", label: "Woonplaats" },
+        { field: "huisnummer", token: "HUISNUMMER", label: "Huisnummer" },
+        { field: "geboortedatum", token: "GEBOORTEDATUM", label: "Geboortedatum" },
+        { field: "polisnummer", token: "POLISNUMMER", label: "Polisnummer" },
+      ];
+
+      for (const { field, token } of piiMapping) {
+        const value = polisData[field];
+        if (value && typeof value === "string" && value.trim()) {
+          tokenCount++;
+          piiFields[field] = value;
+          piiTokenMap[value] = `[${token}_1]`;
+        }
+      }
+
+      // Create anonymized summary text
+      const anonLines = [
+        `${polisData.type || "Verzekering"} Polis`,
+        `Verzekeraar: ${polisData.verzekeraar || "Onbekend"}`,
+        `Verzekeringnemer: ${piiTokenMap[polisData.naam] || "[NAAM_1]"}`,
+        `Adres: ${piiTokenMap[polisData.adres] || "[ADRES_1]"} ${piiTokenMap[polisData.huisnummer] || ""}`,
+        `Postcode: ${piiTokenMap[polisData.postcode] || "[POSTCODE_1]"} ${piiTokenMap[polisData.woonplaats] || "[WOONPLAATS_1]"}`,
+        "",
+        `Dekking: ${polisData.dekking || "-"}`,
+        `Premie: € ${polisData.maandpremie || 0}/mnd (€ ${polisData.jaarpremie || 0}/jaar)`,
+        `Eigen risico: ${polisData.eigenRisico || "€ 0"}`,
+        `Ingangsdatum: ${polisData.ingangsdatum || "-"}`,
+        `Opzegtermijn: ${polisData.opzegtermijn || "-"}`,
+        `Gezin: ${polisData.gezin || "-"}`,
+        `Woningtype: ${polisData.woning || "-"}`,
+        `Oppervlakte: ${polisData.oppervlakte || "-"}`,
+      ];
+
+      return NextResponse.json({
+        type: "verzekering",
+        polisData,
+        productType,
+        anonymized: {
+          text: anonLines.join("\n"),
+          piiCount: tokenCount,
+          personalData: piiFields,
+        },
+      });
     }
 
     if (documentType === "energie") {
       const { documentType: _, ...energieData } = parsed;
-      return NextResponse.json({ type: "energie", energieData });
+
+      // Build anonymized version for energy
+      const piiFields: Record<string, string> = {};
+      let tokenCount = 0;
+
+      for (const field of ["naam", "adres"] as const) {
+        const value = energieData[field];
+        if (value && typeof value === "string" && value.trim()) {
+          tokenCount++;
+          piiFields[field] = value;
+        }
+      }
+
+      const anonLines = [
+        `Energiecontract — ${energieData.leverancier || "Onbekend"}`,
+        `Contracthouder: [NAAM_1]`,
+        `Adres: [ADRES_1]`,
+        "",
+        `Stroom: ${energieData.stroom_kwh_jaar || "?"} kWh/jaar`,
+        `Gas: ${energieData.gas_m3_jaar || "?"} m³/jaar`,
+        `Kosten: € ${energieData.kosten_maand || "?"}/mnd (€ ${energieData.kosten_jaar || "?"}/jaar)`,
+        `Tarief stroom: € ${energieData.tarief_stroom_normaal || "?"}/kWh`,
+        `Tarief gas: € ${energieData.tarief_gas_m3 || "?"}/m³`,
+        `Contract: ${energieData.contract_type || "-"}`,
+        `Meter: ${energieData.meter_type || "-"}`,
+        `Einddatum: ${energieData.contract_einddatum || "-"}`,
+      ];
+
+      return NextResponse.json({
+        type: "energie",
+        energieData,
+        anonymized: {
+          text: anonLines.join("\n"),
+          piiCount: tokenCount,
+          personalData: piiFields,
+        },
+      });
     }
 
     return NextResponse.json(

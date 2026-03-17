@@ -53,6 +53,10 @@ export default function Footer() {
             <Link href="/cookies" className="text-[13px] text-white/55 no-underline py-[3px] hover:text-white transition-colors">Cookies</Link>
             <Link href="/klachten" className="text-[13px] text-white/55 no-underline py-[3px] hover:text-white transition-colors">Klachtenregeling</Link>
             <Link href="/dienstwijzer" className="text-[13px] text-white/55 no-underline py-[3px] hover:text-white transition-colors">Dienstenwijzer</Link>
+            <Link href="/avg-veilig" className="text-[13px] text-white/55 no-underline py-[3px] hover:text-white transition-colors flex items-center gap-1.5">
+              <svg className="w-3.5 h-3.5 text-bw-green" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><polyline points="9 12 11 14 15 10"/></svg>
+              AVG-veilig vergelijken
+            </Link>
           </div>
         </div>
       </div>
@@ -60,7 +64,8 @@ export default function Footer() {
       {/* Bottom */}
       <div className="max-w-[1140px] mx-auto pt-4 border-t border-white/5 flex flex-wrap justify-between items-center text-[11.5px] text-white/25 gap-2">
         <span>&copy; 2026 Fraction B.V. (h/o DeVerzekeringsAgent) — KvK 91544467</span>
-        <span>AVG Compliant &middot; Wft geregistreerd</span>
+        <Link href="/avg-veilig" className="text-white/25 no-underline hover:text-white/50 transition-colors">AVG Compliant</Link>
+        <span>Wft geregistreerd</span>
       </div>
       <div className="max-w-[1140px] mx-auto mt-3 text-[11px] text-white/20 leading-relaxed">
         Bij een afgesloten verzekering via DeVerzekeringsAgent ontvangen wij een vergoeding van de verzekeraar. Dit kost jou niets extra. De vergoeding heeft geen invloed op de vergelijkingsresultaten — de goedkoopste staat altijd bovenaan.

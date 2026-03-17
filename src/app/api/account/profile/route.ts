@@ -16,7 +16,7 @@ export async function GET() {
 
   const { data: user, error } = await supabase
     .from("users")
-    .select("id, name, email, created_at, provider")
+    .select("id, name, email, created_at, provider, postcode, huisnummer, woonplaats, geboortedatum, woningtype, gezinssamenstelling, telefoon, iban, adres, pii_bron")
     .eq("id", session.user.id)
     .single();
 
@@ -39,10 +39,21 @@ export async function PUT(req: Request) {
   }
 
   const body = await req.json();
-  const updates: Record<string, string> = {};
+  const updates: Record<string, string | null> = {};
 
   if (typeof body.name === "string" && body.name.trim()) {
     updates.name = body.name.trim();
+  }
+
+  // Extended profile fields
+  const stringFields = ["postcode", "huisnummer", "woonplaats", "woningtype", "gezinssamenstelling", "telefoon", "iban", "adres"] as const;
+  for (const field of stringFields) {
+    if (body[field] !== undefined) {
+      updates[field] = typeof body[field] === "string" && body[field].trim() ? body[field].trim() : null;
+    }
+  }
+  if (body.geboortedatum !== undefined) {
+    updates.geboortedatum = body.geboortedatum || null;
   }
 
   if (typeof body.email === "string" && body.email.trim()) {
@@ -71,7 +82,7 @@ export async function PUT(req: Request) {
     .from("users")
     .update(updates)
     .eq("id", session.user.id)
-    .select("id, name, email, created_at")
+    .select("id, name, email, created_at, provider, postcode, huisnummer, woonplaats, geboortedatum, woningtype, gezinssamenstelling, telefoon, iban, adres, pii_bron")
     .single();
 
   if (error) {

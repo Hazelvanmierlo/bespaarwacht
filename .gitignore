@@ -53,3 +53,11 @@ next-env.d.ts
 
 .vercel
 .env*.local
+
+# Python PII system (runs separately)
+verzekeringsagent/data/
+verzekeringsagent/.env
+scripts/tutor-data*.json
+*.png
+__pycache__/
+verzekeringsagent/.next/
