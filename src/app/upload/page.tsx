@@ -123,12 +123,49 @@ function UploadContent() {
       }
 
       if (json.type === "verzekering") {
-        setParsedData(json.polisData);
+        const pd = json.polisData;
+        // Check if this is a conditions-only document (no personal/policy data)
+        const hasPremie = (pd.maandpremie && pd.maandpremie > 0) || (pd.jaarpremie && pd.jaarpremie > 0);
+        const hasVerzekeraar = pd.verzekeraar && pd.verzekeraar.trim() !== "";
+        const hasNaam = pd.naam && pd.naam.trim() !== "";
+
+        if (!hasPremie && !hasNaam) {
+          // This is likely a conditions document, not a personal policy
+          // Set empty polisData so the manual form appears
+          setParsedData({
+            ...pd,
+            verzekeraar: pd.verzekeraar || "",
+            maandpremie: 0,
+            jaarpremie: 0,
+            naam: "",
+            _needsManualInput: true,
+            _reason: !hasPremie && !hasVerzekeraar
+              ? "Dit lijkt een voorwaardendocument te zijn, geen persoonlijke polis. Vul hieronder je gegevens in zodat we je polis kunnen vergelijken."
+              : !hasPremie
+              ? "We konden geen premie vinden in je document. Vul je premie in zodat we kunnen vergelijken."
+              : "We missen een paar gegevens om je polis te vergelijken.",
+          });
+        } else {
+          setParsedData(pd);
+        }
         setDetectedProduct(json.productType);
         setEnergieData(null);
         setDocCategory("verzekering");
       } else if (json.type === "energie") {
-        setEnergieData(json.energieData);
+        const ed = json.energieData;
+        const hasKosten = (ed.kosten_maand && ed.kosten_maand > 0) || (ed.kosten_jaar && ed.kosten_jaar > 0);
+
+        if (!hasKosten) {
+          setEnergieData({
+            ...ed,
+            leverancier: ed.leverancier || "",
+            kosten_maand: 0,
+            _needsManualInput: true,
+            _reason: "We konden geen kosten vinden in je document. Vul je maandbedrag in.",
+          });
+        } else {
+          setEnergieData(ed);
+        }
         setParsedData(null);
         setDocCategory("energie");
       }
@@ -210,7 +247,7 @@ function UploadContent() {
 
   // Check if this is manual input (no file was uploaded)
   const isManualInput = energieData?.leverancier === "" && energieData?.kosten_maand === 0 && !parsedData;
-  const isManualInputVerzekering = parsedData?.verzekeraar === "" && parsedData?.maandpremie === 0;
+  const isManualInputVerzekering = (parsedData?.verzekeraar === "" && parsedData?.maandpremie === 0) || !!(parsedData as unknown as Record<string, unknown>)?._needsManualInput;
 
   // Energie wizard step (0 = huishouden, 1 = leverancier, 2 = bevestig)
   const [energieStep, setEnergieStep] = useState(0);
@@ -781,11 +818,21 @@ function UploadContent() {
             </div>
           )}
           <h2 className="font-heading text-[24px] sm:text-[30px] font-bold text-bw-deep mb-1">
-            {isManualInputVerzekering ? "Vul je gegevens in" : "Controleer je gegevens"}
+            {isManualInputVerzekering ? "Vul je polisgegevens in" : "Controleer je gegevens"}
           </h2>
           <p className="text-[14px] text-bw-text-mid">
-            {isManualInputVerzekering ? "Vul je huidige polis in en ontdek of het goedkoper kan." : "Klopt alles? Dan vergelijken we direct 12+ verzekeraars."}
+            {isManualInputVerzekering
+              ? "We hebben een paar gegevens nodig om je polis te vergelijken."
+              : "Klopt alles? Dan vergelijken we direct 12+ verzekeraars."}
           </p>
+
+          {/* Banner when document had no personal data */}
+          {!!(parsedData as unknown as Record<string, unknown>)?._needsManualInput && (
+            <div className="mt-4 flex items-start gap-2.5 px-4 py-3 rounded-xl bg-bw-orange-bg border border-[#FED7AA] text-[13px] text-[#9A3412]">
+              <svg className="w-4 h-4 shrink-0 mt-0.5 text-bw-orange" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+              <span>{String((parsedData as unknown as Record<string, string>)?._reason || "We missen een paar gegevens. Vul ze hieronder in.")}</span>
+            </div>
+          )}
         </div>
 
         {/* Current premium highlight (if from PDF) */}
