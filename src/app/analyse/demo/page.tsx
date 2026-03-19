@@ -12,6 +12,7 @@ import { CheckIcon, ArrowRightIcon, StarIcon, LockIcon, SaveIcon, ShieldIcon, Pu
 import type { AnonResult, Alternative, PolisData } from "@/lib/types";
 import type { ProductType } from "@/lib/scrapers/base";
 import StepperBar from "@/components/StepperBar";
+import { calculateSwitchingAdvice } from "@/lib/switching-advice";
 
 const VERZEKERING_FLOW_STEPS = [
   { label: "Gegevens" },
@@ -716,6 +717,9 @@ function AnalyseDemoContent() {
                               &euro; {alt.besparingMaand.toFixed(2)}/mnd goedkoper
                             </div>
                           )}
+                          <div className="text-[11px] text-bw-text-light mt-1">
+                            {polisData.dekking} &middot; {polisData.eigenRisico || "€ 0"} eigen risico
+                          </div>
                         </div>
 
                         {/* Details chips */}
@@ -835,6 +839,9 @@ function AnalyseDemoContent() {
                           ) : alt.besparingJaar < 0 ? (
                             <div className="text-[11px] text-bw-text-light">+&euro; {Math.abs(alt.besparingJaar)}/jr</div>
                           ) : null}
+                          <div className="text-[11px] text-bw-text-light mt-1">
+                            {polisData.dekking} &middot; {polisData.eigenRisico || "€ 0"} eigen risico
+                          </div>
                         </div>
 
                         {/* CTA */}
@@ -890,6 +897,93 @@ function AnalyseDemoContent() {
               </button>
             </div>
           )}
+
+          {/* ── UPGRADE TIP ── */}
+          {(polisData.dekking.toLowerCase().includes("basis") ||
+            (polisData.dekking.toLowerCase().includes("uitgebreid") && !polisData.dekking.toLowerCase().includes("extra"))) && (() => {
+            const nextLevel = polisData.dekking.toLowerCase().includes("basis") ? "Uitgebreid" : "Extra Uitgebreid";
+            const upgradeAlt = alternatives
+              .filter(a => a.dekking === nextLevel)
+              .sort((a, b) => a.premie - b.premie)[0];
+            const currentCheapest = filteredAndSorted[0];
+            if (!upgradeAlt || !currentCheapest) return null;
+            const extraPerMonth = upgradeAlt.premie - currentCheapest.premie;
+            if (extraPerMonth > 5 || extraPerMonth <= 0) return null;
+            return (
+              <div className="bg-[#EFF6FF] border border-[#BFDBFE] rounded-xl p-4 mt-4">
+                <div className="flex items-start gap-2">
+                  <span className="text-[16px]">&#128161;</span>
+                  <div>
+                    <div className="text-[13px] font-bold text-bw-deep mb-0.5">Tip van je agent</div>
+                    <div className="text-[13px] text-bw-text-mid">
+                      Voor &euro;{extraPerMonth.toFixed(2)}/mnd meer krijg je {nextLevel} dekking bij {upgradeAlt.naam}.
+                    </div>
+                  </div>
+                </div>
+              </div>
+            );
+          })()}
+
+          {/* ── SWITCHING ADVICE ── */}
+          {heeftBesparing && besteSaving && (() => {
+            const advice = calculateSwitchingAdvice(
+              polisData.opzegtermijn,
+              polisData.verlengingsdatum,
+              polisData.ingangsdatum,
+              polisData.verzekeraar,
+              besteSaving.naam,
+              besteSaving.url,
+            );
+            return (
+              <div className="bg-white rounded-xl border border-bw-border p-5 mt-6">
+                <h3 className="text-[16px] font-bold text-bw-deep mb-4">
+                  Overstappen naar {besteSaving.naam}
+                </h3>
+                {advice.waarschuwing && (
+                  <div className="bg-bw-orange-bg border border-[#FED7AA] rounded-lg px-3 py-2 mb-4 text-[13px] text-[#9A3412] font-medium">
+                    &#9888; {advice.waarschuwing}
+                  </div>
+                )}
+                <div className="space-y-4">
+                  {advice.stappen.map((stap) => (
+                    <div key={stap.nummer} className="flex gap-3">
+                      <div className="w-7 h-7 rounded-full bg-bw-green text-white text-[12px] font-bold flex items-center justify-center shrink-0">
+                        {stap.nummer}
+                      </div>
+                      <div>
+                        <div className="text-[14px] font-semibold text-bw-deep">{stap.titel}</div>
+                        <div className="text-[13px] text-bw-text-mid">{stap.beschrijving}</div>
+                        {stap.nummer === 1 && besteSaving.url && (
+                          <a
+                            href={besteSaving.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1 mt-1.5 px-3 py-1.5 rounded-lg text-[12px] font-semibold bg-bw-green text-white hover:bg-bw-green-strong transition-colors no-underline"
+                          >
+                            Bekijk bij {besteSaving.naam} &rarr;
+                          </a>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            );
+          })()}
+
+          {/* ── WHATSAPP MONITORING CTA ── */}
+          <div className="bg-[#F0FDF4] border border-[#BBF7D0] rounded-xl p-4 mt-4 text-center">
+            <div className="text-[14px] font-semibold text-bw-deep mb-1">Premie blijven bewaken?</div>
+            <div className="text-[13px] text-bw-text-mid mb-3">
+              We checken dagelijks of er een betere deal is en sturen je een WhatsApp.
+            </div>
+            <a
+              href="https://wa.me/14155238886?text=Hoi%2C%20ik%20wil%20mijn%20premie%20laten%20bewaken"
+              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-[13px] font-semibold bg-[#25D366] text-white hover:bg-[#20BD5A] transition-colors no-underline"
+            >
+              &#128172; Start WhatsApp-bewaking
+            </a>
+          </div>
 
           {/* ── SAVE + MONITORING (mobile) ── */}
           <div className="mt-6 flex gap-3 flex-wrap lg:hidden">
