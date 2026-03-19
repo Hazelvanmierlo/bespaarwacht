@@ -6,6 +6,7 @@ import { ArrowRightIcon, LockIcon, Home, Building2, ShieldCheck, Plane, Zap, Fil
 import type { ReactNode } from "react";
 import type { ProductType } from "@/lib/scrapers/base";
 import type { PolisData } from "@/lib/types";
+import { applyPeriodChoice } from "@/lib/polis-validation";
 
 type DocCategory = "verzekering" | "energie";
 
@@ -123,6 +124,11 @@ function UploadContent() {
       }
 
       if (json.type === "verzekering") {
+        if (json.unsupported) {
+          setUploadError(json.unsupportedMessage || "Dit type verzekering vergelijken we nog niet.");
+          setIsUploading(false);
+          return;
+        }
         const pd = json.polisData;
         // Check if this is a conditions-only document (no personal/policy data)
         const hasPremie = (pd.maandpremie && pd.maandpremie > 0) || (pd.jaarpremie && pd.jaarpremie > 0);
@@ -1017,11 +1023,44 @@ function UploadContent() {
           </div>
         )}
 
+        {/* Premium confirmation banner */}
+        {parsedData._needsConfirmation && parsedData._confirmationQuestion && (
+          <div className="bg-bw-orange-bg border border-[#FED7AA] rounded-xl px-4 py-4 mb-5 animate-fadeUp">
+            <p className="text-[14px] font-semibold text-[#9A3412] mb-3">
+              {parsedData._confirmationQuestion}
+            </p>
+            {parsedData._confirmationQuestion.includes("per maand of per jaar") ? (
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setParsedData(applyPeriodChoice(parsedData, "maand"))}
+                  className="px-4 py-2 rounded-lg text-[13px] font-semibold bg-white border border-bw-border cursor-pointer font-[inherit] hover:bg-bw-bg transition-colors"
+                >
+                  Per maand
+                </button>
+                <button
+                  onClick={() => setParsedData(applyPeriodChoice(parsedData, "jaar"))}
+                  className="px-4 py-2 rounded-lg text-[13px] font-semibold bg-white border border-bw-border cursor-pointer font-[inherit] hover:bg-bw-bg transition-colors"
+                >
+                  Per jaar
+                </button>
+              </div>
+            ) : (
+              <button
+                onClick={() => setParsedData({ ...parsedData, _needsConfirmation: false })}
+                className="px-4 py-2 rounded-lg text-[13px] font-semibold bg-white border border-bw-border cursor-pointer font-[inherit] hover:bg-bw-bg transition-colors"
+              >
+                Ja, dit klopt
+              </button>
+            )}
+          </div>
+        )}
+
         {/* CTA */}
         <div className="animate-fadeUp" style={{ animationDelay: "0.2s" }}>
           <button
             onClick={handleConfirmAndAnalyze}
-            className="w-full inline-flex items-center justify-center gap-2.5 px-6 py-4 rounded-2xl text-[16px] font-bold bg-bw-green text-white border-none cursor-pointer font-[inherit] hover:bg-bw-green-strong hover:shadow-[0_8px_24px_rgba(22,163,74,0.3)] hover:-translate-y-0.5 active:translate-y-0 transition-all"
+            disabled={!!parsedData._needsConfirmation}
+            className={`w-full inline-flex items-center justify-center gap-2.5 px-6 py-4 rounded-2xl text-[16px] font-bold bg-bw-green text-white border-none font-[inherit] transition-all ${parsedData._needsConfirmation ? "opacity-50 cursor-not-allowed" : "cursor-pointer hover:bg-bw-green-strong hover:shadow-[0_8px_24px_rgba(22,163,74,0.3)] hover:-translate-y-0.5 active:translate-y-0"}`}
           >
             Vergelijk 12+ verzekeraars <ArrowRightIcon className="w-4.5 h-4.5" />
           </button>
