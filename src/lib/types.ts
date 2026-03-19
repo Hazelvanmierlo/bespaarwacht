@@ -35,6 +35,11 @@ export interface PolisData {
   voorwaarden: string;
   jaarpremie: number;
   maandpremie: number;
+  premie_periode: "maand" | "jaar" | "kwartaal" | "onbekend";
+  _needsConfirmation?: boolean;
+  _confirmationQuestion?: string;
+  _needsManualInput?: boolean;
+  _reason?: string;
   eigenRisico: string;
   ingangsdatum: string;
   verlengingsdatum: string;

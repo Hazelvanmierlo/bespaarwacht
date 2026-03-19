@@ -178,6 +178,7 @@ export function extractPolisFromText(text: string): PolisData | null {
     voorwaarden: voorwaarden || "",
     jaarpremie: jaarpremie || maandpremie * 12,
     maandpremie: maandpremie || (jaarpremie ? +(jaarpremie / 12).toFixed(2) : 0),
+    premie_periode: "onbekend",
     eigenRisico: eigenRisico ? `€ ${eigenRisico}` : "€ 0",
     ingangsdatum: ingangsdatum || "",
     verlengingsdatum: "",
