@@ -243,11 +243,33 @@ function regexFallbackDetect(text: string): PiiItem[] {
 }
 
 /**
- * Extract text from a PDF buffer using pdf-parse v2.
+ * Extract text from a PDF buffer using pdfjs-dist legacy build.
+ * Uses the legacy build to avoid worker issues in Next.js server runtime.
  */
 export async function extractPdfText(buffer: Buffer): Promise<string> {
-  const { PDFParse } = await import("pdf-parse");
-  const parser = new PDFParse({ data: new Uint8Array(buffer) });
-  const result = await parser.getText();
-  return result.text;
+  const pdfjsLib = await import("pdfjs-dist/legacy/build/pdf.mjs");
+  // Point worker to the actual file using file:// URL (required on Windows)
+  const { pathToFileURL } = await import("url");
+  const { resolve } = await import("path");
+  pdfjsLib.GlobalWorkerOptions.workerSrc = pathToFileURL(
+    resolve(process.cwd(), "node_modules/pdfjs-dist/legacy/build/pdf.worker.mjs")
+  ).href;
+  const doc = await pdfjsLib.getDocument({
+    data: new Uint8Array(buffer),
+    isEvalSupported: false,
+    useSystemFonts: true,
+  }).promise;
+
+  const pages: string[] = [];
+  for (let i = 1; i <= doc.numPages; i++) {
+    const page = await doc.getPage(i);
+    const content = await page.getTextContent();
+    const text = content.items
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      .map((item: any) => item.str || "")
+      .join(" ");
+    pages.push(text);
+  }
+
+  return pages.join("\n\n-- " + " --\n\n");
 }
