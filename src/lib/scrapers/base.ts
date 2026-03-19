@@ -8,6 +8,7 @@ export interface InboedelInput {
   oppervlakte: number;
   gezin: "alleenstaand" | "gezin";
   dekking: "basis" | "uitgebreid" | "extra_uitgebreid" | "all_risk";
+  eigenRisico?: number;
   huisnummer?: string;
   geboortedatum?: string;
   eigenaar?: boolean;
@@ -19,6 +20,7 @@ export interface OpstalInput {
   oppervlakte: number;
   bouwjaar: number;
   dekking: "basis" | "uitgebreid" | "extra_uitgebreid" | "all_risk";
+  eigenRisico?: number;
   huisnummer?: string;
   geboortedatum?: string;
   eigenaar?: boolean;

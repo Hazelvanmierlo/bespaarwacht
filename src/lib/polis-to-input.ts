@@ -25,6 +25,7 @@ function polisToInboedelInput(polis: PolisData): InboedelInput {
     oppervlakte: parseInt(polis.oppervlakte.replace(/\D/g, ""), 10) || 100,
     gezin: parseGezin(polis.gezin),
     dekking: parseDekking(polis.dekking),
+    eigenRisico: parseEigenRisico(polis.eigenRisico),
   };
 
   if (polis.huisnummer) {
@@ -47,6 +48,7 @@ function polisToOpstalInput(polis: PolisData): OpstalInput {
     oppervlakte: parseInt(polis.oppervlakte.replace(/\D/g, ""), 10) || 100,
     bouwjaar: parseBouwjaar(polis.bouwaard),
     dekking: parseDekking(polis.dekking),
+    eigenRisico: parseEigenRisico(polis.eigenRisico),
   };
 
   if (polis.huisnummer) input.huisnummer = polis.huisnummer;
@@ -110,6 +112,11 @@ function parseDekking(dekking: string): InboedelInput["dekking"] {
   if (lower.includes("extra uitgebreid")) return "extra_uitgebreid";
   if (lower.includes("uitgebreid")) return "uitgebreid";
   return "basis";
+}
+
+function parseEigenRisico(eigenRisico: string): number {
+  const match = eigenRisico.match(/\d+/);
+  return match ? parseInt(match[0], 10) : 0;
 }
 
 function parseBouwjaar(bouwaard: string): number {

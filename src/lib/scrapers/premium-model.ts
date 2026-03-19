@@ -58,6 +58,25 @@ const DEKKING_LABELS: Record<string, string> = {
   all_risk: "All Risk",
 };
 
+// Higher eigen risico = lower premium (discount factor)
+const EIGEN_RISICO_FACTORS: Record<number, number> = {
+  0: 1.00,
+  50: 0.97,
+  100: 0.94,
+  150: 0.90,
+  250: 0.85,
+  500: 0.75,
+};
+
+function getEigenRisicoFactor(eigenRisico?: number): number {
+  if (eigenRisico === undefined) return 1.00;
+  const values = Object.keys(EIGEN_RISICO_FACTORS).map(Number);
+  const closest = values.reduce((prev, curr) =>
+    Math.abs(curr - eigenRisico) < Math.abs(prev - eigenRisico) ? curr : prev
+  );
+  return EIGEN_RISICO_FACTORS[closest] ?? 1.00;
+}
+
 function getPostcodeFactor(postcode: string): number {
   const digits = postcode.replace(/\D/g, "").slice(0, 2);
   return POSTCODE_FACTORS[digits] ?? 1.00;
@@ -97,8 +116,9 @@ export function calculateInboedelPremium(
   const opp = getOppervlakteFactor(input.oppervlakte);
   const gezin = input.gezin === "gezin" ? 1.00 : 0.85;
   const dekking = DEKKING_FACTORS[input.dekking] ?? 1.00;
+  const er = getEigenRisicoFactor(input.eigenRisico);
 
-  return roundPremie(basePremie * postcode * woning * opp * gezin * dekking);
+  return roundPremie(basePremie * postcode * woning * opp * gezin * dekking * er);
 }
 
 // ── Opstal premium calculation ──
@@ -111,8 +131,9 @@ export function calculateOpstalPremium(
   const opp = getOppervlakteFactor(input.oppervlakte);
   const dekking = DEKKING_FACTORS[input.dekking] ?? 1.00;
   const bouwjaar = getBouwjaarFactor(input.bouwjaar);
+  const er = getEigenRisicoFactor(input.eigenRisico);
 
-  return roundPremie(basePremie * postcode * woning * opp * dekking * bouwjaar);
+  return roundPremie(basePremie * postcode * woning * opp * dekking * bouwjaar * er);
 }
 
 // ── Aansprakelijkheid premium calculation ──
