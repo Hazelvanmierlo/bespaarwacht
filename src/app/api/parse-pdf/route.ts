@@ -5,6 +5,7 @@ import {
   extractPdfText,
   isOllamaAvailable,
 } from "@/lib/anonymizer-ollama";
+import { validatePolisData } from "@/lib/polis-validation";
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
@@ -28,6 +29,7 @@ Geef ALLEEN een JSON object terug, geen markdown backticks, geen uitleg.
   "voorwaarden": "string" of "",
   "jaarpremie": number of 0,
   "maandpremie": number of 0,
+  "premie_periode": "maand" | "jaar" | "kwartaal" | "onbekend" (hoe het bedrag in het document staat),
   "eigenRisico": "string" of "",
   "ingangsdatum": "string" of "",
   "verlengingsdatum": "string" of "",
@@ -48,6 +50,12 @@ Belangrijk bij verzekeringen:
 - Detecteer het type verzekering automatisch uit de inhoud
 - Als je een veld niet kunt vinden, gebruik "" (lege string) of 0 voor nummers
 - Persoonsgegevens staan als tokens ([NAAM_1] etc.) — gebruik deze tokens in je output
+- Geef bij premie_periode aan hoe het bedrag LETTERLIJK in het document staat (per maand, per jaar, per kwartaal)
+- Als het document "jaarpremie" of "per jaar" zegt: premie_periode = "jaar"
+- Als het document "maandpremie" of "per maand" zegt: premie_periode = "maand"
+- Als het document "kwartaal" zegt: premie_periode = "kwartaal"
+- Als het onduidelijk is: premie_periode = "onbekend"
+- Als er een gecombineerde polis is (bv. inboedel + opstal samen), geef het TOTALE bedrag en zet type op het hoofdproduct
 
 ═══ ALS HET EEN ENERGIEREKENING/JAAROVERZICHT IS: ═══
 {
@@ -211,8 +219,12 @@ export async function POST(req: NextRequest) {
 
       if (documentType === "verzekering") {
         const { documentType: _, ...polisData } = parsed;
-        const productType = PRODUCT_TYPE_MAP[polisData.type] || "inboedel";
-        const restoredData = restorePii(polisData, anonResult.tokenMap);
+        if (!polisData.premie_periode) {
+          polisData.premie_periode = "onbekend";
+        }
+        const validatedData = validatePolisData(polisData);
+        const productType = PRODUCT_TYPE_MAP[validatedData.type] || "inboedel";
+        const restoredData = restorePii(validatedData as unknown as Record<string, unknown>, anonResult.tokenMap);
 
         return NextResponse.json({
           type: "verzekering",
@@ -295,10 +307,14 @@ export async function POST(req: NextRequest) {
     // Image flow: no Ollama anonymization, warn in response
     if (documentType === "verzekering") {
       const { documentType: _, ...polisData } = parsed;
-      const productType = PRODUCT_TYPE_MAP[polisData.type] || "inboedel";
+      if (!polisData.premie_periode) {
+        polisData.premie_periode = "onbekend";
+      }
+      const validatedData = validatePolisData(polisData);
+      const productType = PRODUCT_TYPE_MAP[validatedData.type] || "inboedel";
       return NextResponse.json({
         type: "verzekering",
-        polisData,
+        polisData: validatedData,
         productType,
         anonymized: { text: "", piiCount: 0, personalData: {}, method: "none-image" },
       });
