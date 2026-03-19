@@ -217,6 +217,9 @@ function UploadContent() {
     setParsedData(null);
     setEnergieData(null);
     setUploadError(null);
+    setShowEnergieEdit(false);
+    setShowEditFields(false);
+    setEnergieStep(0);
     if (fileRef.current) fileRef.current.value = "";
   };
 
@@ -254,6 +257,7 @@ function UploadContent() {
 
   // Verzekering edit fields toggle (must be at top level, not inside conditional)
   const [showEditFields, setShowEditFields] = useState(false);
+  const [showEnergieEdit, setShowEnergieEdit] = useState(false);
 
   // Estimation profile state
   const [aantalPersonen, setAantalPersonen] = useState<number | null>(null);
@@ -335,59 +339,61 @@ function UploadContent() {
             </div>
           )}
 
-          {/* Compact data cards — stacked on very small screens, 2-col on 360px+ */}
-          <div className="grid grid-cols-1 min-[360px]:grid-cols-2 gap-3 mb-5 animate-fadeUp" style={{ animationDelay: "0.1s" }}>
-            {/* Contract card */}
-            <div className="bg-white rounded-xl border border-bw-border p-4">
-              <div className="text-[10px] font-bold text-bw-text-light uppercase tracking-[0.5px] mb-2.5">Contract</div>
-              <div className="space-y-2">
-                <div>
-                  <div className="text-[11px] text-bw-text-light">Leverancier</div>
-                  <div className="text-[14px] font-bold text-bw-deep">{energieData.leverancier || "Onbekend"}</div>
-                </div>
-                <div>
-                  <div className="text-[11px] text-bw-text-light">Type</div>
-                  <div className="text-[13px] font-semibold text-bw-deep capitalize">{energieData.contract_type || "Variabel"}</div>
-                </div>
-                {energieData.contract_einddatum && (
+          {/* Summary cards — shown when NOT editing */}
+          {!showEnergieEdit && (
+            <div className="grid grid-cols-1 min-[360px]:grid-cols-2 gap-3 mb-5 animate-fadeUp" style={{ animationDelay: "0.1s" }}>
+              {/* Contract card */}
+              <div className="bg-white rounded-xl border border-bw-border p-4">
+                <div className="text-[10px] font-bold text-bw-text-light uppercase tracking-[0.5px] mb-2.5">Contract</div>
+                <div className="space-y-2">
                   <div>
-                    <div className="text-[11px] text-bw-text-light">Einddatum</div>
-                    <div className="text-[13px] font-semibold text-bw-deep">{energieData.contract_einddatum}</div>
+                    <div className="text-[11px] text-bw-text-light">Leverancier</div>
+                    <div className="text-[14px] font-bold text-bw-deep">{energieData.leverancier || "Onbekend"}</div>
                   </div>
-                )}
+                  <div>
+                    <div className="text-[11px] text-bw-text-light">Type</div>
+                    <div className="text-[13px] font-semibold text-bw-deep capitalize">{energieData.contract_type || "Variabel"}</div>
+                  </div>
+                  {energieData.contract_einddatum && (
+                    <div>
+                      <div className="text-[11px] text-bw-text-light">Einddatum</div>
+                      <div className="text-[13px] font-semibold text-bw-deep">{energieData.contract_einddatum}</div>
+                    </div>
+                  )}
+                </div>
               </div>
-            </div>
 
-            {/* Usage card */}
-            <div className="bg-white rounded-xl border border-bw-border p-4">
-              <div className="text-[10px] font-bold text-bw-text-light uppercase tracking-[0.5px] mb-2.5">Verbruik</div>
-              <div className="space-y-2">
-                <div>
-                  <div className="text-[11px] text-bw-text-light">Stroom</div>
-                  <div className="text-[14px] font-bold text-bw-deep">{(energieData.stroom_kwh_jaar || 0).toLocaleString("nl-NL")} <span className="text-[11px] font-normal text-bw-text-light">kWh/jaar</span></div>
-                </div>
-                <div>
-                  <div className="text-[11px] text-bw-text-light">Gas</div>
-                  <div className="text-[13px] font-semibold text-bw-deep">{energieData.gas_m3_jaar ? `${energieData.gas_m3_jaar.toLocaleString("nl-NL")} m\u00B3/jaar` : "Geen gas"}</div>
-                </div>
-                {energieData.teruglevering_kwh != null && energieData.teruglevering_kwh > 0 && (
+              {/* Usage card */}
+              <div className="bg-white rounded-xl border border-bw-border p-4">
+                <div className="text-[10px] font-bold text-bw-text-light uppercase tracking-[0.5px] mb-2.5">Verbruik</div>
+                <div className="space-y-2">
                   <div>
-                    <div className="text-[11px] text-bw-text-light">Teruglevering</div>
-                    <div className="text-[13px] font-semibold text-bw-green">{energieData.teruglevering_kwh.toLocaleString("nl-NL")} kWh</div>
+                    <div className="text-[11px] text-bw-text-light">Stroom</div>
+                    <div className="text-[14px] font-bold text-bw-deep">{(energieData.stroom_kwh_jaar || 0).toLocaleString("nl-NL")} <span className="text-[11px] font-normal text-bw-text-light">kWh/jaar</span></div>
                   </div>
-                )}
-                {energieData.meter_type && (
                   <div>
-                    <div className="text-[11px] text-bw-text-light">Meter</div>
-                    <div className="text-[13px] font-semibold text-bw-deep capitalize">{energieData.meter_type}</div>
+                    <div className="text-[11px] text-bw-text-light">Gas</div>
+                    <div className="text-[13px] font-semibold text-bw-deep">{energieData.gas_m3_jaar ? `${energieData.gas_m3_jaar.toLocaleString("nl-NL")} m\u00B3/jaar` : "Geen gas"}</div>
                   </div>
-                )}
+                  {energieData.teruglevering_kwh != null && energieData.teruglevering_kwh > 0 && (
+                    <div>
+                      <div className="text-[11px] text-bw-text-light">Teruglevering</div>
+                      <div className="text-[13px] font-semibold text-bw-green">{energieData.teruglevering_kwh.toLocaleString("nl-NL")} kWh</div>
+                    </div>
+                  )}
+                  {energieData.meter_type && (
+                    <div>
+                      <div className="text-[11px] text-bw-text-light">Meter</div>
+                      <div className="text-[13px] font-semibold text-bw-deep capitalize">{energieData.meter_type}</div>
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
-          </div>
+          )}
 
           {/* Personal info + EAN in collapsed detail row */}
-          {(energieData.naam || energieData.adres || energieData.ean_stroom) && (
+          {!showEnergieEdit && (energieData.naam || energieData.adres || energieData.ean_stroom) && (
             <div className="bg-[#F8FAFC] rounded-xl border border-[#E2E8F0] px-4 py-3 mb-5 animate-fadeUp" style={{ animationDelay: "0.15s" }}>
               <div className="flex flex-wrap gap-x-6 gap-y-1.5 text-[12px]">
                 {energieData.naam && (
@@ -399,6 +405,36 @@ function UploadContent() {
                 {energieData.ean_stroom && (
                   <div><span className="text-bw-text-light">EAN:</span> <span className="font-mono font-semibold text-bw-deep text-[11px]">{energieData.ean_stroom}</span></div>
                 )}
+              </div>
+            </div>
+          )}
+
+          {/* Editable fields — shown when "Gegevens aanpassen" is clicked */}
+          {showEnergieEdit && (
+            <div className="bg-white rounded-xl border border-bw-border overflow-hidden mb-5 animate-fadeUp" style={{ animationDelay: "0.1s" }}>
+              <div className="px-4 py-3 bg-[#F8FAFC] border-b border-bw-border">
+                <span className="text-[11px] font-bold text-bw-text-mid uppercase tracking-[0.5px]">Contract</span>
+              </div>
+              <div className="px-4 py-3 space-y-3">
+                <EditRow label="Leverancier" value={energieData.leverancier} onChange={(v) => updateEnergieField("leverancier", v)} />
+                <EditRow label="Kosten/maand" value={energieData.kosten_maand} type="number" prefix="€" onChange={(v) => {
+                  const num = parseFloat(v) || 0;
+                  updateEnergieField("kosten_maand", num);
+                  updateEnergieField("kosten_jaar", +(num * 12).toFixed(2));
+                }} />
+                <EditRow label="Contract type" value={energieData.contract_type ?? ""} onChange={(v) => updateEnergieField("contract_type", v)}
+                  options={["Variabel", "Vast 1 jaar", "Vast 2 jaar", "Vast 3 jaar"]} />
+              </div>
+
+              <div className="px-4 py-3 bg-[#F8FAFC] border-t border-b border-bw-border">
+                <span className="text-[11px] font-bold text-bw-text-mid uppercase tracking-[0.5px]">Verbruik</span>
+              </div>
+              <div className="px-4 py-3 space-y-3">
+                <EditRow label="Stroom (kWh/jaar)" value={energieData.stroom_kwh_jaar} type="number" onChange={(v) => updateEnergieField("stroom_kwh_jaar", parseFloat(v) || 0)} />
+                <EditRow label="Gas (m³/jaar)" value={energieData.gas_m3_jaar ?? ""} type="number" onChange={(v) => updateEnergieField("gas_m3_jaar", v ? parseFloat(v) : null)} />
+                <EditRow label="Teruglevering (kWh)" value={energieData.teruglevering_kwh ?? ""} type="number" onChange={(v) => updateEnergieField("teruglevering_kwh", v ? parseFloat(v) : null)} />
+                <EditRow label="Meter type" value={energieData.meter_type ?? ""} onChange={(v) => updateEnergieField("meter_type", v)}
+                  options={["Enkel", "Dubbel", "Slim"]} />
               </div>
             </div>
           )}
@@ -429,10 +465,10 @@ function UploadContent() {
               </button>
               <span className="text-bw-text-light text-[10px]">|</span>
               <button
-                onClick={() => { /* TODO: expand edit mode */ }}
+                onClick={() => setShowEnergieEdit(!showEnergieEdit)}
                 className="text-[12px] font-semibold text-bw-blue hover:text-bw-deep cursor-pointer bg-transparent border-none font-[inherit] transition-colors hover:underline"
               >
-                Gegevens aanpassen
+                {showEnergieEdit ? "Samenvatting tonen" : "Gegevens aanpassen"}
               </button>
             </div>
           </div>

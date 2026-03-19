@@ -48,6 +48,7 @@ function EnergieAnalyseContent() {
   const [affiliateUrls, setAffiliateUrls] = useState<Record<string, string>>({});
   const [animStep, setAnimStep] = useState(0);
   const [showMobileFilters, setShowMobileFilters] = useState(false);
+  const [elapsed, setElapsed] = useState(0);
 
   const startAnalyzing = useCallback((data: EnergieData) => {
     setEnergieData(data);
@@ -94,6 +95,14 @@ function EnergieAnalyseContent() {
     });
     startAnalyzing(best.data);
   }, [startAnalyzing]);
+
+  // Elapsed timer for trust messages during analyzing
+  useEffect(() => {
+    if (phase !== "analyzing") return;
+    setElapsed(0);
+    const interval = setInterval(() => setElapsed((e) => e + 1), 1000);
+    return () => clearInterval(interval);
+  }, [phase]);
 
   /* ── Derived calculations ── */
   const vergelijking = useMemo(() => {
@@ -153,40 +162,163 @@ function EnergieAnalyseContent() {
       )}
 
       {/* ANALYZING ANIMATION */}
-      {phase === "analyzing" && (
-        <div className="max-w-[520px] mx-auto px-6 py-20">
-          <h2 className="font-heading text-[28px] font-bold text-bw-deep text-center mb-10">
-            Energiekosten worden geanalyseerd...
-          </h2>
-          {analyzeSteps.map((s) => (
-            <div
-              key={s.step}
-              className={`flex items-center gap-4 py-3.5 border-b border-[#F1F5F9] transition-all duration-500 ${
-                animStep >= s.step ? "opacity-100" : "opacity-30"
-              } ${animStep >= s.step ? "animate-slideIn" : ""}`}
-            >
-              <div
-                className={`w-9 h-9 rounded-full flex items-center justify-center shrink-0 text-sm font-bold transition-all duration-400 ${
-                  animStep >= s.step ? "bg-bw-green text-white" : "bg-bw-border text-bw-text-light"
-                }`}
-              >
-                {animStep >= s.step ? <CheckIcon className="w-3.5 h-3.5" /> : s.step}
+      {phase === "analyzing" && (() => {
+        const lightColor = animStep >= 3 ? "green" : animStep >= 2 ? "yellow" : "red";
+        const agentMood = animStep >= 4 ? "thumbsup" : animStep >= 3 ? "walking" : animStep >= 2 ? "ready" : "waiting";
+        const trustMessages = [
+          "We checken nu Vattenfall, Eneco, Essent, Budget Energie en meer...",
+          "Je persoonsgegevens verlaten nooit onze beveiligde EU-server",
+          "Versleuteld met bankniveau-encryptie (AES-256)",
+          "Verbruik, tarieven en contractgegevens worden vergeleken",
+          "Greenchoice, ANWB Energie, Vandebron worden meegenomen...",
+          "Je originele document wordt direct na verwerking verwijderd",
+          "100% onafhankelijk — wij worden niet betaald door een leverancier",
+          "Dagelijks monitoren we of jouw tarief nog de scherpste is",
+          "Zelfde verbruik, lagere kosten? Wij vinden het voor je",
+        ];
+        const currentTrust = trustMessages[Math.floor(elapsed / 2) % trustMessages.length];
+
+        return (
+          <div className="max-w-[520px] mx-auto px-6 py-12 sm:py-16">
+            <h2 className="font-heading text-[24px] sm:text-[28px] font-bold text-bw-deep text-center mb-2">
+              {animStep >= 4
+                ? "Klaar! Je resultaat wordt geladen"
+                : animStep >= 3
+                ? "Bijna klaar..."
+                : "Energiekosten worden geanalyseerd"
+              }
+            </h2>
+            <p className="text-[14px] text-bw-text-mid text-center mb-2">
+              {animStep >= 4
+                ? "Je persoonlijke vergelijking verschijnt zo"
+                : animStep >= 3
+                ? "Vattenfall, Eneco, Essent, Budget Energie... we checken ze allemaal"
+                : animStep >= 2
+                ? "Je persoonsgegevens worden versleuteld opgeslagen"
+                : "We lezen je verbruik, tarieven en kosten uit"
+              }
+            </p>
+
+            {/* Progress bar + timer */}
+            <div className="max-w-[280px] mx-auto mb-6">
+              <div className="flex items-center justify-between mb-1.5">
+                <span className="text-[11px] font-semibold text-bw-text-mid">
+                  {animStep >= 4 ? "100%" : animStep >= 3 ? "75%" : animStep >= 2 ? "50%" : animStep >= 1 ? "25%" : "0%"}
+                </span>
+                <span className="text-[11px] text-bw-text-light flex items-center gap-1">
+                  <svg className="w-3 h-3 animate-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>
+                  {elapsed}s
+                </span>
               </div>
-              <div>
-                <div className={`text-[15px] font-semibold transition-all duration-400 ${animStep >= s.step ? "text-bw-deep" : "text-bw-text-light"}`}>
-                  {s.label}
-                </div>
-                <div className={`text-[13px] transition-all duration-400 ${animStep >= s.step ? "text-bw-text-mid" : "text-[#CBD5E1]"}`}>
-                  {s.desc}
-                </div>
+              <div className="h-2 bg-bw-border rounded-full overflow-hidden">
+                <div
+                  className="h-full bg-gradient-to-r from-bw-blue to-bw-green rounded-full transition-all duration-700 ease-out"
+                  style={{ width: animStep >= 4 ? "100%" : animStep >= 3 ? "75%" : animStep >= 2 ? "50%" : animStep >= 1 ? "25%" : "2%" }}
+                />
               </div>
-              {animStep === s.step && (
-                <div className="ml-auto w-5 h-5 border-2 border-bw-green border-t-transparent rounded-full animate-spin" />
-              )}
             </div>
-          ))}
-        </div>
-      )}
+
+            {/* Agent + Traffic Light Scene */}
+            <div className="flex items-end justify-center gap-6 sm:gap-10 mb-10 h-[180px] relative">
+              {/* Traffic light */}
+              <div className="flex flex-col items-center">
+                <div className="w-[52px] bg-[#1E293B] rounded-xl p-2 flex flex-col gap-2 shadow-lg">
+                  <div className={`w-9 h-9 rounded-full transition-all duration-700 ${lightColor === "red" ? "bg-[#EF4444] shadow-[0_0_16px_rgba(239,68,68,0.6)]" : "bg-[#7F1D1D]/30"}`} />
+                  <div className={`w-9 h-9 rounded-full transition-all duration-700 ${lightColor === "yellow" ? "bg-[#EAB308] shadow-[0_0_16px_rgba(234,179,8,0.6)]" : "bg-[#713F12]/30"}`} />
+                  <div className={`w-9 h-9 rounded-full transition-all duration-700 ${lightColor === "green" ? "bg-[#22C55E] shadow-[0_0_16px_rgba(34,197,94,0.6)]" : "bg-[#14532D]/30"}`} />
+                </div>
+                <div className="w-3 h-12 bg-[#64748B] rounded-b" />
+              </div>
+
+              {/* Agent character */}
+              <div className={`relative transition-all duration-700 ${agentMood === "walking" || agentMood === "thumbsup" ? "translate-x-4" : ""}`}>
+                <div className="relative">
+                  {/* Head */}
+                  <div className="w-14 h-14 rounded-full bg-[#FBBF24] mx-auto relative z-10">
+                    <div className="absolute top-[18px] left-[14px] flex gap-[10px]">
+                      <div className={`w-2.5 h-2.5 rounded-full bg-[#1E293B] transition-all duration-500 ${agentMood === "waiting" ? "animate-[blink_3s_ease-in-out_infinite]" : ""}`} />
+                      <div className={`w-2.5 h-2.5 rounded-full bg-[#1E293B] transition-all duration-500 ${agentMood === "waiting" ? "animate-[blink_3s_ease-in-out_infinite]" : ""}`} />
+                    </div>
+                    <div className={`absolute bottom-[12px] left-1/2 -translate-x-1/2 transition-all duration-500 ${
+                      agentMood === "thumbsup" ? "w-5 h-2.5 rounded-b-full bg-[#1E293B]" :
+                      agentMood === "walking" || agentMood === "ready" ? "w-3 h-1.5 rounded-full bg-[#1E293B]" :
+                      "w-4 h-0.5 bg-[#1E293B] rounded"
+                    }`} />
+                  </div>
+                  {/* Hat */}
+                  <div className="absolute -top-2 left-1/2 -translate-x-1/2 w-10 h-5 bg-bw-blue rounded-t-lg z-20 flex items-center justify-center">
+                    <svg className="w-3 h-3 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                  </div>
+                  {/* Suit body */}
+                  <div className="w-16 h-20 bg-bw-deep rounded-b-2xl mx-auto -mt-2 relative">
+                    <div className="absolute top-1 left-1/2 -translate-x-1/2 w-0 h-0 border-l-[5px] border-r-[5px] border-t-[10px] border-l-transparent border-r-transparent border-t-bw-blue" />
+                    <div className={`absolute -left-3 top-2 w-3 h-14 bg-bw-deep rounded-full origin-top transition-all duration-500 ${
+                      agentMood === "thumbsup" ? "-rotate-45" :
+                      agentMood === "walking" ? "rotate-12" :
+                      "rotate-6"
+                    }`}>
+                      {agentMood === "thumbsup" && (
+                        <div className="absolute -top-1 -left-2 text-lg">&#128077;</div>
+                      )}
+                    </div>
+                    <div className={`absolute -right-3 top-2 w-3 h-14 bg-bw-deep rounded-full origin-top transition-all duration-500 ${
+                      agentMood === "walking" ? "-rotate-12" :
+                      agentMood === "thumbsup" ? "rotate-6" :
+                      "-rotate-6"
+                    }`}>
+                      {agentMood !== "thumbsup" && (
+                        <div className="absolute bottom-0 -right-2 w-6 h-5 bg-[#92400E] rounded-sm border-t-2 border-[#78350F]" />
+                      )}
+                    </div>
+                  </div>
+                  {/* Legs */}
+                  <div className="flex justify-center gap-1 -mt-1">
+                    <div className={`w-3 h-8 bg-[#334155] rounded-b transition-all duration-300 ${agentMood === "walking" ? "origin-top -rotate-12" : ""}`} />
+                    <div className={`w-3 h-8 bg-[#334155] rounded-b transition-all duration-300 ${agentMood === "walking" ? "origin-top rotate-12" : ""}`} />
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Rotating trust message */}
+            <div className="flex items-center justify-center gap-2 mb-5 px-4 py-2.5 bg-[#F0FDF4] rounded-xl border border-[#BBF7D0] mx-auto max-w-[400px]">
+              <svg className="w-4 h-4 text-bw-green shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><polyline points="9 12 11 14 15 10"/>
+              </svg>
+              <span className="text-[12px] text-[#166534] font-medium">{currentTrust}</span>
+            </div>
+
+            {/* Steps checklist */}
+            {analyzeSteps.map((s) => (
+              <div
+                key={s.step}
+                className={`flex items-center gap-4 py-3.5 border-b border-[#F1F5F9] transition-all duration-500 ${
+                  animStep >= s.step ? "opacity-100" : "opacity-30"
+                } ${animStep >= s.step ? "animate-slideIn" : ""}`}
+              >
+                <div
+                  className={`w-9 h-9 rounded-full flex items-center justify-center shrink-0 text-sm font-bold transition-all duration-400 ${
+                    animStep >= s.step ? "bg-bw-green text-white" : "bg-bw-border text-bw-text-light"
+                  }`}
+                >
+                  {animStep >= s.step ? <CheckIcon className="w-3.5 h-3.5" /> : s.step}
+                </div>
+                <div>
+                  <div className={`text-[15px] font-semibold transition-all duration-400 ${animStep >= s.step ? "text-bw-deep" : "text-bw-text-light"}`}>
+                    {s.label}
+                  </div>
+                  <div className={`text-[13px] transition-all duration-400 ${animStep >= s.step ? "text-bw-text-mid" : "text-[#CBD5E1]"}`}>
+                    {s.desc}
+                  </div>
+                </div>
+                {animStep === s.step && (
+                  <div className="ml-auto w-5 h-5 border-2 border-bw-green border-t-transparent rounded-full animate-spin" />
+                )}
+              </div>
+            ))}
+          </div>
+        );
+      })()}
 
       {/* RESULTS — same structure as /analyse/demo */}
       {phase === "results" && energieData && apparaten && (

@@ -1,20 +1,27 @@
 import { NextRequest, NextResponse } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
+import {
+  anonymizeWithOllama,
+  extractPdfText,
+  isOllamaAvailable,
+} from "@/lib/anonymizer-ollama";
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
 const PARSE_PROMPT = `Analyseer dit Nederlandse document. Bepaal EERST of het een **verzekeringspolis** of een **energierekening/jaaroverzicht** is.
+
+LET OP: Dit document is GEANONIMISEERD. Persoonsgegevens zijn vervangen door tokens zoals [NAAM_1], [ADRES_1], [POSTCODE_1] etc. Dit is correct en gewenst. Gebruik deze tokens in je output.
 
 Geef ALLEEN een JSON object terug, geen markdown backticks, geen uitleg.
 
 ═══ ALS HET EEN VERZEKERINGSPOLIS IS: ═══
 {
   "documentType": "verzekering",
-  "naam": "string" of "",
-  "adres": "string" of "",
-  "postcode": "string" of "",
-  "woonplaats": "string" of "",
-  "polisnummer": "string" of "",
+  "naam": "[NAAM_1]" of "",
+  "adres": "[ADRES_1]" of "",
+  "postcode": "[POSTCODE_1]" of "",
+  "woonplaats": "[WOONPLAATS_1]" of "",
+  "polisnummer": "[POLISNUMMER_1]" of "",
   "verzekeraar": "string" of "",
   "type": "Inboedel" of "Opstal" of "Aansprakelijkheid" of "Reis" of "Onbekend",
   "dekking": "Basis" of "Uitgebreid" of "Extra Uitgebreid" of "All Risk" of "string",
@@ -30,7 +37,7 @@ Geef ALLEEN een JSON object terug, geen markdown backticks, geen uitleg.
   "bouwaard": "string" of "",
   "oppervlakte": "string" of "",
   "huisnummer": "string" of "",
-  "geboortedatum": "string" of "",
+  "geboortedatum": "[GEBOORTEDATUM_1]" of "",
   "eigenaar": "Eigenaar" of "Huurder" of "",
   "dekkingen": [{ "rubriek": "string", "diefstal": "string", "anders": "string" }]
 }
@@ -40,6 +47,7 @@ Belangrijk bij verzekeringen:
 - Als maandpremie bekend is maar jaarpremie niet: jaarpremie = maandpremie * 12
 - Detecteer het type verzekering automatisch uit de inhoud
 - Als je een veld niet kunt vinden, gebruik "" (lege string) of 0 voor nummers
+- Persoonsgegevens staan als tokens ([NAAM_1] etc.) — gebruik deze tokens in je output
 
 ═══ ALS HET EEN ENERGIEREKENING/JAAROVERZICHT IS: ═══
 {
@@ -56,11 +64,11 @@ Belangrijk bij verzekeringen:
   "tarief_gas_m3": number of null,
   "teruglevering_kwh": number of null (terug geleverd aan net),
   "stroom_vorig_jaar_kwh": number of null (verbruik vorig jaar),
-  "ean_stroom": "string" of null,
-  "ean_gas": "string" of null,
+  "ean_stroom": "[EAN_1]" of null,
+  "ean_gas": "[EAN_2]" of null,
   "contract_type": "vast" of "variabel" of "dynamisch",
-  "adres": "string" of null,
-  "naam": "string" of null (naam contracthouder),
+  "adres": "[ADRES_1]" of null,
+  "naam": "[NAAM_1]" of null (naam contracthouder),
   "meter_type": "enkel" of "dubbel" (dubbel als er apart dal/piek staat),
   "contract_einddatum": "YYYY-MM-DD" of null
 }
@@ -70,6 +78,7 @@ Belangrijk bij energie:
 - Als er alleen totaal verbruik staat → meter_type = "enkel", stroom_dal_kwh = null
 - Bij dubbeltarief: stroom_kwh_jaar = stroom_normaal_kwh + stroom_dal_kwh
 - Als je een veld niet kunt vinden, gebruik null
+- Persoonsgegevens staan als tokens ([NAAM_1] etc.) — gebruik deze tokens in je output
 
 ═══ ALS HET GEEN VAN BEIDE IS: ═══
 { "documentType": "onbekend" }`;
@@ -80,6 +89,34 @@ const PRODUCT_TYPE_MAP: Record<string, string> = {
   "Aansprakelijkheid": "aansprakelijkheid",
   "Reis": "reis",
 };
+
+/**
+ * Restore original PII values in parsed data using the token map.
+ * Claude returns tokens like [NAAM_1] — we swap them back for the UI.
+ */
+function restorePii(
+  data: Record<string, unknown>,
+  tokenMap: Record<string, string>
+): Record<string, unknown> {
+  const reverseMap: Record<string, string> = {};
+  for (const [original, token] of Object.entries(tokenMap)) {
+    reverseMap[token] = original;
+  }
+
+  const restored: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(data)) {
+    if (typeof value === "string") {
+      let restoredValue = value;
+      for (const [token, original] of Object.entries(reverseMap)) {
+        restoredValue = restoredValue.replaceAll(token, original);
+      }
+      restored[key] = restoredValue;
+    } else {
+      restored[key] = value;
+    }
+  }
+  return restored;
+}
 
 export async function POST(req: NextRequest) {
   try {
@@ -103,25 +140,125 @@ export async function POST(req: NextRequest) {
     }
 
     const arrayBuffer = await file.arrayBuffer();
-    const base64 = Buffer.from(arrayBuffer).toString("base64");
+    const buffer = Buffer.from(arrayBuffer);
 
-    // Build Claude Vision content based on file type
+    // === STEP 1: Local anonymization with Ollama (REQUIRED for PDFs) ===
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const content: any[] = [];
 
     if (isPdf) {
+      // PDF: MUST go through Ollama anonymization first
+      const ollamaReady = await isOllamaAvailable();
+      if (!ollamaReady) {
+        console.error("[anonymizer] Ollama is NOT running or model not found");
+        return NextResponse.json(
+          { error: "Anonimiseringsservice (Ollama) is niet beschikbaar. Start Ollama en probeer opnieuw." },
+          { status: 503 }
+        );
+      }
+
+      const rawText = await extractPdfText(buffer);
+      if (rawText.trim().length < 50) {
+        return NextResponse.json(
+          { error: "Kon geen tekst uit de PDF extraheren. Probeer een ander bestand of upload een afbeelding." },
+          { status: 422 }
+        );
+      }
+
+      const anonResult = await anonymizeWithOllama(rawText);
+      console.log(
+        `[anonymizer] Ollama found ${anonResult.piiCount} PII items, anonymized ${Object.keys(anonResult.tokenMap).length} values`
+      );
+
+      // Send ONLY anonymized text to Claude — never raw PII
       content.push({
-        type: "document",
-        source: { type: "base64", media_type: "application/pdf", data: base64 },
+        type: "text",
+        text: PARSE_PROMPT + "\n\n── DOCUMENT (geanonimiseerd) ──\n" + anonResult.anonymizedText,
       });
-    } else {
-      const mimeType = fileType || "image/jpeg";
-      content.push({
-        type: "image",
-        source: { type: "base64", media_type: mimeType, data: base64 },
+
+      // === STEP 2: Claude parses the anonymized text ===
+      const response = await anthropic.messages.create({
+        model: "claude-sonnet-4-20250514",
+        max_tokens: 3000,
+        messages: [{ role: "user", content }],
       });
+
+      const text = response.content[0].type === "text" ? response.content[0].text : "";
+      let parsed;
+      try {
+        parsed = JSON.parse(text.replace(/```json|```/g, "").trim());
+      } catch {
+        return NextResponse.json(
+          { error: "Kon het document niet uitlezen. Probeer een ander bestand." },
+          { status: 422 }
+        );
+      }
+
+      const documentType = parsed.documentType;
+      if (documentType === "onbekend" || !documentType) {
+        return NextResponse.json(
+          { error: "Dit document is niet herkend. Upload een verzekeringspolis of energierekening." },
+          { status: 422 }
+        );
+      }
+
+      // Build PII summary from Ollama results
+      const piiFields: Record<string, string> = {};
+      for (const item of anonResult.piiFound) {
+        const key = item.type.toLowerCase();
+        if (!piiFields[key]) piiFields[key] = item.value;
+      }
+
+      if (documentType === "verzekering") {
+        const { documentType: _, ...polisData } = parsed;
+        const productType = PRODUCT_TYPE_MAP[polisData.type] || "inboedel";
+        const restoredData = restorePii(polisData, anonResult.tokenMap);
+
+        return NextResponse.json({
+          type: "verzekering",
+          polisData: restoredData,
+          productType,
+          anonymized: {
+            text: anonResult.anonymizedText.slice(0, 2000),
+            piiCount: anonResult.piiCount,
+            personalData: piiFields,
+            method: "ollama",
+          },
+        });
+      }
+
+      if (documentType === "energie") {
+        const { documentType: _, ...energieData } = parsed;
+        const restoredData = restorePii(energieData, anonResult.tokenMap);
+
+        return NextResponse.json({
+          type: "energie",
+          energieData: restoredData,
+          anonymized: {
+            text: anonResult.anonymizedText.slice(0, 2000),
+            piiCount: anonResult.piiCount,
+            personalData: piiFields,
+            method: "ollama",
+          },
+        });
+      }
+
+      return NextResponse.json(
+        { error: "Onverwacht documenttype. Probeer opnieuw." },
+        { status: 422 }
+      );
     }
 
+    // === IMAGE FLOW ===
+    // Images can't be text-extracted, so they go to Claude directly.
+    // TODO: Add OCR step before Claude to anonymize images too.
+    console.warn("[anonymizer] Image upload — no local anonymization available yet, sending raw to Claude");
+    const base64 = buffer.toString("base64");
+    const mimeType = fileType || "image/jpeg";
+    content.push({
+      type: "image",
+      source: { type: "base64", media_type: mimeType, data: base64 },
+    });
     content.push({ type: "text", text: PARSE_PROMPT });
 
     const response = await anthropic.messages.create({
@@ -141,9 +278,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Handle document type
     const documentType = parsed.documentType;
-
     if (documentType === "onbekend" || !documentType) {
       return NextResponse.json(
         { error: "Dit document is niet herkend. Upload een verzekeringspolis of energierekening." },
@@ -151,102 +286,24 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // Image flow: no Ollama anonymization, warn in response
     if (documentType === "verzekering") {
       const { documentType: _, ...polisData } = parsed;
       const productType = PRODUCT_TYPE_MAP[polisData.type] || "inboedel";
-
-      // Build anonymized version: replace PII with tokens
-      const piiFields: Record<string, string> = {};
-      const piiTokenMap: Record<string, string> = {};
-      let tokenCount = 0;
-
-      const piiMapping: { field: string; token: string; label: string }[] = [
-        { field: "naam", token: "NAAM", label: "Naam" },
-        { field: "adres", token: "ADRES", label: "Adres" },
-        { field: "postcode", token: "POSTCODE", label: "Postcode" },
-        { field: "woonplaats", token: "WOONPLAATS", label: "Woonplaats" },
-        { field: "huisnummer", token: "HUISNUMMER", label: "Huisnummer" },
-        { field: "geboortedatum", token: "GEBOORTEDATUM", label: "Geboortedatum" },
-        { field: "polisnummer", token: "POLISNUMMER", label: "Polisnummer" },
-      ];
-
-      for (const { field, token } of piiMapping) {
-        const value = polisData[field];
-        if (value && typeof value === "string" && value.trim()) {
-          tokenCount++;
-          piiFields[field] = value;
-          piiTokenMap[value] = `[${token}_1]`;
-        }
-      }
-
-      // Create anonymized summary text
-      const anonLines = [
-        `${polisData.type || "Verzekering"} Polis`,
-        `Verzekeraar: ${polisData.verzekeraar || "Onbekend"}`,
-        `Verzekeringnemer: ${piiTokenMap[polisData.naam] || "[NAAM_1]"}`,
-        `Adres: ${piiTokenMap[polisData.adres] || "[ADRES_1]"} ${piiTokenMap[polisData.huisnummer] || ""}`,
-        `Postcode: ${piiTokenMap[polisData.postcode] || "[POSTCODE_1]"} ${piiTokenMap[polisData.woonplaats] || "[WOONPLAATS_1]"}`,
-        "",
-        `Dekking: ${polisData.dekking || "-"}`,
-        `Premie: € ${polisData.maandpremie || 0}/mnd (€ ${polisData.jaarpremie || 0}/jaar)`,
-        `Eigen risico: ${polisData.eigenRisico || "€ 0"}`,
-        `Ingangsdatum: ${polisData.ingangsdatum || "-"}`,
-        `Opzegtermijn: ${polisData.opzegtermijn || "-"}`,
-        `Gezin: ${polisData.gezin || "-"}`,
-        `Woningtype: ${polisData.woning || "-"}`,
-        `Oppervlakte: ${polisData.oppervlakte || "-"}`,
-      ];
-
       return NextResponse.json({
         type: "verzekering",
         polisData,
         productType,
-        anonymized: {
-          text: anonLines.join("\n"),
-          piiCount: tokenCount,
-          personalData: piiFields,
-        },
+        anonymized: { text: "", piiCount: 0, personalData: {}, method: "none-image" },
       });
     }
 
     if (documentType === "energie") {
       const { documentType: _, ...energieData } = parsed;
-
-      // Build anonymized version for energy
-      const piiFields: Record<string, string> = {};
-      let tokenCount = 0;
-
-      for (const field of ["naam", "adres"] as const) {
-        const value = energieData[field];
-        if (value && typeof value === "string" && value.trim()) {
-          tokenCount++;
-          piiFields[field] = value;
-        }
-      }
-
-      const anonLines = [
-        `Energiecontract — ${energieData.leverancier || "Onbekend"}`,
-        `Contracthouder: [NAAM_1]`,
-        `Adres: [ADRES_1]`,
-        "",
-        `Stroom: ${energieData.stroom_kwh_jaar || "?"} kWh/jaar`,
-        `Gas: ${energieData.gas_m3_jaar || "?"} m³/jaar`,
-        `Kosten: € ${energieData.kosten_maand || "?"}/mnd (€ ${energieData.kosten_jaar || "?"}/jaar)`,
-        `Tarief stroom: € ${energieData.tarief_stroom_normaal || "?"}/kWh`,
-        `Tarief gas: € ${energieData.tarief_gas_m3 || "?"}/m³`,
-        `Contract: ${energieData.contract_type || "-"}`,
-        `Meter: ${energieData.meter_type || "-"}`,
-        `Einddatum: ${energieData.contract_einddatum || "-"}`,
-      ];
-
       return NextResponse.json({
         type: "energie",
         energieData,
-        anonymized: {
-          text: anonLines.join("\n"),
-          piiCount: tokenCount,
-          personalData: piiFields,
-        },
+        anonymized: { text: "", piiCount: 0, personalData: {}, method: "none-image" },
       });
     }
 
