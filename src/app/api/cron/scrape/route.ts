@@ -20,8 +20,13 @@ const DEFAULT_INPUT: ScraperInput = {
  */
 export async function GET(req: NextRequest) {
   // Verify cron secret (Vercel sets this automatically for cron jobs)
+  const cronSecret = process.env.CRON_SECRET;
+  if (!cronSecret) {
+    console.error("[cron/scrape] CRON_SECRET is not configured");
+    return NextResponse.json({ error: "Server misconfigured" }, { status: 500 });
+  }
   const authHeader = req.headers.get("authorization");
-  if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
+  if (authHeader !== `Bearer ${cronSecret}`) {
     return NextResponse.json({ error: "Niet geautoriseerd" }, { status: 401 });
   }
 

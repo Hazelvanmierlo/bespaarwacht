@@ -250,9 +250,15 @@ export async function POST(req: NextRequest) {
     }
 
     // === IMAGE FLOW ===
-    // Images can't be text-extracted, so they go to Claude directly.
-    // TODO: Add OCR step before Claude to anonymize images too.
-    console.warn("[anonymizer] Image upload — no local anonymization available yet, sending raw to Claude");
+    // Images can't be text-extracted for local anonymization yet.
+    // Block image uploads until OCR anonymization is implemented.
+    if (process.env.ALLOW_IMAGE_UPLOADS !== "true") {
+      return NextResponse.json(
+        { error: "Upload je document als PDF voor veilige verwerking. Afbeeldingen worden momenteel niet ondersteund." },
+        { status: 400 }
+      );
+    }
+    console.warn("[anonymizer] Image upload — no local anonymization, sending raw to Claude");
     const base64 = buffer.toString("base64");
     const mimeType = fileType || "image/jpeg";
     content.push({

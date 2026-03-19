@@ -96,15 +96,13 @@ export async function GET(req: Request) {
     .update({ email_verified: new Date().toISOString() })
     .eq("id", user.id);
 
-  // 7. If user has no password, generate a temporary one
-  //    Use first 8 chars of the raw token + "Bw!" as temporary password
-  const tmpPassword = rawToken.replace(/-/g, "").substring(0, 8) + "Bw!";
-
+  // 7. If user has no password, generate a secure random temporary one
   if (!user.password_hash) {
+    const tmpPassword = crypto.randomBytes(16).toString("base64url") + "!Aa1";
     const password_hash = await bcrypt.hash(tmpPassword, 12);
     await supabase
       .from("users")
-      .update({ password_hash })
+      .update({ password_hash, must_change_password: true })
       .eq("id", user.id);
   }
 
@@ -118,12 +116,11 @@ export async function GET(req: Request) {
     }
   }
 
-  // 9. Redirect to login page with auto-login parameters
-  //    tmp param contains the first 8 chars of the raw token (no dashes) + "Bw!"
+  // 9. Redirect to login page — user logs in via Google or requests new magic link
+  //    Never expose passwords in URLs
   const params = new URLSearchParams({
     verified: "true",
     email: normalizedEmail,
-    tmp: tmpPassword,
   });
 
   return NextResponse.redirect(

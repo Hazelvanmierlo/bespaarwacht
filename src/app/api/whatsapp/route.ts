@@ -32,7 +32,8 @@ export async function GET(req: NextRequest) {
   const token = req.nextUrl.searchParams.get('hub.verify_token');
   const challenge = req.nextUrl.searchParams.get('hub.challenge');
 
-  if (mode === 'subscribe' && token === process.env.WEBHOOK_VERIFY_TOKEN) {
+  const verifyToken = process.env.WEBHOOK_VERIFY_TOKEN;
+  if (mode === 'subscribe' && verifyToken && token === verifyToken) {
     return new NextResponse(challenge, { status: 200 });
   }
 
@@ -63,7 +64,8 @@ async function handleTwilioWebhook(req: NextRequest) {
   if (hasTwilioAuth) {
     const isValid = validateTwilioSignature(req, body);
     if (!isValid) {
-      console.warn('Twilio signature mismatch (may be URL mismatch on Vercel), allowing request');
+      console.error('[whatsapp] Twilio signature validation failed — rejecting request');
+      return NextResponse.json({ error: 'Invalid signature' }, { status: 403 });
     }
   }
 

@@ -6,7 +6,7 @@ export async function POST(request: Request) {
   const authHeader = request.headers.get('authorization');
   const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
-  if (serviceKey && authHeader !== `Bearer ${serviceKey}`) {
+  if (!serviceKey || authHeader !== `Bearer ${serviceKey}`) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
