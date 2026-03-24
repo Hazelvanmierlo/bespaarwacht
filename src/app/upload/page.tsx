@@ -529,14 +529,13 @@ function UploadContent() {
                       setAantalPersonen(n);
                       if (woningType) applyEstimation(n, woningType, heeftZonnepanelen);
                     }}
-                    className={`flex flex-col items-center gap-1 py-3 rounded-xl border cursor-pointer font-[inherit] transition-all ${
+                    className={`py-3.5 rounded-xl border-2 cursor-pointer font-[inherit] transition-all ${
                       aantalPersonen === n
-                        ? "border-bw-green bg-bw-green-bg text-bw-green-strong shadow-[0_0_0_1px_#16A34A]"
-                        : "border-bw-border bg-white text-bw-deep hover:border-[#94A3B8] hover:bg-[#FAFAFA]"
+                        ? "border-bw-green bg-bw-green-bg text-bw-green-strong"
+                        : "border-bw-border bg-white text-bw-deep hover:border-[#94A3B8]"
                     }`}
                   >
-                    <span className="text-[20px]">{n === 1 ? "\uD83D\uDC64" : n === 2 ? "\uD83D\uDC6B" : n === 3 ? "\uD83D\uDC68\u200D\uD83D\uDC69\u200D\uD83D\uDC66" : n === 4 ? "\uD83D\uDC68\u200D\uD83D\uDC69\u200D\uD83D\uDC66\u200D\uD83D\uDC66" : "\uD83D\uDC68\u200D\uD83D\uDC69\u200D\uD83D\uDC67\u200D\uD83D\uDC66"}</span>
-                    <span className="text-[13px] font-bold">{n}{n === 5 ? "+" : ""}</span>
+                    <span className="text-[15px] font-bold">{n}{n === 5 ? "+" : ""}</span>
                   </button>
                 ))}
               </div>
@@ -547,11 +546,11 @@ function UploadContent() {
               <label className="text-[13px] font-semibold text-bw-deep mb-2.5 block">Wat voor woning heb je?</label>
               <div className="grid grid-cols-2 min-[400px]:grid-cols-3 gap-2">
                 {([
-                  { key: "appartement", label: "Appartement", icon: "\uD83C\uDFE2" },
-                  { key: "tussenwoning", label: "Tussenwoning", icon: "\uD83C\uDFE0" },
-                  { key: "hoekwoning", label: "Hoekwoning", icon: "\uD83C\uDFE1" },
-                  { key: "2-onder-1-kap", label: "2-onder-1-kap", icon: "\uD83C\uDFD8\uFE0F" },
-                  { key: "vrijstaand", label: "Vrijstaand", icon: "\uD83C\uDFE1" },
+                  { key: "appartement", label: "Appartement", icon: <Building2 className="w-4 h-4" /> },
+                  { key: "tussenwoning", label: "Tussenwoning", icon: <Home className="w-4 h-4" /> },
+                  { key: "hoekwoning", label: "Hoekwoning", icon: <Home className="w-4 h-4" /> },
+                  { key: "2-onder-1-kap", label: "2-onder-1-kap", icon: <Home className="w-4 h-4" /> },
+                  { key: "vrijstaand", label: "Vrijstaand", icon: <Home className="w-4 h-4" /> },
                 ] as const).map((w) => (
                   <button
                     key={w.key}
@@ -559,14 +558,14 @@ function UploadContent() {
                       setWoningType(w.key);
                       if (aantalPersonen) applyEstimation(aantalPersonen, w.key, heeftZonnepanelen);
                     }}
-                    className={`flex flex-col items-center gap-1 py-3 px-2 rounded-xl border cursor-pointer font-[inherit] transition-all ${
+                    className={`flex items-center gap-2 py-3 px-3 rounded-xl border-2 cursor-pointer font-[inherit] transition-all ${
                       woningType === w.key
-                        ? "border-bw-green bg-bw-green-bg text-bw-green-strong shadow-[0_0_0_1px_#16A34A]"
-                        : "border-bw-border bg-white text-bw-deep hover:border-[#94A3B8] hover:bg-[#FAFAFA]"
+                        ? "border-bw-green bg-bw-green-bg text-bw-green-strong"
+                        : "border-bw-border bg-white text-bw-deep hover:border-[#94A3B8]"
                     }`}
                   >
-                    <span className="text-[20px]">{w.icon}</span>
-                    <span className="text-[12px] font-semibold text-center leading-tight">{w.label}</span>
+                    <span className={woningType === w.key ? "text-bw-green" : "text-bw-text-light"}>{w.icon}</span>
+                    <span className="text-[12px] font-semibold leading-tight">{w.label}</span>
                   </button>
                 ))}
               </div>
@@ -581,28 +580,26 @@ function UploadContent() {
                     setHeeftZonnepanelen(false);
                     if (aantalPersonen && woningType) applyEstimation(aantalPersonen, woningType, false);
                   }}
-                  className={`flex items-center justify-center gap-2 py-3 rounded-xl border cursor-pointer font-[inherit] transition-all ${
+                  className={`py-3.5 rounded-xl border-2 cursor-pointer font-[inherit] transition-all text-[13px] font-semibold ${
                     !heeftZonnepanelen
-                      ? "border-bw-green bg-bw-green-bg text-bw-green-strong shadow-[0_0_0_1px_#16A34A]"
+                      ? "border-bw-green bg-bw-green-bg text-bw-green-strong"
                       : "border-bw-border bg-white text-bw-deep hover:border-[#94A3B8]"
                   }`}
                 >
-                  <span className="text-[18px]">{"\u274C"}</span>
-                  <span className="text-[13px] font-semibold">Nee</span>
+                  Nee
                 </button>
                 <button
                   onClick={() => {
                     setHeeftZonnepanelen(true);
                     if (aantalPersonen && woningType) applyEstimation(aantalPersonen, woningType, true);
                   }}
-                  className={`flex items-center justify-center gap-2 py-3 rounded-xl border cursor-pointer font-[inherit] transition-all ${
+                  className={`py-3.5 rounded-xl border-2 cursor-pointer font-[inherit] transition-all text-[13px] font-semibold ${
                     heeftZonnepanelen
-                      ? "border-bw-green bg-bw-green-bg text-bw-green-strong shadow-[0_0_0_1px_#16A34A]"
+                      ? "border-bw-green bg-bw-green-bg text-bw-green-strong"
                       : "border-bw-border bg-white text-bw-deep hover:border-[#94A3B8]"
                   }`}
                 >
-                  <span className="text-[18px]">{"\u2600\uFE0F"}</span>
-                  <span className="text-[13px] font-semibold">Ja</span>
+                  Ja
                 </button>
               </div>
             </div>
