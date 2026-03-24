@@ -860,11 +860,11 @@ function UploadContent() {
             </div>
           )}
           <h2 className="font-heading text-[24px] sm:text-[30px] font-bold text-bw-deep mb-1">
-            {isManualInputVerzekering ? "Vul je polisgegevens in" : "Controleer je gegevens"}
+            {isManualInputVerzekering ? "Vergelijk je verzekering" : "Controleer je gegevens"}
           </h2>
           <p className="text-[14px] text-bw-text-mid">
             {isManualInputVerzekering
-              ? "We hebben een paar gegevens nodig om je polis te vergelijken."
+              ? "Vul een paar gegevens in — vergelijk direct 12+ verzekeraars."
               : "Klopt alles? Dan vergelijken we direct 12+ verzekeraars."}
           </p>
 
@@ -959,85 +959,159 @@ function UploadContent() {
           </div>
         )}
 
-        {/* Editable fields — shown for manual input or when "aanpassen" is clicked */}
-        {(isManualInputVerzekering || showEditFields) && parsedData && (
+        {/* Editable fields — manual input: wizard-style with big fields */}
+        {isManualInputVerzekering && parsedData && (
+          <div className="space-y-4 mb-5 animate-fadeUp" style={{ animationDelay: "0.1s" }}>
+            {/* Premium input — large, prominent */}
+            <div>
+              <label className="block text-[13px] font-semibold text-bw-deep mb-1.5">Wat betaal je per maand?</label>
+              <div className="relative">
+                <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[16px] font-bold text-bw-text-mid">&euro;</span>
+                <input
+                  type="number"
+                  value={parsedData.maandpremie || ""}
+                  onChange={(e) => {
+                    const num = parseFloat(e.target.value) || 0;
+                    updateField("maandpremie", num);
+                    updateField("jaarpremie", +(num * 12).toFixed(2));
+                  }}
+                  placeholder="bv. 15"
+                  className="w-full pl-9 pr-4 py-3.5 rounded-xl border border-bw-border text-[16px] font-semibold text-bw-deep bg-white focus:outline-none focus:border-bw-green focus:ring-2 focus:ring-bw-green/20 placeholder:text-bw-text-light"
+                />
+              </div>
+              <p className="text-[11px] text-bw-text-light mt-1">Weet je het niet precies? Een schatting is ook goed.</p>
+            </div>
+
+            {/* Postcode — only for inboedel/opstal */}
+            {(detectedProduct === "inboedel" || detectedProduct === "opstal") && (
+              <div>
+                <label className="block text-[13px] font-semibold text-bw-deep mb-1.5">Postcode</label>
+                <input
+                  type="text"
+                  value={parsedData.postcode}
+                  onChange={(e) => updateField("postcode", e.target.value)}
+                  placeholder="bv. 1016"
+                  maxLength={6}
+                  className="w-full px-4 py-3.5 rounded-xl border border-bw-border text-[16px] font-semibold text-bw-deep bg-white focus:outline-none focus:border-bw-green focus:ring-2 focus:ring-bw-green/20 placeholder:text-bw-text-light"
+                />
+              </div>
+            )}
+
+            {/* Dekking — visual toggle buttons instead of dropdown */}
+            {(detectedProduct === "inboedel" || detectedProduct === "opstal") && (
+              <div>
+                <label className="block text-[13px] font-semibold text-bw-deep mb-1.5">Welke dekking heb je?</label>
+                <div className="grid grid-cols-2 gap-2">
+                  {DEKKING_OPTIONS_INBOEDEL.map((opt) => (
+                    <button
+                      key={opt}
+                      onClick={() => updateField("dekking", opt)}
+                      className={`px-3 py-3 rounded-xl text-[13px] font-semibold border-2 cursor-pointer font-[inherit] transition-all ${
+                        parsedData.dekking === opt
+                          ? "border-bw-green bg-bw-green-bg text-bw-green-strong"
+                          : "border-bw-border bg-white text-bw-text-mid hover:border-[#94A3B8]"
+                      }`}
+                    >
+                      {opt}
+                    </button>
+                  ))}
+                </div>
+                <p className="text-[11px] text-bw-text-light mt-1.5">Niet zeker? Kies &quot;Uitgebreid&quot; — dat is het meest gekozen.</p>
+              </div>
+            )}
+
+            {/* Gezin — visual toggle for AVP and reis */}
+            {(detectedProduct === "aansprakelijkheid" || detectedProduct === "reis") && (
+              <div>
+                <label className="block text-[13px] font-semibold text-bw-deep mb-1.5">Gezinssamenstelling</label>
+                <div className="grid grid-cols-2 gap-2">
+                  {GEZIN_OPTIONS.map((opt) => (
+                    <button
+                      key={opt}
+                      onClick={() => updateField("gezin", opt)}
+                      className={`px-3 py-3 rounded-xl text-[13px] font-semibold border-2 cursor-pointer font-[inherit] transition-all ${
+                        parsedData.gezin === opt
+                          ? "border-bw-green bg-bw-green-bg text-bw-green-strong"
+                          : "border-bw-border bg-white text-bw-text-mid hover:border-[#94A3B8]"
+                      }`}
+                    >
+                      {opt}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Reis dekking — visual toggle */}
+            {detectedProduct === "reis" && (
+              <div>
+                <label className="block text-[13px] font-semibold text-bw-deep mb-1.5">Welke dekking?</label>
+                <div className="grid grid-cols-1 min-[360px]:grid-cols-2 gap-2">
+                  {["Doorlopend Europa", "Doorlopend Wereld", "Kortlopend Europa", "Kortlopend Wereld"].map((opt) => (
+                    <button
+                      key={opt}
+                      onClick={() => updateField("dekking", opt)}
+                      className={`px-3 py-3 rounded-xl text-[13px] font-semibold border-2 cursor-pointer font-[inherit] transition-all ${
+                        parsedData.dekking === opt
+                          ? "border-bw-green bg-bw-green-bg text-bw-green-strong"
+                          : "border-bw-border bg-white text-bw-text-mid hover:border-[#94A3B8]"
+                      }`}
+                    >
+                      {opt}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Editable fields — uploaded data: compact EditRow style */}
+        {showEditFields && !isManualInputVerzekering && parsedData && (
           <div className="bg-white rounded-xl border border-bw-border overflow-hidden mb-5 animate-fadeUp" style={{ animationDelay: "0.1s" }}>
-            {/* Minimal fields for quick comparison */}
             <div className="px-4 py-3 bg-[#F8FAFC] border-b border-bw-border">
-              <span className="text-[11px] font-bold text-bw-text-mid uppercase tracking-[0.5px]">
-                {isManualInputVerzekering ? "Wat betaal je nu?" : "Polisgegevens"}
-              </span>
+              <span className="text-[11px] font-bold text-bw-text-mid uppercase tracking-[0.5px]">Polisgegevens</span>
             </div>
             <div className="px-4 py-3 space-y-3">
-              <EditRow label="Maandpremie" value={parsedData.maandpremie} type="number" prefix="€" placeholder="bv. 15" onChange={(v) => {
+              <EditRow label="Verzekeraar" value={parsedData.verzekeraar} onChange={(v) => updateField("verzekeraar", v)} />
+              <EditRow label="Maandpremie" value={parsedData.maandpremie} type="number" prefix="€" onChange={(v) => {
                 const num = parseFloat(v) || 0;
                 updateField("maandpremie", num);
                 updateField("jaarpremie", +(num * 12).toFixed(2));
               }} />
-
-              {(detectedProduct === "inboedel" || detectedProduct === "opstal") && (
-                <>
-                  <EditRow label="Postcode (4 cijfers)" value={parsedData.postcode} placeholder="bv. 1016" onChange={(v) => updateField("postcode", v)} />
-                  <EditRow label="Dekking" value={parsedData.dekking} onChange={(v) => updateField("dekking", v)} options={DEKKING_OPTIONS_INBOEDEL} />
-                </>
-              )}
-
-              {detectedProduct === "aansprakelijkheid" && (
-                <EditRow label="Gezin" value={parsedData.gezin} onChange={(v) => updateField("gezin", v)} options={GEZIN_OPTIONS} />
-              )}
-
-              {detectedProduct === "reis" && (
-                <>
-                  <EditRow label="Gezin" value={parsedData.gezin} onChange={(v) => updateField("gezin", v)} options={GEZIN_OPTIONS} />
-                  <EditRow label="Dekking" value={parsedData.dekking} onChange={(v) => updateField("dekking", v)}
-                    options={["Doorlopend Europa", "Doorlopend Wereld", "Kortlopend Europa", "Kortlopend Wereld"]} />
-                </>
-              )}
+              <EditRow label="Dekking" value={parsedData.dekking} onChange={(v) => updateField("dekking", v)}
+                options={detectedProduct === "inboedel" || detectedProduct === "opstal" ? DEKKING_OPTIONS_INBOEDEL : undefined} />
+              <EditRow label="Eigen risico" value={parsedData.eigenRisico} onChange={(v) => updateField("eigenRisico", v)} />
             </div>
 
-            {/* Expandable extra fields — only when user clicks */}
-            {!isManualInputVerzekering && (
-              /* When editing uploaded data, show all fields */
+            {(detectedProduct === "inboedel" || detectedProduct === "opstal") && (
               <>
-                {(detectedProduct === "inboedel" || detectedProduct === "opstal") && (
-                  <>
-                    <div className="px-4 py-3 bg-[#F8FAFC] border-t border-b border-bw-border">
-                      <span className="text-[11px] font-bold text-bw-text-mid uppercase tracking-[0.5px]">Woning &amp; profiel</span>
-                    </div>
-                    <div className="px-4 py-3 space-y-3">
-                      <EditRow label="Verzekeraar" value={parsedData.verzekeraar} onChange={(v) => updateField("verzekeraar", v)} />
-                      <EditRow label="Woningtype" value={parsedData.woning} onChange={(v) => updateField("woning", v)} options={WONINGTYPE_OPTIONS} />
-                      <EditRow label="Oppervlakte" value={parsedData.oppervlakte} onChange={(v) => updateField("oppervlakte", v)} />
-                      {detectedProduct === "opstal" && (
-                        <EditRow label="Bouwjaar/aard" value={parsedData.bouwaard} onChange={(v) => updateField("bouwaard", v)} />
-                      )}
-                      <EditRow label="Eigen risico" value={parsedData.eigenRisico} onChange={(v) => updateField("eigenRisico", v)} />
-                      <EditRow label="Gezin" value={parsedData.gezin} onChange={(v) => updateField("gezin", v)} options={GEZIN_OPTIONS} />
-                    </div>
-                  </>
-                )}
-                {detectedProduct === "aansprakelijkheid" && (
-                  <>
-                    <div className="px-4 py-3 bg-[#F8FAFC] border-t border-b border-bw-border">
-                      <span className="text-[11px] font-bold text-bw-text-mid uppercase tracking-[0.5px]">Profiel</span>
-                    </div>
-                    <div className="px-4 py-3 space-y-3">
-                      <EditRow label="Verzekeraar" value={parsedData.verzekeraar} onChange={(v) => updateField("verzekeraar", v)} />
-                      <EditRow label="Postcode" value={parsedData.postcode} onChange={(v) => updateField("postcode", v)} />
-                    </div>
-                  </>
-                )}
-                {detectedProduct === "reis" && (
-                  <>
-                    <div className="px-4 py-3 bg-[#F8FAFC] border-t border-b border-bw-border">
-                      <span className="text-[11px] font-bold text-bw-text-mid uppercase tracking-[0.5px]">Reisprofiel</span>
-                    </div>
-                    <div className="px-4 py-3 space-y-3">
-                      <EditRow label="Verzekeraar" value={parsedData.verzekeraar} onChange={(v) => updateField("verzekeraar", v)} />
-                    </div>
-                  </>
-                )}
+                <div className="px-4 py-3 bg-[#F8FAFC] border-t border-b border-bw-border">
+                  <span className="text-[11px] font-bold text-bw-text-mid uppercase tracking-[0.5px]">Woning &amp; profiel</span>
+                </div>
+                <div className="px-4 py-3 space-y-3">
+                  <EditRow label="Postcode" value={parsedData.postcode} onChange={(v) => updateField("postcode", v)} />
+                  <EditRow label="Woningtype" value={parsedData.woning} onChange={(v) => updateField("woning", v)} options={WONINGTYPE_OPTIONS} />
+                  <EditRow label="Oppervlakte" value={parsedData.oppervlakte} onChange={(v) => updateField("oppervlakte", v)} />
+                  {detectedProduct === "opstal" && (
+                    <EditRow label="Bouwjaar" value={parsedData.bouwaard} onChange={(v) => updateField("bouwaard", v)} />
+                  )}
+                  <EditRow label="Gezin" value={parsedData.gezin} onChange={(v) => updateField("gezin", v)} options={GEZIN_OPTIONS} />
+                </div>
               </>
+            )}
+            {detectedProduct === "aansprakelijkheid" && (
+              <div className="px-4 py-3 space-y-3 border-t border-bw-border">
+                <EditRow label="Postcode" value={parsedData.postcode} onChange={(v) => updateField("postcode", v)} />
+                <EditRow label="Gezin" value={parsedData.gezin} onChange={(v) => updateField("gezin", v)} options={GEZIN_OPTIONS} />
+              </div>
+            )}
+            {detectedProduct === "reis" && (
+              <div className="px-4 py-3 space-y-3 border-t border-bw-border">
+                <EditRow label="Gezin" value={parsedData.gezin} onChange={(v) => updateField("gezin", v)} options={GEZIN_OPTIONS} />
+                <EditRow label="Dekking" value={parsedData.dekking} onChange={(v) => updateField("dekking", v)}
+                  options={["Doorlopend Europa", "Doorlopend Wereld", "Kortlopend Europa", "Kortlopend Wereld"]} />
+              </div>
             )}
           </div>
         )}
