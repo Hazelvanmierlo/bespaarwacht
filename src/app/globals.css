@@ -120,10 +120,12 @@ body {
   transform: translateY(-2px);
 }
 
-/* ── Subtle grid pattern for hero ── */
+/* ── Subtle pattern for hero ── */
 .bg-grid-pattern {
-  background-image: radial-gradient(circle, #E2E8F0 1px, transparent 1px);
-  background-size: 24px 24px;
+  background-image:
+    linear-gradient(rgba(226, 232, 240, 0.4) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(226, 232, 240, 0.4) 1px, transparent 1px);
+  background-size: 64px 64px;
 }
 
 /* ── Fade-in on scroll (IntersectionObserver) ── */

@@ -411,11 +411,8 @@ export default function HomePage() {
       </section>
 
       {/* CTA */}
-      <section className="py-20 px-6 bg-gradient-to-br from-bw-deep via-bw-navy to-bw-deep relative overflow-hidden">
-        <div className="absolute inset-0">
-          <div className="absolute -top-32 -right-32 w-[400px] h-[400px] rounded-full bg-[radial-gradient(circle,rgba(26,86,219,0.15),transparent_70%)]" />
-          <div className="absolute -bottom-32 -left-32 w-[300px] h-[300px] rounded-full bg-[radial-gradient(circle,rgba(249,115,22,0.1),transparent_70%)]" />
-        </div>
+      <section className="py-20 px-6 bg-bw-deep relative overflow-hidden">
+        <div className="absolute inset-0 opacity-[0.07]" style={{ backgroundImage: "linear-gradient(rgba(255,255,255,0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.1) 1px, transparent 1px)", backgroundSize: "48px 48px" }} />
         <div className="max-w-[620px] mx-auto text-center relative z-10">
           <h2 className="font-heading text-[clamp(24px,2.8vw,36px)] font-bold text-white mb-4 leading-tight">
             Betaal jij te veel voor je verzekeringen of energie?
