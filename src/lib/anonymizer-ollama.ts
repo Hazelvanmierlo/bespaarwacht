@@ -243,6 +243,39 @@ function regexFallbackDetect(text: string): PiiItem[] {
 }
 
 /**
+ * Regex-only anonymization for when Ollama is unavailable (e.g., Vercel production).
+ * Less thorough than Ollama (can't detect names/addresses by context) but catches
+ * structured PII: postcodes, IBANs, EANs, phone numbers, emails, dates, klantnummers.
+ */
+export async function anonymizeWithRegex(rawText: string): Promise<AnonymizeResult> {
+  const piiItems = regexFallbackDetect(rawText);
+
+  // Build token map and replace in text
+  const tokenMap: Record<string, string> = {};
+  const typeCounters: Record<string, number> = {};
+  let anonymizedText = rawText;
+
+  const sorted = [...piiItems].sort((a, b) => b.value.length - a.value.length);
+
+  for (const item of sorted) {
+    if (!item.value || item.value.length < 2) continue;
+    const type = item.type.toUpperCase();
+    typeCounters[type] = (typeCounters[type] || 0) + 1;
+    const token = `[${type}_${typeCounters[type]}]`;
+    tokenMap[item.value] = token;
+    const escaped = item.value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    anonymizedText = anonymizedText.replace(new RegExp(escaped, "gi"), token);
+  }
+
+  return {
+    anonymizedText,
+    piiFound: piiItems,
+    piiCount: piiItems.length,
+    tokenMap,
+  };
+}
+
+/**
  * Extract text from a PDF buffer using pdfjs-dist legacy build.
  * Uses the legacy build to avoid worker issues in Next.js server runtime.
  */

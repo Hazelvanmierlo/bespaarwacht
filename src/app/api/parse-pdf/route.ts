@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
 import {
   anonymizeWithOllama,
+  anonymizeWithRegex,
   extractPdfText,
   isOllamaAvailable,
 } from "@/lib/anonymizer-ollama";
@@ -155,15 +156,8 @@ export async function POST(req: NextRequest) {
     const content: any[] = [];
 
     if (isPdf) {
-      // PDF: MUST go through Ollama anonymization first
+      // PDF: anonymize with Ollama if available, otherwise fall back to regex
       const ollamaReady = await isOllamaAvailable();
-      if (!ollamaReady) {
-        console.error("[anonymizer] Ollama is NOT running or model not found");
-        return NextResponse.json(
-          { error: "Anonimiseringsservice (Ollama) is niet beschikbaar. Start Ollama en probeer opnieuw." },
-          { status: 503 }
-        );
-      }
 
       const rawText = await extractPdfText(buffer);
       if (rawText.trim().length < 50) {
@@ -173,10 +167,18 @@ export async function POST(req: NextRequest) {
         );
       }
 
-      const anonResult = await anonymizeWithOllama(rawText);
-      console.log(
-        `[anonymizer] Ollama found ${anonResult.piiCount} PII items, anonymized ${Object.keys(anonResult.tokenMap).length} values`
-      );
+      let anonResult;
+      let anonMethod: string;
+      if (ollamaReady) {
+        anonResult = await anonymizeWithOllama(rawText);
+        anonMethod = "ollama";
+        console.log(`[anonymizer] Ollama found ${anonResult.piiCount} PII items`);
+      } else {
+        console.warn("[anonymizer] Ollama not available, using regex-only anonymization");
+        anonResult = await anonymizeWithRegex(rawText);
+        anonMethod = "regex";
+        console.log(`[anonymizer] Regex found ${anonResult.piiCount} PII items (limited coverage)`);
+      }
 
       // Send ONLY anonymized text to Claude — never raw PII
       content.push({
@@ -210,7 +212,7 @@ export async function POST(req: NextRequest) {
         );
       }
 
-      // Build PII summary from Ollama results
+      // Build PII summary from anonymization results
       const piiFields: Record<string, string> = {};
       for (const item of anonResult.piiFound) {
         const key = item.type.toLowerCase();
@@ -234,7 +236,7 @@ export async function POST(req: NextRequest) {
             text: anonResult.anonymizedText.slice(0, 2000),
             piiCount: anonResult.piiCount,
             personalData: piiFields,
-            method: "ollama",
+            method: anonMethod,
           },
         });
       }
@@ -250,7 +252,7 @@ export async function POST(req: NextRequest) {
             text: anonResult.anonymizedText.slice(0, 2000),
             piiCount: anonResult.piiCount,
             personalData: piiFields,
-            method: "ollama",
+            method: anonMethod,
           },
         });
       }
