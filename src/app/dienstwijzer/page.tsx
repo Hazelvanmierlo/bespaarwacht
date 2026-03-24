@@ -30,7 +30,7 @@ export default function DienstwijzerPage() {
         <section>
           <h2 className="font-heading text-xl font-bold text-bw-deep mb-3">2. Wat doen wij?</h2>
           <p className="text-sm text-bw-text-mid leading-relaxed mb-3">
-            DeVerzekeringsAgent is een <strong>onafhankelijk vergelijkingsplatform</strong> voor verzekeringen en energie. Wij bieden de volgende diensten aan:
+            DeVerzekeringsAgent is een <strong>onafhankelijk vergelijkingsplatform</strong> voor verzekeringen en energie. Dit doen wij voor je:
           </p>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {[
@@ -86,7 +86,7 @@ export default function DienstwijzerPage() {
         <section>
           <h2 className="font-heading text-xl font-bold text-bw-deep mb-3">5. Hoe gaan wij om met je gegevens?</h2>
           <p className="text-sm text-bw-text-mid leading-relaxed">
-            Wij hechten groot belang aan je privacy. Geüploade documenten worden direct na analyse verwijderd. Persoonsgegevens worden geanonimiseerd. Wij slaan geen namen, adressen of IBAN-nummers op. Lees ons volledige <a href="/privacy" className="text-bw-blue hover:underline">privacybeleid</a> voor meer informatie.
+            Je privacy is belangrijk voor ons. Geüploade documenten worden direct na analyse verwijderd. Persoonsgegevens worden geanonimiseerd. Wij slaan geen namen, adressen of IBAN-nummers op. Lees ons volledige <a href="/privacy" className="text-bw-blue hover:underline">privacybeleid</a> voor meer informatie.
           </p>
         </section>
 

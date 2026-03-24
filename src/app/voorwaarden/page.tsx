@@ -114,7 +114,7 @@ export default function VoorwaardenPage() {
         <section>
           <h2 className="font-heading text-xl font-bold text-bw-deep mb-3">Artikel 11 — Klachten</h2>
           <p className="text-sm text-bw-text-mid leading-relaxed">
-            Klachten over de Dienst kunnen worden ingediend via info@deverzkeringsagent.nl. Wij streven ernaar klachten binnen 14 werkdagen te behandelen. Zie onze volledige <a href="/klachten" className="text-bw-blue hover:underline">klachtenregeling</a> voor meer informatie.
+            Klachten over de Dienst kunnen worden ingediend via info@deverzkeringsagent.nl. Klachten worden binnen 14 werkdagen behandeld. Zie onze volledige <a href="/klachten" className="text-bw-blue hover:underline">klachtenregeling</a> voor meer informatie.
           </p>
         </section>
 

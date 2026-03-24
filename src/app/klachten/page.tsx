@@ -8,7 +8,7 @@ export default function KlachtenPage() {
     <div className="max-w-[800px] mx-auto px-6 py-12 pb-20">
       <h1 className="font-heading text-[32px] font-bold text-bw-deep mb-2">Klachtenregeling</h1>
       <p className="text-[15px] text-bw-text-mid mb-8">
-        Bij DeVerzekeringsAgent (Fraction B.V.) streven wij naar een uitstekende dienstverlening. Mocht je toch ontevreden zijn, dan nemen wij je klacht serieus en behandelen deze zo snel en zorgvuldig mogelijk.
+        Bij DeVerzekeringsAgent (Fraction B.V.) nemen we klachten serieus. Mocht je ontevreden zijn, dan behandelen wij je klacht zo snel en zorgvuldig mogelijk.
       </p>
 
       <div className="space-y-8">
@@ -59,7 +59,7 @@ export default function KlachtenPage() {
             {[
               { step: "1", title: "Ontvangstbevestiging", desc: "Wij bevestigen de ontvangst van je klacht binnen 2 werkdagen.", color: "bg-bw-blue" },
               { step: "2", title: "Onderzoek", desc: "Wij onderzoeken je klacht zorgvuldig en nemen indien nodig contact met je op voor aanvullende informatie.", color: "bg-bw-blue" },
-              { step: "3", title: "Oplossing", desc: "Wij streven ernaar je klacht binnen 14 werkdagen inhoudelijk te behandelen en je een oplossing aan te bieden.", color: "bg-bw-green" },
+              { step: "3", title: "Oplossing", desc: "Je klacht wordt binnen 14 werkdagen inhoudelijk behandeld en je ontvangt een oplossing.", color: "bg-bw-green" },
               { step: "4", title: "Terugkoppeling", desc: "Je ontvangt een schriftelijke reactie per e-mail met onze bevindingen en eventuele maatregelen.", color: "bg-bw-green" },
             ].map((item) => (
               <div key={item.step} className="flex items-start gap-4">
