@@ -520,7 +520,7 @@ function UploadContent() {
 
             {/* Aantal personen */}
             <div className="mb-5">
-              <label className="text-[13px] font-semibold text-bw-deep mb-2.5 block">Hoeveel personen wonen er?</label>
+              <label className="text-[13px] font-semibold text-bw-deep mb-2.5 block">Met hoeveel personen woon je?</label>
               <div className="grid grid-cols-5 gap-2">
                 {[1, 2, 3, 4, 5].map((n) => (
                   <button
