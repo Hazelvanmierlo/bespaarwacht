@@ -1099,45 +1099,22 @@ function UploadContent() {
 
   // === UPLOAD VIEW ===
   return (
-    <div className="max-w-[580px] mx-auto px-4 sm:px-6 py-8 sm:py-16">
+    <div className="max-w-[580px] mx-auto px-4 sm:px-6 py-8 sm:py-14">
       {/* Header */}
       <div className="text-center mb-6 sm:mb-8">
-        <h2 className="font-heading text-[clamp(22px,3vw,30px)] font-bold text-bw-deep mb-2">
-          {docCategory === "energie" ? "Bespaar op je energierekening" : "Betaal je te veel voor je verzekering?"}
-        </h2>
-        <p className="text-[14px] sm:text-[15px] text-bw-text-mid max-w-[440px] mx-auto">
-          {docCategory === "energie"
-            ? "Upload je energierekening en wij vergelijken direct alle leveranciers."
-            : "Upload je polisblad en wij vinden direct of het goedkoper kan."}
-        </p>
-
-        {/* Progress bar steps */}
-        <div className="mt-5 mx-auto max-w-[440px] px-4">
-          {/* Bar track + dots */}
-          <div className="relative flex items-center justify-between mb-2">
-            <div className="absolute top-1/2 left-[8%] right-[8%] h-[3px] -translate-y-1/2 rounded-full bg-gradient-to-r from-bw-blue via-bw-blue to-bw-green" />
-            <div className="relative z-10 flex-1 flex justify-between">
-              <div className="w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-bw-blue text-white text-[10px] sm:text-[11px] font-bold flex items-center justify-center shadow-[0_0_0_3px_white,0_0_0_4px_rgba(26,86,219,0.15)]">1</div>
-              <div className="w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-bw-blue text-white text-[10px] sm:text-[11px] font-bold flex items-center justify-center shadow-[0_0_0_3px_white,0_0_0_4px_rgba(26,86,219,0.15)]">2</div>
-              <div className="w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-bw-green text-white text-[10px] sm:text-[11px] font-bold flex items-center justify-center shadow-[0_0_0_3px_white,0_0_0_4px_rgba(22,163,74,0.15)]">3</div>
-            </div>
-          </div>
-          {/* Labels */}
-          <div className="flex justify-between text-center">
-            <div className="flex-1">
-              <div className="text-[11px] sm:text-[12px] font-semibold text-bw-deep">Upload</div>
-              <div className="text-[9px] sm:text-[10px] text-bw-text-light hidden sm:block">PDF of foto</div>
-            </div>
-            <div className="flex-1">
-              <div className="text-[11px] sm:text-[12px] font-semibold text-bw-deep">Vergelijk</div>
-              <div className="text-[9px] sm:text-[10px] text-bw-text-light">{docCategory === "energie" ? "18+ aanbieders" : "12+ verzekeraars"}</div>
-            </div>
-            <div className="flex-1">
-              <div className="text-[11px] sm:text-[12px] font-semibold text-bw-deep">Bespaar</div>
-              <div className="text-[9px] sm:text-[10px] text-bw-green font-semibold">binnen 2 min</div>
-            </div>
-          </div>
+        <div className="inline-flex items-center gap-1.5 bg-bw-green-bg text-bw-green-strong px-3 py-1 rounded-full text-[11px] sm:text-[12px] font-bold mb-3">
+          <CircleCheckBig className="w-3.5 h-3.5" /> Al 1.200+ polissen vergeleken
         </div>
+        <h2 className="font-heading text-[clamp(22px,3.2vw,30px)] font-bold text-bw-deep mb-2 leading-tight">
+          {docCategory === "energie"
+            ? "Upload je energierekening — wij vinden de goedkoopste leverancier"
+            : "Upload je polis — wij checken in 30 seconden of het goedkoper kan"}
+        </h2>
+        <p className="text-[14px] sm:text-[15px] text-bw-text-mid max-w-[460px] mx-auto">
+          {docCategory === "energie"
+            ? "Maak een foto of upload een PDF. Wij vergelijken direct 18+ leveranciers."
+            : "Maak een foto of upload een PDF van je verzekeringspolis. Wij vergelijken direct 12+ verzekeraars."}
+        </p>
       </div>
 
       {/* Category toggle */}
@@ -1166,69 +1143,52 @@ function UploadContent() {
         </div>
       </div>
 
-      {/* Drop zone */}
-      <div
-        className={`relative border-2 border-dashed rounded-2xl px-4 sm:px-8 py-10 sm:py-14 text-center cursor-pointer transition-all ${
-          isUploading
-            ? "border-bw-green bg-bw-green-bg/50 pointer-events-none"
-            : isDragging
-              ? "border-bw-green bg-bw-green-bg scale-[1.01]"
-              : "border-[#CBD5E1] bg-white hover:border-bw-green/40 hover:bg-bw-green-bg/20"
-        }`}
-        onClick={() => !isUploading && fileRef.current?.click()}
-        onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
-        onDragLeave={() => setIsDragging(false)}
-        onDrop={handleDrop}
-      >
-        <input ref={fileRef} type="file" accept=".pdf,.jpg,.jpeg,.png,.webp,image/*" className="hidden" onChange={handleInputChange} />
+      {/* Two options side by side on desktop, stacked on mobile */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-5">
+        {/* Option A: Upload */}
+        <div
+          className={`relative rounded-2xl px-4 sm:px-5 py-6 text-center cursor-pointer transition-all ${
+            isUploading
+              ? "border-2 border-bw-green bg-bw-green-bg/50 pointer-events-none"
+              : isDragging
+                ? "border-2 border-bw-green bg-bw-green-bg scale-[1.01]"
+                : "border-2 border-bw-blue/30 bg-white hover:border-bw-blue hover:shadow-[var(--shadow-bw-card-hover)]"
+          }`}
+          onClick={() => !isUploading && fileRef.current?.click()}
+          onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
+          onDragLeave={() => setIsDragging(false)}
+          onDrop={handleDrop}
+        >
+          <input ref={fileRef} type="file" accept=".pdf,.jpg,.jpeg,.png,.webp,image/*" className="hidden" onChange={handleInputChange} />
 
-        {isUploading ? (
-          <UploadProcessing docCategory={docCategory} />
-        ) : (
-          <>
-            <div className="w-14 sm:w-16 h-14 sm:h-16 rounded-2xl bg-gradient-to-br from-bw-blue-light to-[#DBEAFE] flex items-center justify-center mx-auto mb-4 sm:mb-5 shadow-[0_2px_8px_rgba(26,86,219,0.1)]">
-              <svg className="w-6 sm:w-7 h-6 sm:h-7" viewBox="0 0 24 24" fill="none" stroke="#1A56DB" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" />
-                <polyline points="17 8 12 3 7 8" />
-                <line x1="12" y1="3" x2="12" y2="15" />
-              </svg>
-            </div>
-            <div className="text-[15px] sm:text-[16px] font-bold text-bw-deep mb-1">
-              <span className="sm:hidden">Tik om een foto of PDF te kiezen</span>
-              <span className="hidden sm:inline">Sleep je bestand hierheen</span>
-            </div>
-            <div className="text-[13px] sm:text-[14px] text-bw-text-mid mb-2">
-              <span className="sm:hidden">Maak een foto van je document of kies een bestand</span>
-              <span className="hidden sm:inline">of <span className="text-bw-blue font-semibold underline underline-offset-2">klik om te selecteren</span></span>
-            </div>
-            <div className="text-[11px] sm:text-[12px] text-bw-text-light">PDF, JPG, PNG — max 10MB</div>
-          </>
-        )}
-      </div>
-
-      {/* Inline trust signals */}
-      <div className="mt-3 flex justify-center gap-4 sm:gap-6 text-[11px] sm:text-[12px] text-bw-text-mid">
-        <span className="flex items-center gap-1.5"><LockIcon className="w-3.5 h-3.5 text-bw-green" /> Bestand wordt niet opgeslagen</span>
-        <span className="flex items-center gap-1.5"><Zap className="w-3.5 h-3.5 text-bw-text-mid" /> Klaar in 5 sec</span>
-      </div>
-
-      {/* Upload error */}
-      {uploadError && (
-        <div className="mt-3 p-3 bg-[#FEF2F2] border border-[#FECACA] rounded-xl text-[13px] text-[#991B1B]">
-          {uploadError}
+          {isUploading ? (
+            <UploadProcessing docCategory={docCategory} />
+          ) : (
+            <>
+              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-bw-blue-light to-[#DBEAFE] flex items-center justify-center mx-auto mb-3 shadow-[0_2px_8px_rgba(26,86,219,0.1)]">
+                <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="#1A56DB" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" />
+                  <polyline points="17 8 12 3 7 8" />
+                  <line x1="12" y1="3" x2="12" y2="15" />
+                </svg>
+              </div>
+              <div className="text-[14px] sm:text-[15px] font-bold text-bw-deep mb-1">
+                <span className="sm:hidden">Maak een foto of kies bestand</span>
+                <span className="hidden sm:inline">Upload je {docCategory === "energie" ? "rekening" : "polis"}</span>
+              </div>
+              <div className="text-[12px] sm:text-[13px] text-bw-text-mid mb-2">
+                <span className="sm:hidden">Foto of PDF van je {docCategory === "energie" ? "energierekening" : "polisblad"}</span>
+                <span className="hidden sm:inline">Sleep hierheen of <span className="text-bw-blue font-semibold underline underline-offset-2">klik om te kiezen</span></span>
+              </div>
+              <div className="text-[11px] text-bw-text-light">Foto of PDF &middot; max 10 MB</div>
+              <div className="absolute top-2.5 right-2.5 bg-bw-blue text-white text-[9px] sm:text-[10px] font-bold px-2 py-0.5 rounded-md">Snelste</div>
+            </>
+          )}
         </div>
-      )}
 
-      {/* Manual input divider */}
-      <div className="mt-8 flex items-center gap-3">
-        <div className="flex-1 h-px bg-bw-border" />
-        <span className="text-[12px] text-bw-text-light font-medium">of</span>
-        <div className="flex-1 h-px bg-bw-border" />
-      </div>
-
-      {/* Manual input option — compact */}
-      {!showManualPicker ? (
-        <button
+        {/* Option B: Manual input */}
+        <div
+          className="relative rounded-2xl border-2 border-bw-border px-4 sm:px-5 py-6 text-center cursor-pointer transition-all hover:border-[#94A3B8] hover:shadow-[var(--shadow-bw-card-hover)] bg-white"
           onClick={() => {
             if (docCategory === "energie") {
               setEnergieData({
@@ -1256,14 +1216,25 @@ function UploadContent() {
               setShowManualPicker(true);
             }
           }}
-          className="mt-4 w-full flex items-center justify-center gap-2 px-4 py-3.5 rounded-xl text-[14px] font-semibold text-bw-text-mid bg-white border border-bw-border cursor-pointer font-[inherit] hover:bg-bw-bg hover:border-[#94A3B8] transition-all"
         >
-          <ClipboardList className="w-4 h-4" />
-          {docCategory === "energie" ? "Vul handmatig in" : "Geen polisblad? Vul handmatig in"}
-          <span className="text-[11px] font-normal text-bw-text-light ml-1">— duurt 2 min</span>
-        </button>
-      ) : (
-        <div className="mt-4">
+          <div className="w-12 h-12 rounded-xl bg-bw-bg flex items-center justify-center mx-auto mb-3">
+            <ClipboardList className="w-5 h-5 text-bw-text-mid" />
+          </div>
+          <div className="text-[14px] sm:text-[15px] font-bold text-bw-deep mb-1">
+            Vul zelf in
+          </div>
+          <div className="text-[12px] sm:text-[13px] text-bw-text-mid mb-2">
+            {docCategory === "energie"
+              ? "Vul je verbruik en leverancier in"
+              : "Geen polis bij de hand? Vul je gegevens in"}
+          </div>
+          <div className="text-[11px] text-bw-text-light">Duurt 2 minuten</div>
+        </div>
+      </div>
+
+      {/* Manual input product picker (verzekering only, shown when manual is clicked) */}
+      {showManualPicker && (
+        <div className="mb-5 bg-white rounded-xl border border-bw-border p-4 animate-fadeUp">
           <div className="text-[13px] font-semibold text-bw-deep mb-3">Welke verzekering wil je vergelijken?</div>
           <div className="grid grid-cols-2 gap-2">
             {PRODUCTS.map((p) => (
@@ -1274,6 +1245,7 @@ function UploadContent() {
                     verzekeraar: "",
                     maandpremie: 0,
                     jaarpremie: 0,
+                    premie_periode: "onbekend",
                     dekking: p.type === "inboedel" || p.type === "opstal" ? "Uitgebreid" : "",
                     eigenRisico: "€ 0",
                     postcode: "",
@@ -1290,10 +1262,14 @@ function UploadContent() {
                     huisnummer: "",
                     eigenaar: "Eigenaar",
                     type: PRODUCT_LABELS[p.type],
-                  } as PolisData);
+                    voorwaarden: "",
+                    verlengingsdatum: "",
+                    dekkingen: [],
+                    woonplaats: "",
+                  });
                   setDetectedProduct(p.type);
                 }}
-                className="flex items-center gap-2.5 p-3 rounded-xl border border-bw-border bg-white text-left cursor-pointer font-[inherit] hover:border-[#94A3B8] hover:bg-bw-bg transition-all"
+                className="flex items-center gap-2.5 p-3 rounded-xl border border-bw-border bg-white text-left cursor-pointer font-[inherit] hover:border-bw-blue hover:bg-bw-blue-light transition-all"
               >
                 <span className="text-bw-blue">{p.icon}</span>
                 <span className="text-[13px] font-semibold text-bw-deep">{p.label}</span>
@@ -1302,6 +1278,86 @@ function UploadContent() {
           </div>
         </div>
       )}
+
+      {/* Upload error */}
+      {uploadError && (
+        <div className="mb-4 p-3 bg-[#FEF2F2] border border-[#FECACA] rounded-xl text-[13px] text-[#991B1B]">
+          {uploadError}
+        </div>
+      )}
+
+      {/* Trust signals bar */}
+      <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-2 py-3 text-[11px] sm:text-[12px] text-bw-text-mid">
+        <span className="inline-flex items-center gap-1.5"><LockIcon className="w-3.5 h-3.5 text-bw-green" /> AVG-veilig</span>
+        <span className="hidden min-[340px]:inline text-bw-border">&middot;</span>
+        <span className="inline-flex items-center gap-1.5"><Zap className="w-3.5 h-3.5 text-bw-text-light" /> Resultaat in 30 sec</span>
+        <span className="hidden min-[340px]:inline text-bw-border">&middot;</span>
+        <span>100% gratis</span>
+      </div>
+
+      {/* How it works — 3 steps */}
+      <div className="mt-4 sm:mt-6 bg-bw-bg rounded-xl border border-bw-border p-4 sm:p-5">
+        <div className="text-[12px] font-bold text-bw-text-light uppercase tracking-[0.5px] mb-3">Zo werkt het</div>
+        <div className="space-y-3">
+          <div className="flex items-start gap-3">
+            <div className="w-6 h-6 rounded-full bg-bw-blue text-white text-[11px] font-bold flex items-center justify-center shrink-0 mt-0.5">1</div>
+            <div>
+              <div className="text-[13px] font-semibold text-bw-deep">Upload of vul in</div>
+              <div className="text-[12px] text-bw-text-mid">
+                {docCategory === "energie"
+                  ? "Maak een foto van je energierekening of vul je verbruik in"
+                  : "Maak een foto van je polisblad of vul je premie in. Je vindt je polis in de e-mail van je verzekeraar."}
+              </div>
+            </div>
+          </div>
+          <div className="flex items-start gap-3">
+            <div className="w-6 h-6 rounded-full bg-bw-blue text-white text-[11px] font-bold flex items-center justify-center shrink-0 mt-0.5">2</div>
+            <div>
+              <div className="text-[13px] font-semibold text-bw-deep">Wij vergelijken</div>
+              <div className="text-[12px] text-bw-text-mid">
+                {docCategory === "energie"
+                  ? "18+ energieleveranciers worden doorgerekend op basis van jouw verbruik"
+                  : "12+ verzekeraars worden vergeleken op dezelfde dekking en eigen risico"}
+              </div>
+            </div>
+          </div>
+          <div className="flex items-start gap-3">
+            <div className="w-6 h-6 rounded-full bg-bw-green text-white text-[11px] font-bold flex items-center justify-center shrink-0 mt-0.5">3</div>
+            <div>
+              <div className="text-[13px] font-semibold text-bw-deep">Bespaar &amp; wij bewaken</div>
+              <div className="text-[12px] text-bw-text-mid">Je ziet direct hoeveel je kunt besparen. Wij blijven je premie 24/7 bewaken via WhatsApp.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Insurer logos for trust */}
+      <div className="mt-5 text-center">
+        <div className="text-[11px] text-bw-text-light mb-2.5">
+          {docCategory === "energie" ? "Wij vergelijken o.a." : "Wij vergelijken o.a."}
+        </div>
+        <div className="flex flex-wrap items-center justify-center gap-x-5 gap-y-1.5 text-[12px] font-semibold text-bw-text-light/70">
+          {docCategory === "energie" ? (
+            <>
+              <span>Vattenfall</span>
+              <span>Eneco</span>
+              <span>Essent</span>
+              <span>Budget Energie</span>
+              <span>Greenchoice</span>
+              <span className="text-bw-text-light">+13 meer</span>
+            </>
+          ) : (
+            <>
+              <span>Centraal Beheer</span>
+              <span>FBTO</span>
+              <span>a.s.r.</span>
+              <span>Interpolis</span>
+              <span>OHRA</span>
+              <span className="text-bw-text-light">+7 meer</span>
+            </>
+          )}
+        </div>
+      </div>
     </div>
   );
 }
