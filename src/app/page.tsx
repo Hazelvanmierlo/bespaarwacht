@@ -32,9 +32,9 @@ const energieCategories = [
 ];
 
 const reviews = [
-  { stars: 5, text: "\"Ik wist niet dat ik €340 per jaar te veel betaalde voor mijn autoverzekering. DeVerzekeringsAgent ontdekte het en regelde de overstap binnen een dag.\"", initials: "MV", name: "Marieke V.", loc: "Utrecht" },
-  { stars: 5, text: "\"Vorige maand kreeg ik een alert dat mijn zorgpremie omlaag kon. Weer €14 per maand bespaard! En het kostte me niks.\"", initials: "JB", name: "Jeroen B.", loc: "Amersfoort" },
-  { stars: 5, text: "\"Eindelijk een vergelijker die niet stopt na het afsluiten. Ik hoef nergens meer aan te denken — DeVerzekeringsAgent houdt alles in de gaten.\"", initials: "SH", name: "Sandra H.", loc: "Eindhoven" },
+  { stars: 5, text: "\"Ik wist niet dat ik €340 per jaar te veel betaalde voor mijn autoverzekering. DeVerzekeringsAgent ontdekte het en regelde de overstap binnen een dag.\"", initials: "MV", name: "Marieke V.", loc: "Utrecht", date: "18 maart 2026" },
+  { stars: 5, text: "\"Vorige maand kreeg ik een alert dat mijn zorgpremie omlaag kon. Weer €14 per maand bespaard! En het kostte me niks.\"", initials: "JB", name: "Jeroen B.", loc: "Amersfoort", date: "12 maart 2026" },
+  { stars: 5, text: "\"Eindelijk een vergelijker die niet stopt na het afsluiten. Ik hoef nergens meer aan te denken — DeVerzekeringsAgent houdt alles in de gaten.\"", initials: "SH", name: "Sandra H.", loc: "Eindhoven", date: "4 maart 2026" },
 ];
 
 const comparisonRows = [
@@ -396,17 +396,40 @@ export default function HomePage() {
                 {"★".repeat(review.stars)}
               </div>
               <div className="text-[14px] leading-relaxed text-bw-text mb-5">{review.text}</div>
-              <div className="flex items-center gap-3 pt-4 border-t border-bw-border">
-                <div className="w-9 h-9 rounded-full bg-gradient-to-br from-bw-blue-light to-bw-blue/20 text-bw-blue flex items-center justify-center font-bold text-xs">
-                  {review.initials}
+              <div className="flex items-center justify-between pt-4 border-t border-bw-border">
+                <div className="flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-full bg-gradient-to-br from-bw-blue-light to-bw-blue/20 text-bw-blue flex items-center justify-center font-bold text-xs">
+                    {review.initials}
+                  </div>
+                  <div>
+                    <div className="text-[13px] font-semibold text-bw-deep">{review.name}</div>
+                    <div className="text-[11.5px] text-bw-text-light">{review.loc}</div>
+                  </div>
                 </div>
-                <div>
-                  <div className="text-[13px] font-semibold text-bw-deep">{review.name}</div>
-                  <div className="text-[11.5px] text-bw-text-light">{review.loc}</div>
-                </div>
+                <div className="text-[10.5px] text-bw-text-light">{review.date}</div>
               </div>
             </div>
           ))}
+        </div>
+      </section>
+
+      {/* TRUST / PERSONAL */}
+      <section className="py-12 px-6 bg-bw-bg border-t border-bw-border">
+        <div className="max-w-[800px] mx-auto flex flex-col sm:flex-row items-center gap-6 sm:gap-10">
+          <div className="flex-1 text-center sm:text-left">
+            <p className="text-[15px] text-bw-text leading-relaxed mb-2">
+              &ldquo;Wij geloven dat iedereen recht heeft op de beste prijs voor zijn verzekeringen en energie. Daarom vergelijken wij gratis en bewaken we je premie 24/7.&rdquo;
+            </p>
+            <div className="text-[13px] font-semibold text-bw-deep">Thomas van Mierlo</div>
+            <div className="text-[12px] text-bw-text-light">Oprichter, DeVerzekeringsAgent</div>
+          </div>
+          <div className="flex flex-col items-center gap-2 shrink-0">
+            <div className="flex items-center gap-3 text-[12px] text-bw-text-light">
+              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md bg-white border border-bw-border font-medium">Wft geregistreerd</span>
+              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md bg-white border border-bw-border font-medium">KvK 91544467</span>
+            </div>
+            <div className="text-[11px] text-bw-text-light">Fraction B.V. &middot; Gevestigd in Amsterdam</div>
+          </div>
         </div>
       </section>
 
